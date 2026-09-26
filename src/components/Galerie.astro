@@ -1,0 +1,113 @@
+---
+// La grille de la galerie et sa visionneuse.
+//
+// La visionneuse est un <dialog> ouvert par showModal() : le navigateur y
+// garde le focus et le ferme sur Échap, sans script. Le script ajoute les
+// flèches (boutons et clavier), le balayage du doigt, la fermeture d'un clic
+// à côté, et rend le focus à la vignette d'où l'on vient.
+//
+// La grande image n'est demandée qu'à l'ouverture : son srcset attend sur le
+// bouton de la vignette (data-srcset), et le navigateur choisit sa taille.
+import Photo from './Photo.astro';
+import { grande, vignetteGalerie } from '../lib/images.js';
+import { T } from '../lib/textes.js';
+import { tx, typographier } from '../lib/typo.js';
+
+interface Props {
+  photos: { id: string; caption: string; image: any; width: number | null; height: number | null }[];
+}
+
+const { photos } = Astro.props;
+const tuiles = await Promise.all(
+  photos.map(async (p) => {
+    const taille = { width: p.width, height: p.height };
+    return { caption: p.caption, vignette: await vignetteGalerie(p.image, taille), grande: await grande(p.image, taille) };
+  })
+);
+---
+
+<div class="gallery">
+  {
+    tuiles.map((t, i) => (
+      <figure>
+        <button
+          type="button"
+          data-i={i}
+          data-srcset={t.grande.srcset}
+          data-src={t.grande.src}
+          data-sizes={t.grande.sizes}
+          data-legende={typographier(t.caption)}
+          aria-label={typographier(T.agrandir(t.caption))}
+        >
+          <Photo img={t.vignette} alt={t.caption} />
+        </button>
+        <figcaption set:html={tx(t.caption)} />
+      </figure>
+    ))
+  }
+</div>
+
+<dialog class="lightbox" aria-label={T.photoAgrandie}>
+  <button class="lb-close" type="button">{T.fermer}</button>
+  <button class="lb-prev" type="button" aria-label={T.photoPrécédente}>‹</button>
+  <img alt="" />
+  <button class="lb-next" type="button" aria-label={T.photoSuivante}>›</button>
+  <p class="lb-cap"></p>
+</dialog>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const boîte = document.querySelector<HTMLDialogElement>('dialog.lightbox');
+    if (!boîte) return;
+    const vignettes = [...document.querySelectorAll<HTMLButtonElement>('.gallery [data-i]')];
+    const image = boîte.querySelector('img')!;
+    const légende = boîte.querySelector<HTMLElement>('.lb-cap')!;
+    let position = 0;
+    let retour: HTMLElement | null = null;
+
+    const montrer = () => {
+      const v = vignettes[position];
+      image.srcset = v.dataset.srcset ?? '';
+      image.sizes = v.dataset.sizes ?? '100vw';
+      image.src = v.dataset.src ?? '';
+      image.alt = v.querySelector('img')?.alt ?? '';
+      légende.textContent = `${v.dataset.legende} · ${position + 1} / ${vignettes.length}`;
+    };
+    const avancer = (pas: number) => {
+      position = (position + pas + vignettes.length) % vignettes.length;
+      montrer();
+    };
+
+    vignettes.forEach((v, i) =>
+      v.addEventListener('click', () => {
+        retour = v;
+        position = i;
+        montrer();
+        boîte.showModal();
+        boîte.querySelector<HTMLElement>('.lb-close')?.focus();
+      })
+    );
+    boîte.querySelector('.lb-close')?.addEventListener('click', () => boîte.close());
+    boîte.querySelector('.lb-prev')?.addEventListener('click', () => avancer(-1));
+    boîte.querySelector('.lb-next')?.addEventListener('click', () => avancer(1));
+    // Un clic sur le fond (le dialogue lui-même, pas l'image ni un bouton) ferme.
+    boîte.addEventListener('click', (e) => {
+      if (e.target === boîte) boîte.close();
+    });
+    boîte.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') avancer(1);
+      if (e.key === 'ArrowLeft') avancer(-1);
+    });
+    boîte.addEventListener('close', () => retour?.focus());
+
+    // Le balayage : cinquante pixels décident.
+    let x0: number | null = null;
+    boîte.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
+    boîte.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) avancer(dx < 0 ? 1 : -1);
+      x0 = null;
+    });
+  });
+</script>
