@@ -71,6 +71,25 @@ test('spectacles : slugs, troupe, carrousel ordonné, point focal en %', async (
   assert.equal(entrées.get('les-femmes-se-vantent').data.cite, 'Karoo, novembre 2019');
 });
 
+test('spectacles : rangés dans l’ordre du CMS, quelle que soit la fin des téléchargements', async () => {
+  const { entrées, ctx } = contexte();
+  await L.spectaclesLoader().load(ctx);
+  assert.deepEqual([...entrées.keys()], ['linedit-de-moliere', 'par-endroits', 'les-femmes-se-vantent', 'un-choeur-silencieux']);
+});
+
+test('spectacles : sans spectacle de Bruxelles affichable, le build est refusé', async () => {
+  const spectacles = faux.base.collections.cliff_spectacles;
+  const héros = spectacles.map((s) => s.hero);
+  // Tous les belges sans grande photo : le CMS rend des lignes, le site n'en garde que Montréal.
+  for (const s of spectacles) if (s.troupe === 'bruxelles') s.hero = null;
+  try {
+    const { ctx } = contexte();
+    await assert.rejects(L.spectaclesLoader().load(ctx), /Aucun spectacle de Bruxelles/);
+  } finally {
+    spectacles.forEach((s, i) => (s.hero = héros[i]));
+  }
+});
+
 test('photos : légendes, galerie, et purge qui garde les fichiers affichés', async () => {
   const { ctx: c1 } = contexte();
   await L.spectaclesLoader().load(c1);

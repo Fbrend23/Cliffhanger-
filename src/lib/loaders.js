@@ -80,24 +80,20 @@ export function spectaclesLoader() {
           `&deep[slides][_sort]=sort`
       );
 
-      if (!lignes.length) {
-        throw new Error(
-          'Aucun spectacle publié dans le CMS. Le site ne sera pas reconstruit : ' +
-            "le déploiement précédent reste en ligne, ce qui vaut mieux qu'un accueil vide."
-        );
-      }
-
-      store.clear();
-      await mapLimit(lignes, 3, async (s) => {
+      // Les téléchargements se font en parallèle, mais les entrées sont
+      // rangées ensuite dans l'ordre reçu du CMS : rangées au fil des
+      // téléchargements, deux spectacles jamais triés dans le Studio
+      // changeaient de place d'un build à l'autre.
+      const entrées = await mapLimit(lignes, 3, async (s) => {
         const slug = texte(s.slug);
         const title = texte(s.title);
         if (!slug || !title) {
           logger.warn(`spectacle ${s.id} sans slug ou sans titre : ignoré`);
-          return;
+          return null;
         }
         if (!s.hero?.id) {
           logger.warn(`spectacle « ${title} » sans grande photo : ignoré`);
-          return;
+          return null;
         }
         signalerTirets(logger, `spectacle « ${title} »`, [s.title, s.punch, s.cite, s.text, s.credit, s.duration]);
         const hero = await assurerFichier(s.hero, cache, logger);
@@ -124,17 +120,30 @@ export function spectaclesLoader() {
             slides: (s.slides ?? []).map((l) => l?.[`${PHOTOS}_id`]).filter((id) => id != null).map(String),
           },
         });
-        store.set({
+        return {
           id: slug,
           data,
           filePath: MANIFEST_REL,
           // Tout ce qui se rend : le point focal se déplace sans que le
           // fichier change, il doit invalider l'entrée lui aussi.
           digest: JSON.stringify([s, s.hero?.modified_on, s.poster?.modified_on]),
-        });
+        };
       });
       await cache.enregistrer();
-      logger.info(`${lignes.length} spectacle(s) chargé(s)`);
+
+      // La garde porte sur ce qui sera affiché, pas sur ce que le CMS a
+      // rendu : des spectacles tous sans photo, ou seulement celui de
+      // Montréal, publieraient eux aussi un accueil vide.
+      const gardées = entrées.filter((e) => e !== null);
+      if (!gardées.some((e) => e.data.troupe === 'bruxelles')) {
+        throw new Error(
+          'Aucun spectacle de Bruxelles publié et complet (titre, slug, grande photo) dans le CMS. ' +
+            "Le site ne sera pas reconstruit : le déploiement précédent reste en ligne, ce qui vaut mieux qu'un accueil vide."
+        );
+      }
+      store.clear();
+      for (const e of gardées) store.set(e);
+      logger.info(`${gardées.length} spectacle(s) chargé(s)`);
     },
   };
 }
@@ -168,16 +177,17 @@ export function photosLoader() {
       for (const s of autres) for (const l of s.slides ?? []) if (l?.[`${PHOTOS}_id`] != null) servies.add(String(l[`${PHOTOS}_id`]));
       for (const f of FONDS) if (réglages?.[f] != null) servies.add(String(réglages[f]));
 
-      store.clear();
       let ignorées = 0;
-      await mapLimit(photos, 3, async (p) => {
+      // Même règle que les spectacles : téléchargées en parallèle, rangées
+      // dans l'ordre du CMS.
+      const entrées = await mapLimit(photos, 3, async (p) => {
         if (!p.galerie && !servies.has(String(p.id))) {
           ignorées++;
-          return;
+          return null;
         }
         if (!p.image?.id) {
           logger.warn(`photo ${p.id} sans image : ignorée`);
-          return;
+          return null;
         }
         // La légende retombe sur le titre du spectacle, sinon « Coulisses » :
         // elle est aussi le texte alternatif, et une photo n'en est jamais
@@ -199,8 +209,10 @@ export function photosLoader() {
             focal: pointFocal(p.image),
           },
         });
-        store.set({ id, data, filePath: MANIFEST_REL, digest: JSON.stringify([p, p.image.modified_on]) });
+        return { id, data, filePath: MANIFEST_REL, digest: JSON.stringify([p, p.image.modified_on]) };
       });
+      store.clear();
+      for (const e of entrées) if (e) store.set(e);
 
       // Ce que le cache doit garder : tout fichier encore affiché. Le reste
       // (photos supprimées, dépubliées ou qui ne servent plus, affiches
