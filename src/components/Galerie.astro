@@ -56,6 +56,10 @@ const tuiles = await Promise.all(
 </dialog>
 
 <script>
+  // Les textes restent dans le dictionnaire : le script l'importe, Vite le
+  // met dans le paquet du navigateur.
+  import { T } from '../lib/textes.js';
+
   document.addEventListener('astro:page-load', () => {
     const boîte = document.querySelector<HTMLDialogElement>('dialog.lightbox');
     if (!boîte) return;
@@ -71,7 +75,7 @@ const tuiles = await Promise.all(
       image.sizes = v.dataset.sizes ?? '100vw';
       image.src = v.dataset.src ?? '';
       image.alt = v.querySelector('img')?.alt ?? '';
-      légende.textContent = `${v.dataset.legende} · ${position + 1} / ${vignettes.length}`;
+      légende.textContent = T.légendeVisionneuse(v.dataset.legende ?? '', position + 1, vignettes.length);
     };
     const avancer = (pas: number) => {
       position = (position + pas + vignettes.length) % vignettes.length;

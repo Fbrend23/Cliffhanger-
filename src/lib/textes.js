@@ -55,6 +55,8 @@ export const T = {
   coulisses: 'Coulisses',
   agrandir: (légende) => `Agrandir la photo : ${légende}`,
   photoAgrandie: 'Photo agrandie',
+  // La légende de la visionneuse : « Coulisses · 3 / 9 ».
+  légendeVisionneuse: (légende, position, total) => `${légende} · ${position} / ${total}`,
   fermer: 'Fermer',
 
   montreal: 'Montréal',
