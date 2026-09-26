@@ -1,0 +1,58 @@
+# Vérification du site, sans le publier.
+#
+# À chaque poussée sur dev (et sur une PR), le même build que le
+# déploiement : une erreur de type, un loader qui refuse, une page qui ne
+# se rend pas se voient ici, avant le merge vers main, et non au moment de
+# mettre en ligne. Rien n'est écrit nulle part : ni FTP, ni date dans le CMS.
+#
+# Le cache des images est lu mais jamais réécrit (actions/cache/restore) :
+# la clé cliff-images-<run> est celle du déploiement, qui a la version la
+# plus récente ; un build de vérification n'a pas à la remplacer.
+
+name: Vérification
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Europe/Brussels
+      SITE_URL: ${{ vars.SITE_URL }}
+      DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
+      DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit --no-fund
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            .cache/directus-assets
+            node_modules/.astro
+          key: cliff-images-verification
+          restore-keys: cliff-images-
+
+      - name: Vérifier les types
+        run: npm run check
+
+      # Les fonctions pures (dates, générique, typographie, données
+      # structurées) et les loaders contre le faux Directus : sans le CMS.
+      - name: Tests unitaires
+        run: npm test
+
+      - name: Construire le site
+        run: npm run build
