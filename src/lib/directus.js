@@ -141,11 +141,24 @@ export function ouvrirCache(racine) {
       } catch {
         // Pas de manifeste : premier build, ou cache effacé. Tout sera téléchargé.
       }
+      // Les écritures du manifeste passent l'une après l'autre, et chacune
+      // par un fichier temporaire renommé : trois loaders enregistrent en
+      // parallèle, et deux writeFile qui se chevauchent pouvaient laisser un
+      // JSON tronqué. Le build suivant l'aurait pris pour un cache vide (la
+      // lecture ci-dessus avale l'erreur), retéléchargé tout, et le cache du
+      // CI aurait gardé le fichier cassé.
+      let file = Promise.resolve();
+      const écrire = async () => {
+        const cible = path.join(dossier, 'manifest.json');
+        await writeFile(`${cible}.part`, JSON.stringify(manifest, null, 2));
+        await rename(`${cible}.part`, cible);
+      };
       return {
         dossier,
         manifest,
-        async enregistrer() {
-          await writeFile(path.join(dossier, 'manifest.json'), JSON.stringify(manifest, null, 2));
+        enregistrer() {
+          file = file.then(écrire, écrire);
+          return file;
         },
       };
     })();
@@ -172,7 +185,7 @@ export function ouvrirCache(racine) {
 export async function purgerCache(cache, garder) {
   let retirés = 0;
   for (const nom of await readdir(cache.dossier)) {
-    if (nom === 'manifest.json') continue;
+    if (nom.startsWith('manifest.json')) continue;
     const id = /^([^.]+)\./.exec(nom)?.[1] ?? '';
     if (garder.has(id)) continue;
     await unlink(path.join(cache.dossier, nom));

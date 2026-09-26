@@ -3,7 +3,7 @@
 // qu'ils rangent est ce que les pages attendent. Sans le vrai CMS ni jeton.
 
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { registerHooks } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -100,6 +100,14 @@ test('photos : une photo qui ne sert nulle part est laissée de côté', async (
   } finally {
     photos.pop();
   }
+});
+
+test('le manifeste reste un JSON valide quand trois loaders enregistrent ensemble', async () => {
+  const [a, b, c] = [contexte(), contexte(), contexte()];
+  await Promise.all([L.spectaclesLoader().load(a.ctx), L.photosLoader().load(b.ctx), L.reglagesLoader().load(c.ctx)]);
+  const texteManifeste = await readFile(path.join(racine, '.cache', 'directus-assets', 'manifest.json'), 'utf8');
+  const manifeste = JSON.parse(texteManifeste);
+  assert.ok(Object.keys(manifeste).length > 10);
 });
 
 test('personnes : groupes, Marie-Hélène Ruiz invitée, bio en HTML', async () => {
