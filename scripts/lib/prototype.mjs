@@ -11,6 +11,8 @@
 
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+// Le même échappement que le site : typo.js est pur, sans rien d'Astro.
+import { échapper } from '../../src/lib/typo.js';
 
 /**
  * Les constantes de content.js. Le fichier est un script de navigateur, sans
@@ -42,7 +44,6 @@ export const RÉGLAGES_EN_DUR = {
 // (`object-position: 50% 30%`) : il devient le point focal de son fichier.
 const FOCUS_EN_DUR = { 'noir-blanc': '50% 30%' };
 
-const échapper = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 /** Des paragraphes du prototype (`text: [...]`) au HTML du champ riche. */
 export const enParagraphes = (lignes) => (lignes?.length ? lignes.map((p) => `<p>${échapper(p)}</p>`).join('') : null);
