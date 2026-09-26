@@ -20,9 +20,11 @@ if (!commande) {
 
 const faux = await démarrer(0);
 console.log(`Faux Directus sur ${faux.url}`);
-const enfant = spawn(commande, args, {
+// Une seule chaîne, par le shell : npm est un .cmd sous Windows, et Node
+// refuse désormais de lui passer des arguments séparés sans échappement.
+const enfant = spawn([commande, ...args].join(' '), {
   stdio: 'inherit',
-  shell: process.platform === 'win32',
+  shell: true,
   env: { ...process.env, DIRECTUS_URL: faux.url, DIRECTUS_TOKEN: 'faux', SITE_URL: process.env.SITE_URL ?? 'https://www.exemple-cliffhanger.test' },
 });
 enfant.on('exit', async (code) => {

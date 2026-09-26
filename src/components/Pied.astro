@@ -1,0 +1,15 @@
+---
+// Le pied : une ligne. Épinglé en bas de l'écran sur les pages plein écran
+// (accueil, spectacles, contact), à la suite du contenu ailleurs. C'est, avec
+// /montreal/, le seul endroit où Montréal apparaît.
+import { T } from '../lib/textes.js';
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  epingle?: boolean;
+}
+
+const { epingle = false } = Astro.props;
+---
+
+<p class:list={['foot', { 'foot--pinned': epingle }]} set:html={tx(T.pied(new Date().getFullYear()))} />

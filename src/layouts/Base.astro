@@ -1,0 +1,263 @@
+---
+// Le gabarit unique : en-tête, burger, menu (sa vidéo), le contenu de la page,
+// et tout ce que la tête doit dire (titre, description, adresse canonique,
+// partages, données structurées). Les réglages viennent du CMS, une fois par
+// build.
+//
+// Changement de page : le ClientRouter d'Astro, avec une animation sur la
+// racine. L'image de l'ancienne page reste en place, figée, et la nouvelle
+// apparaît en fondu par-dessus en 0,7 s : photo sur photo, jamais par le noir
+// (voir `fondu` ci-dessous et site.css). Sans l'API View Transitions, le
+// repli est `swap` : un remplacement net, plutôt qu'un fondu qui passerait
+// par le noir. `prefers-reduced-motion` : Astro coupe l'animation.
+//
+// Le burger et le menu sont `transition:persist` : la vidéo, une fois
+// chargée, ne se recharge pas à chaque page.
+import { getEntry } from 'astro:content';
+import { ClientRouter } from 'astro:transitions';
+import { getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import logo from '../assets/logo-arc-en-ciel.webp';
+import { og } from '../lib/images.js';
+import type { Réactive } from '../lib/images.js';
+import { T } from '../lib/textes.js';
+import { typographier } from '../lib/typo.js';
+import '../styles/site.css';
+
+interface Props {
+  title?: string;
+  description?: string | null;
+  // L'image des partages de cette page (une affiche, une grande photo).
+  image?: ImageMetadata | null;
+  // La photo du haut, préchargée : c'est le premier téléchargement de la page.
+  precharger?: Réactive | null;
+  // Les données structurées (schema.org), sans le contexte : il est posé ici.
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
+}
+
+const { title, description = null, image = null, precharger = null, jsonLd = null } = Astro.props;
+
+const site = (await getEntry('reglages', 'site'))!.data;
+
+// Le titre de l'onglet suit le prototype : « Page · Compagnie Cliffhanger ».
+const titreComplet = typographier(title ? `${title} · ${site.site_title}` : site.site_title);
+const résumé = description ?? site.site_description ?? T.descriptionParDéfaut;
+const canonique = new URL(Astro.url.pathname, Astro.site).toString();
+
+// L'image des partages : celle de la page, sinon celle des réglages, sinon
+// le fond d'accueil ; rien plutôt qu'une image fausse.
+let ogSource = image ?? site.og_image;
+if (!ogSource && site.fonds.accueil) ogSource = (await getEntry('photos', site.fonds.accueil))?.data.image ?? null;
+const ogUrl = ogSource ? new URL(await og(ogSource), Astro.site).toString() : null;
+
+// Le logo arc-en-ciel du menu : chargé seulement à la première ouverture
+// (data-src), comme dans le prototype.
+const logoMenu = await getImage({ src: logo, width: 384, format: 'webp' });
+
+// Le lien du menu vers la rubrique en cours : la première partie de
+// l'adresse, comme le prototype (une fiche spectacle n'allume pas « Spectacles »).
+const rubrique = `/${Astro.url.pathname.split('/').filter(Boolean)[0] ?? ''}/`;
+
+const ld = jsonLd
+  ? JSON.stringify(Array.isArray(jsonLd) ? jsonLd.map((o) => ({ '@context': 'https://schema.org', ...o })) : { '@context': 'https://schema.org', ...jsonLd }).replace(
+      /</g,
+      '\\u003c'
+    )
+  : null;
+
+// Le fondu de page, posé sur la racine : l'ancienne image reste pleine
+// pendant que la nouvelle monte. Les deux durent 0,7 s, pour que l'ancienne
+// ne disparaisse pas avant que la nouvelle soit là.
+const fondu = {
+  old: { name: 'cliffReste', duration: '0.7s', easing: 'linear', fillMode: 'both' },
+  new: { name: 'cliffFondu', duration: '0.7s', easing: 'ease', fillMode: 'both' },
+};
+const animation = { forwards: fondu, backwards: fondu };
+---
+
+<!doctype html>
+<html lang="fr" transition:animate={animation} transition:name="root">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <title set:html={titreComplet} />
+    <meta name="description" content={résumé} />
+    <link rel="canonical" href={canonique} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_BE" />
+    <meta property="og:site_name" content={site.site_title} />
+    <meta property="og:title" content={title ?? site.site_title} />
+    <meta property="og:description" content={résumé} />
+    <meta property="og:url" content={canonique} />
+    {ogUrl && <meta property="og:image" content={ogUrl} />}
+    <meta name="twitter:card" content={ogUrl ? 'summary_large_image' : 'summary'} />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="preload" href="/fonts/jost-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/archivo-800-latin.woff2" as="font" type="font/woff2" crossorigin />
+    {precharger && <link rel="preload" as="image" href={precharger.src} imagesrcset={precharger.srcset} imagesizes={precharger.sizes} fetchpriority="high" />}
+    {site.head_verification && <Fragment set:html={site.head_verification} />}
+    {ld && <script type="application/ld+json" set:html={ld} />}
+    <script is:inline>
+      // Avec JS : le burger remplace la ligne de liens (site.css). Le routeur
+      // recopie les attributs de <html> de la page suivante, qui n'a pas la
+      // classe : on la remet après chaque changement.
+      document.documentElement.classList.add('js');
+      if (!window.__cliffJs) {
+        window.__cliffJs = true;
+        document.addEventListener('astro:after-swap', () => document.documentElement.classList.add('js'));
+      }
+    </script>
+    <ClientRouter fallback="swap" />
+  </head>
+  <body>
+    <a class="skip" href="#contenu">{T.allerAuContenu}</a>
+    <header class="mh">
+      <a href="/" class="mh__logo" translate="no" set:html={typographier(site.site_title)} />
+    </header>
+    <button class="burger" id="burger" aria-label={T.menuOuvrir} aria-expanded="false" aria-controls="menu" data-ouvrir={T.menuOuvrir} data-fermer={T.menuFermer} transition:persist="burger">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect class="s1" y="4" width="32" height="4"></rect><rect class="s2" y="14" width="32" height="4"></rect><rect class="s3" y="24" width="32" height="4"></rect></svg>
+    </button>
+    <nav class="menu" id="menu" aria-label={T.menuPrincipal} transition:persist="menu">
+      <video class="menu__bg" id="menuVideo" muted loop playsinline preload="none" data-poster="/menu-poster.webp" aria-hidden="true">
+        <source src="/menu.mp4" type="video/mp4" />
+      </video>
+      <ul>
+        <li style="--i:0" aria-hidden="true"><img class="menu__logo" data-src={logoMenu.src} alt="" width="384" height="384" /></li>
+        {
+          T.menu.map((l, i) => (
+            <li style={`--i:${i + 1}`}>
+              <a href={l.href} aria-current={l.href === rubrique ? 'page' : undefined} set:html={typographier(l.label)} />
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <main id="contenu" tabindex="-1">
+      <slot />
+    </main>
+
+    <script>
+      // Les comportements communs à toutes les pages. Ce module ne s'exécute
+      // qu'une fois (le routeur ne recharge pas la page) : ce qui dépend de la
+      // page en cours se relance sur `astro:page-load`, le reste passe par des
+      // écouteurs délégués sur le document, qui survivent aux changements.
+      const mouvementRéduit = matchMedia('(prefers-reduced-motion: reduce)');
+      const burger = () => document.getElementById('burger');
+      const menu = () => document.getElementById('menu');
+
+      // --- Le menu -----------------------------------------------------------
+      function ouvrirMenu(ouvert: boolean) {
+        const b = burger();
+        const m = menu();
+        const vidéo = document.getElementById('menuVideo') as HTMLVideoElement | null;
+        if (!b || !m || !vidéo) return;
+        document.body.classList.toggle('menu-open', ouvert);
+        b.setAttribute('aria-expanded', String(ouvert));
+        b.setAttribute('aria-label', (ouvert ? b.dataset.fermer : b.dataset.ouvrir) ?? '');
+        if (ouvert) {
+          // Le logo et l'image de la vidéo ne partent qu'à la première ouverture.
+          m.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((i) => {
+            i.src = i.dataset.src!;
+            i.removeAttribute('data-src');
+          });
+          if (vidéo.dataset.poster) {
+            vidéo.poster = vidéo.dataset.poster;
+            delete vidéo.dataset.poster;
+          }
+          if (!mouvementRéduit.matches) vidéo.play().catch(() => {});
+          m.querySelector('a')?.focus({ preventScroll: true });
+        } else {
+          setTimeout(() => {
+            if (!document.body.classList.contains('menu-open')) vidéo.pause();
+          }, 300);
+        }
+      }
+      const menuOuvert = () => document.body.classList.contains('menu-open');
+
+      document.addEventListener('click', (e) => {
+        const cible = e.target as Element;
+        if (cible.closest('#burger')) {
+          const ouvrir = !menuOuvert();
+          ouvrirMenu(ouvrir);
+          if (!ouvrir) burger()?.focus();
+        } else if (cible.closest('#menu a')) {
+          // Un lien vers la page déjà affichée ne change rien : on ferme quand même.
+          ouvrirMenu(false);
+        }
+      });
+
+      // Tab reste dans le menu ouvert ; Échap le ferme.
+      document.addEventListener('keydown', (e) => {
+        if (!menuOuvert()) return;
+        if (e.key === 'Escape') {
+          ouvrirMenu(false);
+          burger()?.focus();
+        } else if (e.key === 'Tab') {
+          const cibles = [burger(), ...(menu()?.querySelectorAll('a') ?? [])].filter((n): n is HTMLElement => !!n && n.getClientRects().length > 0);
+          const premier = cibles[0];
+          const dernier = cibles[cibles.length - 1];
+          if (e.shiftKey && document.activeElement === premier) {
+            e.preventDefault();
+            dernier?.focus();
+          } else if (!e.shiftKey && document.activeElement === dernier) {
+            e.preventDefault();
+            premier?.focus();
+          }
+        }
+      });
+
+      // Le burger et le menu survivent au changement de page : on les remet
+      // fermés, et l'on rallume le lien de la nouvelle rubrique.
+      document.addEventListener('astro:before-swap', () => ouvrirMenu(false));
+      document.addEventListener('astro:page-load', () => {
+        const rubrique = `/${location.pathname.split('/').filter(Boolean)[0] ?? ''}/`;
+        menu()
+          ?.querySelectorAll('a')
+          .forEach((a) => {
+            if (a.getAttribute('href') === rubrique) a.setAttribute('aria-current', 'page');
+            else a.removeAttribute('aria-current');
+          });
+      });
+
+      // --- Apparition en cascade ------------------------------------------------
+      // Chaque bloc glisse en place, l'un après l'autre, à chaque page.
+      const CASCADE = '.list li, .phead hgroup > *, .title--page, .pills, .section, .gallery figure, .contact__inner > *';
+      document.addEventListener('astro:page-load', () => {
+        if (mouvementRéduit.matches) return;
+        document.querySelectorAll<HTMLElement>(`main ${CASCADE.split(', ').join(', main ')}`).forEach((el, i) => {
+          el.style.setProperty('--d', `${Math.min(0.1 + i * 0.07, 0.9)}s`);
+          el.classList.add('rise');
+        });
+      });
+
+      // --- Défilement : Découvrir s'efface, la grande photo se floute ----------
+      let enAttente = false;
+      addEventListener(
+        'scroll',
+        () => {
+          if (enAttente || mouvementRéduit.matches) return;
+          enAttente = true;
+          requestAnimationFrame(() => {
+            enAttente = false;
+            document.querySelectorAll('.js-hint').forEach((h) => h.classList.toggle('hint--gone', scrollY > 40));
+            const héros = document.querySelector<HTMLElement>('.js-hero');
+            if (!héros) return;
+            const p = Math.min(1, Math.max(0, (scrollY / innerHeight - 0.5) * 2));
+            héros.style.filter = p ? `blur(${(p * 2).toFixed(2)}rem)` : '';
+          });
+        },
+        { passive: true }
+      );
+
+      // Découvrir : défile jusqu'à la première section sous la photo.
+      document.addEventListener('click', (e) => {
+        if (!(e.target as Element).closest('.js-hint')) return;
+        document.querySelector('.phead + .section')?.scrollIntoView({ behavior: mouvementRéduit.matches ? 'auto' : 'smooth' });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+---
+// Un <img> rendu par une taille de lib/images.js : srcset WebP, dimensions
+// réelles pour réserver la place, chargement paresseux sauf la photo du haut.
+//
+// `differee` : les photos de survol de l'accueil et de la liste. Leur srcset
+// est gardé dans data-srcset, et le script de Fond.astro le pose au repos
+// (requestIdleCallback) ou au premier survol, pour qu'elles ne concurrencent
+// jamais la photo visible.
+import type { Réactive } from '../lib/images.js';
+
+interface Props {
+  img: Réactive;
+  alt?: string;
+  eager?: boolean;
+  differee?: boolean;
+  class?: string;
+  style?: string;
+}
+
+const { img, alt = '', eager = false, differee = false, class: classe, style } = Astro.props;
+---
+
+{
+  differee ? (
+    <img class={classe} data-srcset={img.srcset} data-src={img.src} sizes={img.sizes} width={img.width} height={img.height} alt={alt} decoding="async" style={style} />
+  ) : (
+    <img
+      class={classe}
+      src={img.src}
+      srcset={img.srcset}
+      sizes={img.sizes}
+      width={img.width}
+      height={img.height}
+      alt={alt}
+      loading={eager ? undefined : 'lazy'}
+      fetchpriority={eager ? 'high' : undefined}
+      decoding="async"
+      style={style}
+    />
+  )
+}
