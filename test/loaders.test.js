@@ -88,6 +88,20 @@ test('photos : légendes, galerie, et purge qui garde les fichiers affichés', a
   assert.ok(fichiers.length > 10, 'les grandes photos et affiches des spectacles restent');
 });
 
+test('photos : une photo qui ne sert nulle part est laissée de côté', async () => {
+  const photos = faux.base.collections.cliff_photos;
+  const modèle = photos.find((p) => p.caption === 'Coulisses');
+  photos.push({ ...modèle, id: 999, sort: 999, galerie: false, caption: 'Inutile' });
+  try {
+    const { entrées, ctx } = contexte();
+    await L.photosLoader().load(ctx);
+    assert.ok(!entrées.has('999'));
+    assert.ok(entrées.has(String(modèle.id)));
+  } finally {
+    photos.pop();
+  }
+});
+
 test('personnes : groupes, Marie-Hélène Ruiz invitée, bio en HTML', async () => {
   const { entrées, ctx } = contexte();
   await L.personnesLoader().load(ctx);

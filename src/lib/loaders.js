@@ -34,6 +34,9 @@ export const PHOTOS = 'cliff_photos';
 export const MONTREAL = 'cliff_montreal';
 export const REGLAGES = 'cliff_reglages';
 
+/** Les fonds de page des réglages : des ids de photos. */
+const FONDS = ['fond_accueil', 'fond_spectacles', 'fond_agenda', 'fond_compagnie', 'fond_contact'];
+
 /** Le filtre ceinture : la policy du build l'impose déjà. */
 const PUBLIÉ = 'filter[status][_eq]=published';
 
@@ -139,10 +142,16 @@ export function spectaclesLoader() {
 /**
  * La photothèque : galerie, carrousels, fonds de page, dans l'ordre du Studio.
  *
- * C'est aussi ici que le cache est purgé, une fois les photos connues : on
- * relit, en deux petites requêtes, les autres fichiers que le site affiche
- * (grandes photos et affiches des spectacles, image de partage des réglages)
- * pour ne jeter que ce que plus rien n'utilise.
+ * SEULES LES PHOTOS AFFICHÉES SONT CHARGÉES : celles de la galerie, des
+ * carrousels et des fonds de page. Astro émet dans dist/ l'original de tout
+ * champ image() qu'aucune page ne transforme ; une photo rangée dans la
+ * photothèque sans servir nulle part partirait donc en ligne en pleine
+ * résolution, sans lien pour y mener. On relit pour ça, en deux petites
+ * requêtes, les carrousels des spectacles et les fonds des réglages.
+ *
+ * C'est aussi ici que le cache est purgé, avec les autres fichiers que le
+ * site affiche (grandes photos et affiches des spectacles, image de partage
+ * des réglages), pour ne jeter que ce que plus rien n'utilise.
  */
 export function photosLoader() {
   return {
@@ -153,8 +162,19 @@ export function photosLoader() {
         `/items/${PHOTOS}?${PUBLIÉ}&sort=sort,id&fields=id,sort,caption,galerie,spectacle.slug,spectacle.title,${champsFichier('image')}`
       );
 
+      const autres = await requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=hero,poster,slides.${PHOTOS}_id`);
+      const réglages = await request(`/items/${REGLAGES}?fields=og_image,${FONDS.join(',')}`);
+      const servies = new Set();
+      for (const s of autres) for (const l of s.slides ?? []) if (l?.[`${PHOTOS}_id`] != null) servies.add(String(l[`${PHOTOS}_id`]));
+      for (const f of FONDS) if (réglages?.[f] != null) servies.add(String(réglages[f]));
+
       store.clear();
+      let ignorées = 0;
       await mapLimit(photos, 3, async (p) => {
+        if (!p.galerie && !servies.has(String(p.id))) {
+          ignorées++;
+          return;
+        }
         if (!p.image?.id) {
           logger.warn(`photo ${p.id} sans image : ignorée`);
           return;
@@ -183,18 +203,17 @@ export function photosLoader() {
       });
 
       // Ce que le cache doit garder : tout fichier encore affiché. Le reste
-      // (photos supprimées ou dépubliées, affiches remplacées) s'en va, sinon
-      // le cache ne fait que grossir.
-      const autres = await requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=hero,poster`);
-      const réglages = await request(`/items/${REGLAGES}?fields=og_image`);
-      const garder = new Set(photos.map((p) => p.image?.id).filter(Boolean));
+      // (photos supprimées, dépubliées ou qui ne servent plus, affiches
+      // remplacées) s'en va, sinon le cache ne fait que grossir.
+      const garder = new Set(photos.filter((p) => p.galerie || servies.has(String(p.id))).map((p) => p.image?.id).filter(Boolean));
       for (const s of autres) for (const f of [s.hero, s.poster]) if (f) garder.add(String(f));
       if (réglages?.og_image) garder.add(String(réglages.og_image));
       const retirés = await purgerCache(cache, garder);
       if (retirés) logger.info(`cache : ${retirés} fichier(s) retiré(s)`);
 
       await cache.enregistrer();
-      logger.info(`${photos.length} photo(s) chargée(s)`);
+      if (ignorées) logger.info(`${ignorées} photo(s) ni en galerie, ni en carrousel, ni en fond : laissée(s) de côté`);
+      logger.info(`${photos.length - ignorées} photo(s) chargée(s)`);
     },
   };
 }
