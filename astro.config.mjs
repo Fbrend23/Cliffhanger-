@@ -1,15 +1,24 @@
 // @ts-check
 import { defineConfig, envField } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import { loadEnv } from 'vite';
+
+// Astro ne charge le .env qu'après avoir lu cette configuration : sans
+// loadEnv, un SITE_URL écrit dans .env était ignoré en local, et seul celui
+// du shell (la CI) comptait. Préfixe vide : toutes les variables, celles du
+// shell primant sur le fichier. vite vient avec Astro (c'est ce que sa
+// documentation fait) : pas de dépendance à part, qui risquerait une seconde
+// version.
+const { SITE_URL } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), '');
 
 // https://astro.build/config
 export default defineConfig({
-  // Fourni par le workflow (variable de dépôt SITE_URL, le domaine n'est pas
-  // encore choisi). Sans lui, le sitemap, l'adresse canonique et les balises
+  // Le .env en local, la variable de dépôt SITE_URL en CI (le domaine n'est
+  // pas encore choisi). Sans lui, le sitemap, l'adresse canonique et les balises
   // Open Graph porteraient des adresses locales : des URL fausses sur un site
   // qui, lui, se construirait parfaitement. En développement, localhost est
   // la bonne réponse.
-  site: process.env.SITE_URL ?? 'http://localhost:4321',
+  site: SITE_URL || 'http://localhost:4321',
 
   // /spectacle/par-endroits/ et non /spectacle/par-endroits : Apache sert un
   // dossier avec son index.html, et une adresse sans barre finale lui ferait
