@@ -1,0 +1,51 @@
+---
+// La compagnie : la photo et les textes des réglages, puis l'équipe
+// bruxelloise, chaque nom vers sa fiche, avec les spectacles belges de chacun.
+// Les invités (l'autrice de L'Inédit) et le collectif de Montréal n'y sont
+// pas : ils ont leur fiche et leurs génériques. Le lien vers Montréal vit
+// dans le texte riche.
+import Base from '../../layouts/Base.astro';
+import Pied from '../../components/Pied.astro';
+import TableauDates from '../../components/TableauDates.astro';
+import TeteDePage from '../../components/TeteDePage.astro';
+import { contenu } from '../../lib/contenu.js';
+import { joindreFr, projetsDe } from '../../lib/generique.js';
+import { cadrage, heros } from '../../lib/images.js';
+import { T } from '../../lib/textes.js';
+import { tx, typographier } from '../../lib/typo.js';
+
+const c = await contenu();
+const r = c.reglages;
+const fond = c.photo(r.fonds.compagnie);
+const img = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+
+const équipe = c.personnes
+  .filter((p) => p.groupe === 'equipe')
+  .map((p) => [
+    { html: `<a class="person" href="/personne/${p.slug}/">${tx(p.name)}</a>` },
+    { html: tx(joindreFr(projetsDe(p.slug, c.belges, c.lignesParSpectacle).map((x) => x.spectacle.title))) },
+  ]);
+---
+
+<Base title={T.laCompagnie} description={r.compagnie_punch} image={fond?.image ?? null} precharger={img}>
+  <article>
+    <TeteDePage img={img} alt={fond?.caption ?? ''} style={cadrage(fond?.focal)} titre={T.laCompagnie} sous={r.compagnie_sub} />
+    {r.compagnie_punch && <div class="section wrap"><p class="punch" set:html={tx(r.compagnie_punch)} /></div>}
+    {
+      r.compagnie_text && (
+        <div class="section wrap">
+          <div class="prose prose--justify" set:html={typographier(r.compagnie_text)} />
+        </div>
+      )
+    }
+    {
+      équipe.length > 0 && (
+        <div class="section wrap">
+          <h2 class="label" set:html={tx(T.léquipe)} />
+          <TableauDates lignes={équipe} equipe />
+        </div>
+      )
+    }
+    <Pied />
+  </article>
+</Base>

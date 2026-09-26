@@ -10,7 +10,8 @@ import { T } from '../lib/textes.js';
 import { tx } from '../lib/typo.js';
 
 interface Props {
-  img: Réactive;
+  // Sans photo (un fond retiré des réglages), le titre reste, sur le noir.
+  img: Réactive | null;
   alt: string;
   style?: string;
   titre: string;
@@ -24,7 +25,7 @@ const { img, alt, style, titre, sous = null, credit = null, sansTraduction = fal
 ---
 
 <header class="phead">
-  <figure><Photo img={img} alt={alt} eager class="js-hero" style={style} /></figure>
+  {img && <figure><Photo img={img} alt={alt} eager class="js-hero" style={style} /></figure>}
   <button class="hint js-hint" type="button" aria-label={T.voirLaSuite}><span>{T.découvrir}</span><span class="hint__line" aria-hidden="true"></span></button>
   <hgroup>
     <h1 class="title title--xl" translate={sansTraduction ? 'no' : undefined} set:html={tx(titre)} />
