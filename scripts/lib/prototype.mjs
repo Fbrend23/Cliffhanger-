@@ -128,6 +128,9 @@ export function modèleDuPrototype({ CONTACT, PEOPLE, SHOWS, MONTREAL, GALLERY, 
     });
     for (const c of s.credits ?? []) {
       if (c.role === 'Avec') {
+        // La distribution est une autre collection ; une ligne « Avec » sans
+        // personne garde sa place dans le générique (src/lib/generique.js).
+        generique.push({ spectacle: s.slug, role: 'Avec', note: null, personnes: [], text: null });
         for (const p of c.people ?? []) {
           const [personne, personnage] = Array.isArray(p) ? p : [p, null];
           distribution.push({ spectacle: s.slug, personne, personnage });
