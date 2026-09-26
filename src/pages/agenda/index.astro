@@ -1,0 +1,60 @@
+---
+// L'agenda, Bruxelles seulement : les séries à venir (s'il y en a), dans
+// l'ordre du calendrier, puis les passées, les plus récentes d'abord. Calculé
+// au build ; la reconstruction de la nuit fait passer une date jouée.
+import Base from '../../layouts/Base.astro';
+import Fond from '../../components/Fond.astro';
+import Pied from '../../components/Pied.astro';
+import TableauDates from '../../components/TableauDates.astro';
+import { contenu } from '../../lib/contenu.js';
+import { aujourdhui, formatPlage, séries } from '../../lib/dates.js';
+import { heros } from '../../lib/images.js';
+import { T } from '../../lib/textes.js';
+import { tx } from '../../lib/typo.js';
+
+const c = await contenu();
+const fond = c.photo(c.reglages.fonds.agenda);
+const precharger = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+
+const belges = new Map(c.belges.map((s) => [s.slug, s]));
+const toutes = séries(c.représentations.filter((r) => belges.has(r.spectacle)));
+const maintenant = aujourdhui();
+const àVenir = toutes.filter((s) => s.à >= maintenant).reverse();
+const passées = toutes.filter((s) => s.à < maintenant);
+
+const lignes = (liste: typeof toutes) =>
+  liste.map((s) => {
+    const spectacle = belges.get(s.spectacle)!;
+    return [
+      { html: tx(formatPlage(s.de, s.à)) },
+      { html: `<a href="/spectacle/${spectacle.slug}/">${tx(spectacle.title)}</a>`, titre: true },
+      { html: tx(s.lieu) },
+    ];
+  });
+---
+
+<Base title={T.agenda} precharger={precharger}>
+  <section class="page">
+    <Fond fond={fond} ton="bgs--dark" />
+    <div class="wrap wrap--wide">
+      <h1 class="title title--xl title--page" set:html={tx(T.agenda)} />
+      {
+        àVenir.length > 0 && (
+          <div class="section">
+            <h2 class="label" set:html={tx(T.àVenir)} />
+            <TableauDates lignes={lignes(àVenir)} />
+          </div>
+        )
+      }
+      {
+        passées.length > 0 && (
+          <div class="section">
+            {àVenir.length > 0 && <h2 class="label" set:html={tx(T.passées)} />}
+            <TableauDates lignes={lignes(passées)} />
+          </div>
+        )
+      }
+    </div>
+    <Pied />
+  </section>
+</Base>
