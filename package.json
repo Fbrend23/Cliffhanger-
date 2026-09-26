@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Site de la Compagnie Cliffhanger, théâtre à Bruxelles : site statique alimenté par Directus au build",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.15"
   },
   "scripts": {
     "dev": "astro dev",
