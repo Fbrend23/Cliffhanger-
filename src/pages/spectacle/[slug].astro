@@ -1,0 +1,30 @@
+---
+// La fiche d'un spectacle belge. Un spectacle de la troupe de Montréal n'a
+// pas de page à lui : il vit sur /montreal/.
+import Base from '../../layouts/Base.astro';
+import Pied from '../../components/Pied.astro';
+import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
+import TeteDePage from '../../components/TeteDePage.astro';
+import { contenu } from '../../lib/contenu.js';
+import { cadrage, heros } from '../../lib/images.js';
+import { T } from '../../lib/textes.js';
+import { tx } from '../../lib/typo.js';
+
+export async function getStaticPaths() {
+  const c = await contenu();
+  return c.belges.map((s) => ({ params: { slug: s.slug }, props: { slug: s.slug } }));
+}
+
+const c = await contenu();
+const s = c.belges.find((x) => x.slug === Astro.props.slug)!;
+const img = await heros(s.hero, s.heroTaille);
+---
+
+<Base title={s.title} description={s.punch} image={s.poster ?? s.hero} precharger={img}>
+  <article>
+    <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
+    <SectionsSpectacle spectacle={s} />
+    <div class="wrap"><a class="back" href="/spectacles/" set:html={tx(T.tousLesSpectacles)} /></div>
+    <Pied />
+  </article>
+</Base>

@@ -1,0 +1,31 @@
+---
+// Le générique d'un spectacle : une ligne par rôle, les noms en liens vers
+// les fiches, puis la durée. Les lignes viennent de lib/generique.js.
+import { valeurLigne, type Ligne } from '../lib/generique.js';
+import { T } from '../lib/textes.js';
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  lignes: Ligne[];
+  personne: (slug: string) => { name: string } | null;
+  duree?: string | null;
+}
+
+const { lignes, personne, duree = null } = Astro.props;
+
+// Le lien d'une personne, et son personnage entre parenthèses. Une personne
+// dépubliée entre-temps n'a plus de fiche : elle sort de la ligne.
+const nomHtml = (n: { slug: string; personnage: string | null }) => {
+  const p = personne(n.slug);
+  if (!p) return null;
+  const lien = `<a class="person" href="/personne/${n.slug}/">${tx(p.name)}</a>`;
+  return n.personnage ? `${lien} (${tx(n.personnage)})` : lien;
+};
+
+const rendues = lignes.map((l) => ({ role: tx(`${l.role} :`), valeur: valeurLigne(l, nomHtml, tx) })).filter((l) => l.valeur);
+---
+
+<div class="infos">
+  {rendues.map((l) => <p><b set:html={l.role} /> <Fragment set:html={l.valeur} /></p>)}
+  {duree && <p><b set:html={tx(`${T.durée} :`)} /> <Fragment set:html={tx(duree)} /></p>}
+</div>

@@ -1,0 +1,34 @@
+---
+// Le haut d'une page article (spectacle, La compagnie, Montréal) : la photo
+// sur toute la hauteur de l'écran, qui se floute au défilement, le titre et
+// son sous-titre en bas à gauche, le crédit photo et le bouton Découvrir en
+// bas à droite. Le bouton défile jusqu'à la première section et s'efface dès
+// qu'on défile (script dans Base.astro).
+import Photo from './Photo.astro';
+import type { Réactive } from '../lib/images.js';
+import { T } from '../lib/textes.js';
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  img: Réactive;
+  alt: string;
+  style?: string;
+  titre: string;
+  sous?: string | number | null;
+  credit?: string | null;
+  // Un titre d'œuvre ne se traduit pas : les traducteurs automatiques le laissent.
+  sansTraduction?: boolean;
+}
+
+const { img, alt, style, titre, sous = null, credit = null, sansTraduction = false } = Astro.props;
+---
+
+<header class="phead">
+  <figure><Photo img={img} alt={alt} eager class="js-hero" style={style} /></figure>
+  <button class="hint js-hint" type="button" aria-label={T.voirLaSuite}><span>{T.découvrir}</span><span class="hint__line" aria-hidden="true"></span></button>
+  <hgroup>
+    <h1 class="title title--xl" translate={sansTraduction ? 'no' : undefined} set:html={tx(titre)} />
+    {sous != null && sous !== '' && <p set:html={tx(sous)} />}
+  </hgroup>
+  {credit && <figcaption set:html={tx(T.crédit(credit))} />}
+</header>

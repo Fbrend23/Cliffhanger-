@@ -1,0 +1,72 @@
+---
+// Le corps d'une fiche spectacle, partagé par /spectacle/<slug>/ et
+// /montreal/ : accroche (et sa source), affiche, texte, carrousel, générique,
+// dates. Un champ vide n'est jamais affiché ; les dates passent sous « À
+// venir » tant qu'une représentation reste à jouer (calculé au build, la
+// reconstruction de la nuit fait le reste).
+import Carrousel from './Carrousel.astro';
+import Generique from './Generique.astro';
+import Photo from './Photo.astro';
+import TableauDates from './TableauDates.astro';
+import { contenu } from '../lib/contenu.js';
+import { aujourdhui, formatJourHeure, lieu } from '../lib/dates.js';
+import { affiche, diapo } from '../lib/images.js';
+import { T } from '../lib/textes.js';
+import { tx, typographier } from '../lib/typo.js';
+
+interface Props {
+  spectacle: any;
+}
+
+const { spectacle: s } = Astro.props;
+const c = await contenu();
+
+const imgAffiche = s.poster ? await affiche(s.poster, s.posterTaille) : null;
+const diapos = await Promise.all(
+  s.slides
+    .map((id: string) => c.photo(id))
+    .filter(Boolean)
+    .map(async (p: any) => ({ img: await diapo(p.image, { width: p.width, height: p.height }), alt: p.caption }))
+);
+const dates = c.représentationsDe(s.slug);
+const aVenir = dates.some((r) => r.day >= aujourdhui());
+---
+
+{
+  s.punch && (
+    <div class="section wrap">
+      <blockquote class="punch">
+        <p set:html={tx(s.punch)} />
+        {s.cite && <cite set:html={tx(s.cite)} />}
+      </blockquote>
+    </div>
+  )
+}
+{
+  imgAffiche && (
+    <div class="section wrap wrap--wide">
+      <figure class="wide">
+        <Photo img={imgAffiche} alt={typographier(T.afficheDe(s.title))} />
+      </figure>
+    </div>
+  )
+}
+{
+  s.text && (
+    <div class="section wrap">
+      <div class="prose prose--justify" set:html={typographier(s.text)} />
+    </div>
+  )
+}
+<Carrousel diapos={diapos} />
+<div class="section wrap">
+  <Generique lignes={c.lignesParSpectacle.get(s.slug) ?? []} personne={c.personne} duree={s.duration} />
+</div>
+{
+  dates.length > 0 && (
+    <div class="section wrap">
+      <h2 class="label" set:html={tx(aVenir ? T.àVenir : T.représentations)} />
+      <TableauDates lignes={dates.map((r) => [{ html: tx(formatJourHeure(r.day, r.time)) }, { html: tx(lieu(r)) }, { html: tx(r.price ?? '') }])} />
+    </div>
+  )
+}

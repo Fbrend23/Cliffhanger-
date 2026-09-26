@@ -1,0 +1,43 @@
+---
+// Le carrousel d'un spectacle : les photos à la même hauteur, qui défilent
+// avec aimantation (scroll-snap), et deux flèches dès qu'il y en a plus d'une.
+import Photo from './Photo.astro';
+import type { Réactive } from '../lib/images.js';
+import { T } from '../lib/textes.js';
+
+interface Props {
+  diapos: { img: Réactive; alt: string }[];
+}
+
+const { diapos } = Astro.props;
+---
+
+{
+  diapos.length > 0 && (
+    <div class="section slider">
+      <div class="slider__items js-track">
+        {diapos.map((d) => (
+          <figure class="slide">
+            <Photo img={d.img} alt={d.alt} />
+          </figure>
+        ))}
+      </div>
+      {diapos.length > 1 && (
+        <div class="slider__nav">
+          <button type="button" data-dir="-1" aria-label={T.photoPrécédente}>‹</button>
+          <button type="button" data-dir="1" aria-label={T.photoSuivante}>›</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+<script>
+  // Une flèche fait défiler de 60 % de la largeur visible, comme le prototype.
+  document.addEventListener('click', (e) => {
+    const bouton = (e.target as Element).closest<HTMLButtonElement>('.slider__nav button');
+    if (!bouton) return;
+    const piste = bouton.closest('.slider')?.querySelector<HTMLElement>('.js-track');
+    piste?.scrollBy({ left: piste.clientWidth * 0.6 * Number(bouton.dataset.dir), behavior: 'smooth' });
+  });
+</script>

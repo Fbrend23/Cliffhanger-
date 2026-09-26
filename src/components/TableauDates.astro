@@ -1,0 +1,29 @@
+---
+// Le tableau à filets du site : dates d'un spectacle, séries de l'agenda,
+// projets d'une personne, équipe. Trois colonnes au plus ; sous 40em, les
+// cellules passent en colonne (site.css). Chaque cellule arrive en HTML déjà
+// typographié ; `titre` marque la cellule du titre, plus grande.
+
+interface Props {
+  lignes: { html: string; titre?: boolean }[][];
+  equipe?: boolean;
+}
+
+const { lignes, equipe = false } = Astro.props;
+---
+
+<div class="table-wrap">
+  <table class:list={['events', { 'events--team': equipe }]}>
+    <tbody>
+      {
+        lignes.map((cellules) => (
+          <tr>
+            {cellules.map((c) => (
+              <td class={c.titre ? 'ev-title' : undefined} set:html={c.html} />
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
