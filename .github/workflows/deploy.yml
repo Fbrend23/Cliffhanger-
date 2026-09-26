@@ -1,0 +1,223 @@
+# Déploiement du site de la Compagnie Cliffhanger (repris du portfolio).
+#
+# Un seul job : build, puis mirror FTP vers l'hébergement Infomaniak. Aucune
+# pièce intermédiaire, donc aucun endroit où la chaîne puisse s'arrêter sans
+# que personne ne l'apprenne.
+#
+# Trois déclencheurs :
+#   push (main)         → un changement de code
+#   workflow_dispatch   → relance manuelle, et bouton « Mettre en ligne »
+#                         du CMS, posé sur cliff_publication
+#   schedule (nuit)     → les dates passent, le site doit suivre : une
+#                         représentation jouée quitte « À venir » sans clic
+#
+# Le site ne lit le CMS qu'ici. Un spectacle publié dans le Studio n'est en
+# ligne qu'après ce job : c'est le bouton qui le lance.
+#
+# Garde-fou de déploiement : un fichier vide, NOMMÉ D'APRÈS CE SITE, doit
+# exister à la racine du compte FTP, déposé une fois à la main. Son nom est la
+# variable DEPLOY_MARKER. Si les secrets pointent ailleurs, le marqueur n'y est
+# pas et tout s'arrête AVANT la moindre écriture : le FTP n'a pas de corbeille.
+#
+# PREMIER DÉPLOIEMENT : lancer à la main avec dry_run activé, puis lire la
+# liste. Elle ne doit rien montrer qui ressemble à un autre site.
+
+name: Déploiement
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'mirror en --dry-run (aucune écriture côté serveur)'
+        type: boolean
+        default: false
+  # Reconstruction nocturne, à 3 h UTC (4 h ou 5 h à Bruxelles) : une
+  # représentation passée doit sortir de « À venir » même si personne n'a
+  # rien publié ce jour-là.
+  schedule:
+    - cron: '0 3 * * *'
+
+concurrency:
+  group: deploiement
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    # Sans plafond, un job bloqué court jusqu'à la limite de six heures de
+    # GitHub sans rien dire. Vingt minutes couvrent largement le cas normal,
+    # deux à trois minutes, et transforment un blocage en échec signalé.
+    timeout-minutes: 20
+    env:
+      # Le runner tourne en UTC : la date du jour, qui range l'agenda, est
+      # celle de Bruxelles (le site la calcule aussi dans ce fuseau).
+      TZ: Europe/Brussels
+      FTP_HOST: ${{ secrets.FTP_HOST }}
+      FTP_USER: ${{ secrets.FTP_USER }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit --no-fund
+
+      # 0 · Un build privé de ses sources doit s'arrêter avec un message qui
+      #     dit ce qui manque, plutôt que de laisser une erreur d'Astro le
+      #     faire à sa place.
+      - name: Refuser un build sans ses sources
+        run: |
+          manquantes=""
+          for v in DIRECTUS_URL DIRECTUS_TOKEN SITE_URL DEPLOY_MARKER; do
+            if [ -z "${!v:-}" ]; then
+              manquantes="$manquantes $v"
+            fi
+          done
+          if [ -n "$manquantes" ]; then
+            echo "::error::Sources absentes :$manquantes"
+            echo "DIRECTUS_TOKEN est un secret du dépôt, déposé par platform-cms (npm run app-user)."
+            echo "DIRECTUS_URL, SITE_URL et DEPLOY_MARKER sont des variables (Settings > Variables)."
+            echo "DEPLOY_MARKER nomme le fichier témoin déposé à la racine du compte FTP de CE site."
+            exit 1
+          fi
+          echo "Les quatre sources sont fournies."
+        env:
+          DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
+          DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          DEPLOY_MARKER: ${{ vars.DEPLOY_MARKER }}
+
+      # Les originaux rapatriés du CMS et les tailles que sharp en a tirées.
+      # Un rebuild sans photo nouvelle ne retélécharge ni ne recalcule rien :
+      # le manifeste compare les dates de modification, et astro:assets
+      # retrouve ses dérivés. La clé change à chaque run pour que le cache
+      # soit toujours réécrit avec l'état le plus récent ; restore-keys
+      # retrouve le précédent.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .cache/directus-assets
+            node_modules/.astro
+          key: cliff-images-${{ github.run_id }}
+          restore-keys: cliff-images-
+
+      # apt-get update rafraîchit TOUS les index de paquets pour installer un
+      # seul binaire. On tente d'abord sans, et on ne rafraîchit que si l'index
+      # du runner est trop vieux pour connaître lftp.
+      - name: Installer lftp
+        run: |
+          sudo apt-get install -y -qq lftp \
+            || { sudo apt-get update -qq && sudo apt-get install -y -qq lftp; }
+
+      # 1 · Garde-fou AVANT TOUT : la cible doit porter SON marqueur. Un simple
+      #     listage, aucune écriture : le placer ici sépare « ta cible est
+      #     fausse » de « ton contenu manque ».
+      - name: Vérifier la cible de déploiement
+        env:
+          DEPLOY_MARKER: ${{ vars.DEPLOY_MARKER }}
+        run: |
+          if ! racine=$(lftp -u "$FTP_USER,$FTP_PASSWORD" \
+            -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit yes; cls -l; quit" \
+            "$FTP_HOST" 2>&1); then
+            echo "::error::Connexion FTP impossible. Le marqueur n'est pas en cause."
+            echo "$racine" | sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g'
+            echo "FTP_HOST doit être le serveur FTP de l'hébergeur, pas le domaine du site."
+            exit 1
+          fi
+
+          echo "Connexion établie. Racine vue par ce compte FTP :"
+          echo "$racine" | sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g'
+
+          if ! echo "$racine" | grep -qF " $DEPLOY_MARKER"; then
+            echo "::error::Marqueur « $DEPLOY_MARKER » absent de cette racine, abandon."
+            echo "Vérifier D'ABORD que le listage ci-dessus est bien CE site : c'est là"
+            echo "que le mirror --delete écrira. Puis y déposer un fichier vide nommé « $DEPLOY_MARKER »."
+            exit 1
+          fi
+
+          echo "Marqueur « $DEPLOY_MARKER » présent, la cible est la bonne."
+
+      # 2 · Tests, puis build. Séquentiel : pas de publication si l'un ou
+      #     l'autre échoue, donc le site en ligne reste celui d'hier quand le
+      #     CMS est injoignable ou qu'il ne rend aucune photo.
+      # Les tests tournent dans le fuseau du job (Bruxelles) puis en UTC :
+      # le formatage des dates doit donner le même résultat dans les deux.
+      - name: Tests unitaires
+        run: npm test
+
+      - name: Tests unitaires (runner en UTC)
+        run: npm test
+        env:
+          TZ: UTC
+
+      - name: Construire le site
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
+          DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+        run: npm run build
+
+      # 3 · Publication, en deux passes.
+      #
+      #     /_astro/ d'abord : ses fichiers portent une empreinte de leur
+      #     contenu dans leur nom, donc un fichier qui existe déjà sur le
+      #     serveur est identique. --only-missing n'envoie que les nouveaux,
+      #     --delete retire ceux qu'aucune page n'utilise plus. Sans cela,
+      #     mirror comparait les dates, que le FTP ne conserve pas à l'envoi,
+      #     et renvoyait toutes les images à chaque run (vu sur le portfolio).
+      #
+      #     Le reste ensuite, en comparaison normale : index.html change de
+      #     contenu sans changer de nom, il doit toujours repartir.
+      #
+      #     Le marqueur est exclu du --delete : il ne vient pas de dist/, donc
+      #     le mirror l'effacerait, et le déploiement SUIVANT échouerait faute
+      #     de le trouver.
+      - name: Déployer
+        env:
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+          DEPLOY_MARKER: ${{ vars.DEPLOY_MARKER }}
+        run: |
+          set -o pipefail
+          # lftp imprime des URL contenant le mot de passe, encodé en URL. La
+          # chaîne encodée ne correspondant plus au secret, GitHub ne la masque
+          # pas : on rédige nous-mêmes avant que ça n'atteigne les logs.
+          publier() {
+            lftp -u "$FTP_USER,$FTP_PASSWORD" \
+              -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit yes; $1; quit" \
+              "$FTP_HOST" 2>&1 | sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g'
+          }
+          publier "mirror -R --delete --only-missing --parallel=8 --verbose $DRY_RUN dist/_astro/ ./_astro/"
+          publier "mirror -R --delete --parallel=4 --verbose $DRY_RUN --exclude-glob $DEPLOY_MARKER --exclude-glob .user.ini --exclude-glob .infomaniak-maintenance.html --exclude ^_astro/ dist/ ./"
+
+      # 4 · Dater la publication dans le CMS, une fois le site vraiment en
+      #     ligne. Un échec ici ne casse pas le run : le site EST publié, et
+      #     laisser la date en retard est moins faux que de déclarer le
+      #     contraire. La policy du build autorise cette seule écriture.
+      - name: Dater la publication dans le CMS
+        if: ${{ success() && !inputs.dry_run }}
+        env:
+          DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
+          DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+        run: |
+          maintenant=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          code=$(curl -s -o reponse.json -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer $DIRECTUS_TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d "{\"last_published\":\"$maintenant\"}" \
+            "$DIRECTUS_URL/items/cliff_publication")
+
+          if [ "$code" = "200" ]; then
+            echo "CMS daté : $maintenant"
+          else
+            echo "::warning::Le CMS n'a pas accepté la date (HTTP $code). Le site est en ligne."
+            sed -E 's/[A-Za-z0-9_-]{20,}/***/g' reponse.json | head -c 300
+          fi
+          rm -f reponse.json
