@@ -28,6 +28,9 @@ const diapos = await Promise.all(
     .filter(Boolean)
     .map(async (p: any) => ({ img: await diapo(p.image, { width: p.width, height: p.height }), alt: p.caption }))
 );
+// Sans générique ni durée, pas de section : elle aurait sa marge et son
+// entrée en cascade, vides.
+const lignes = c.lignesParSpectacle.get(s.slug) ?? [];
 const dates = c.représentationsDe(s.slug);
 const aVenir = dates.some((r) => r.day >= aujourdhui());
 ---
@@ -59,9 +62,13 @@ const aVenir = dates.some((r) => r.day >= aujourdhui());
   )
 }
 <Carrousel diapos={diapos} />
-<div class="section wrap">
-  <Generique lignes={c.lignesParSpectacle.get(s.slug) ?? []} personne={c.personne} duree={s.duration} />
-</div>
+{
+  (lignes.length > 0 || s.duration) && (
+    <div class="section wrap">
+      <Generique lignes={lignes} personne={c.personne} duree={s.duration} />
+    </div>
+  )
+}
 {
   dates.length > 0 && (
     <div class="section wrap">
