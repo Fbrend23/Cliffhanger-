@@ -74,8 +74,9 @@ a,button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* Sans JS (html.js absent), pas de burger : le menu devient une ligne de liens en haut de page, pour que
    chaque page reste atteignable. Le logo et la vidéo, qui ne se chargent qu'à l'ouverture, disparaissent. */
 html:not(.js) .burger,html:not(.js) .menu__bg,html:not(.js) .menu li[aria-hidden]{display:none}
-html:not(.js) .menu{position:absolute;inset:auto 0 auto auto;top:calc(.5rem + var(--safe-top));z-index:25;display:block;padding:.5rem var(--spacing);background:none;opacity:1;visibility:visible}
-html:not(.js) .menu ul{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:0 .25rem;font-size:1rem}
+html:not(.js) .menu{position:relative;inset:auto;z-index:25;display:block;padding:calc(5rem + var(--safe-top)) var(--spacing) 0;background:none;opacity:1;visibility:visible}
+html:not(.js) .menu ul{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:0 .25rem;font-size:1rem;text-align:left}
+html:not(.js) .menu a{padding-left:0}
 html:not(.js) .menu li{opacity:1;transform:none}
 
 /* ---------- listes plein écran (accueil, spectacles) ---------- */
