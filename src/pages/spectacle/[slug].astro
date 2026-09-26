@@ -6,7 +6,8 @@ import Pied from '../../components/Pied.astro';
 import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
 import { contenu } from '../../lib/contenu.js';
-import { cadrage, heros } from '../../lib/images.js';
+import { cadrage, heros, og } from '../../lib/images.js';
+import { theaterEvent } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
 
@@ -18,9 +19,16 @@ export async function getStaticPaths() {
 const c = await contenu();
 const s = c.belges.find((x) => x.slug === Astro.props.slug)!;
 const img = await heros(s.hero, s.heroTaille);
+
+// Une représentation, un TheaterEvent : l'affiche (sinon la grande photo)
+// comme image, la même que celle des partages.
+const url = new URL(Astro.url.pathname, Astro.site).toString();
+const image = new URL(await og(s.poster ?? s.hero), Astro.site).toString();
+const organisateur = { nom: c.reglages.site_title, url: new URL('/', Astro.site).toString() };
+const jsonLd = c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url, image, organisateur }));
 ---
 
-<Base title={s.title} description={s.punch} image={s.poster ?? s.hero} precharger={img}>
+<Base title={s.title} description={s.punch} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd.length ? jsonLd : null}>
   <article>
     <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
     <SectionsSpectacle spectacle={s} />

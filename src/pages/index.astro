@@ -6,16 +6,29 @@ import Fond from '../components/Fond.astro';
 import ListeSpectacles from '../components/ListeSpectacles.astro';
 import Pied from '../components/Pied.astro';
 import { contenu } from '../lib/contenu.js';
-import { heros } from '../lib/images.js';
+import { heros, og } from '../lib/images.js';
+import { organisation } from '../lib/seo.js';
 import { T } from '../lib/textes.js';
 import { tx } from '../lib/typo.js';
 
 const c = await contenu();
 const fond = c.photo(c.reglages.fonds.accueil);
 const precharger = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+
+// La compagnie pour les moteurs : son nom, son adresse, ses réseaux.
+const r = c.reglages;
+const imageOg = r.og_image ?? fond?.image ?? null;
+const jsonLd = organisation({
+  nom: r.site_title,
+  url: new URL('/', Astro.site).toString(),
+  description: r.site_description,
+  email: r.email,
+  réseaux: [r.instagram, r.facebook],
+  image: imageOg ? new URL(await og(imageOg), Astro.site).toString() : null,
+});
 ---
 
-<Base precharger={precharger} image={fond?.image ?? null}>
+<Base precharger={precharger} image={fond?.image ?? null} jsonLd={jsonLd}>
   <section class="index index--home">
     <h1 class="v-h" set:html={tx(T.accueilH1)} />
     <Fond fond={fond} survol={c.belges} />
