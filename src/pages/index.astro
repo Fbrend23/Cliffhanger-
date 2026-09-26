@@ -28,7 +28,7 @@ const jsonLd = organisation({
 });
 ---
 
-<Base precharger={precharger} image={fond?.image ?? null} jsonLd={jsonLd}>
+<Base precharger={precharger} jsonLd={jsonLd}>
   <section class="index index--home">
     <h1 class="v-h" set:html={tx(T.accueilH1)} />
     <Fond fond={fond} survol={c.belges} />
