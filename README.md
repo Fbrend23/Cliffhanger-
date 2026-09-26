@@ -29,7 +29,7 @@ npm run migrer     # la migration du prototype vers le CMS (voir plus bas)
 Copier `.env.example` en `.env`. Obligatoires : `DIRECTUS_URL`, `DIRECTUS_TOKEN`, `SITE_URL`.
 
 `DIRECTUS_TOKEN` est le jeton d'un utilisateur de développement `dev+cliff` portant la policy
-« cliff — lecture build », **jamais** le jeton d'administration : le build doit voir ce que la CI
+de lecture du build de la compagnie (« lecture build », préfixe cliff), **jamais** le jeton d'administration : le build doit voir ce que la CI
 voit, le contenu publié seulement. Sans `.env`, `astro:env` fait échouer le build avant la
 première requête : c'est voulu, le site n'a aucun contenu local de repli.
 

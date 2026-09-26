@@ -18,7 +18,7 @@ import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { construireBase } from './donnees.mjs';
 
-// Les champs de directus_files que la policy « cliff — lecture build » laisse
+// Les champs de directus_files que la policy de lecture du build de la compagnie (« lecture build », préfixe cliff) laisse
 // lire (platform-cms, scripts/lib/permissions.mjs).
 const CHAMPS_FICHIERS_PERMIS = new Set(['id', 'filename_download', 'type', 'width', 'height', 'modified_on', 'title', 'description', 'focal_point_x', 'focal_point_y']);
 

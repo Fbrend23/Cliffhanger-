@@ -1,6 +1,6 @@
 // Lecture du CMS au build. Le site n'a pas d'autre source.
 //
-// Le jeton est celui de la policy « cliff — lecture build » : lecture seule,
+// Le jeton est celui de la policy de lecture du build de la compagnie (« lecture build », préfixe cliff) : lecture seule,
 // filtrée sur `status = published` par Directus lui-même, et limitée aux
 // fichiers du dossier de la compagnie. Un spectacle en brouillon reste donc
 // invisible ici, même si une requête l'oubliait.
