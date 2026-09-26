@@ -28,7 +28,12 @@ async function charger() {
   ]);
 
   const parOrdre = (a, b) => a.sort - b.sort;
-  const tousSpectacles = spectacles.map((e) => e.data).sort((a, b) => parOrdre(a, b) || (b.year ?? 0) - (a.year ?? 0));
+  // L'ordre du Studio, puis le plus récent, puis le slug : un ordre total,
+  // pour que deux spectacles jamais triés et de même année ne changent pas de
+  // place d'un build à l'autre.
+  const tousSpectacles = spectacles
+    .map((e) => e.data)
+    .sort((a, b) => parOrdre(a, b) || (b.year ?? 0) - (a.year ?? 0) || a.slug.localeCompare(b.slug));
   const photosParId = new Map(photos.map((e) => [e.id, { id: e.id, ...e.data }]));
   const personnesParSlug = new Map(personnes.map((e) => [e.id, e.data]));
 
@@ -53,7 +58,7 @@ async function charger() {
     montrealSpectacle: tousSpectacles.find((s) => s.troupe === 'montreal') ?? null,
     photos: [...photosParId.values()].sort((a, b) => parOrdre(a, b) || Number(a.id) - Number(b.id)),
     photo: (id) => (id ? (photosParId.get(String(id)) ?? null) : null),
-    personnes: personnes.map((e) => e.data).sort(parOrdre),
+    personnes: personnes.map((e) => e.data).sort((a, b) => parOrdre(a, b) || a.name.localeCompare(b.name, 'fr')),
     personne: (slug) => personnesParSlug.get(slug) ?? null,
     lignesParSpectacle,
     représentations: toutesReprésentations,
