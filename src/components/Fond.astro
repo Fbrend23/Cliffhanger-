@@ -1,0 +1,66 @@
+---
+// Le fond fixe d'une page (accueil, spectacles, agenda, contact) : une photo
+// de la photothèque, choisie dans les réglages, éclaircie ou assombrie selon
+// la page. Sur l'accueil et la liste des spectacles, s'y ajoutent les grandes
+// photos des spectacles belges, qui apparaissent au survol de leur titre.
+//
+// Ces photos de survol sont différées : leur srcset attend dans data-srcset,
+// posé quand la page est au repos, ou au premier survol. Survoler un titre
+// montre alors sa photo tout de suite, sans jamais retarder celle du fond.
+import Photo from './Photo.astro';
+import { cadrage, heros } from '../lib/images.js';
+
+interface Props {
+  fond: { image: any; width: number | null; height: number | null; focal: { x: number; y: number } | null } | null;
+  ton?: '' | 'bgs--dim' | 'bgs--dark';
+  survol?: { slug: string; hero: any; heroTaille: { width: number | null; height: number | null }; focal: { x: number; y: number } | null }[];
+}
+
+const { fond, ton = '', survol = [] } = Astro.props;
+const base = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+const figures = await Promise.all(survol.map(async (s) => ({ slug: s.slug, img: await heros(s.hero, s.heroTaille), style: cadrage(s.focal) })));
+---
+
+<div class:list={['bgs', ton]} aria-hidden="true">
+  {base && <figure><Photo img={base} eager style={cadrage(fond!.focal)} /></figure>}
+  {
+    figures.map((f) => (
+      <figure class="bg" data-for={f.slug}>
+        <Photo img={f.img} differee style={f.style} />
+      </figure>
+    ))
+  }
+</div>
+
+<script>
+  // Poser le srcset gardé en attente : le navigateur choisit alors sa taille.
+  const charger = (i: HTMLImageElement) => {
+    if (!i.dataset.srcset) return;
+    i.srcset = i.dataset.srcset;
+    i.src = i.dataset.src ?? '';
+    i.removeAttribute('data-srcset');
+  };
+
+  document.addEventListener('astro:page-load', () => {
+    const figures = document.querySelectorAll<HTMLElement>('.bgs .bg');
+    if (!figures.length) return;
+
+    // Au repos, toutes les photos de survol : le premier survol est instantané.
+    const tout = () => figures.forEach((f) => f.querySelectorAll<HTMLImageElement>('img[data-srcset]').forEach(charger));
+    if ('requestIdleCallback' in window) requestIdleCallback(tout, { timeout: 2500 });
+    else setTimeout(tout, 1200);
+
+    const montrer = (slug: string | null) =>
+      figures.forEach((f) => {
+        const oui = f.dataset.for === slug;
+        if (oui) f.querySelectorAll<HTMLImageElement>('img[data-srcset]').forEach(charger);
+        f.classList.toggle('is-visible', oui);
+      });
+    document.querySelectorAll<HTMLElement>('[data-bg]').forEach((a) => {
+      a.addEventListener('mouseenter', () => montrer(a.dataset.bg ?? null));
+      a.addEventListener('focus', () => montrer(a.dataset.bg ?? null));
+      a.addEventListener('mouseleave', () => montrer(null));
+      a.addEventListener('blur', () => montrer(null));
+    });
+  });
+</script>

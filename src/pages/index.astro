@@ -1,0 +1,25 @@
+---
+// L'accueil : la photo de fond des réglages, les titres des spectacles
+// belges en grand, leur photo au survol. Pas de titre visible, un h1 caché.
+import Base from '../layouts/Base.astro';
+import Fond from '../components/Fond.astro';
+import ListeSpectacles from '../components/ListeSpectacles.astro';
+import Pied from '../components/Pied.astro';
+import { contenu } from '../lib/contenu.js';
+import { heros } from '../lib/images.js';
+import { T } from '../lib/textes.js';
+import { tx } from '../lib/typo.js';
+
+const c = await contenu();
+const fond = c.photo(c.reglages.fonds.accueil);
+const precharger = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+---
+
+<Base precharger={precharger} image={fond?.image ?? null}>
+  <section class="index index--home">
+    <h1 class="v-h" set:html={tx(T.accueilH1)} />
+    <Fond fond={fond} survol={c.belges} />
+    <ListeSpectacles spectacles={c.belges} />
+    <Pied epingle />
+  </section>
+</Base>

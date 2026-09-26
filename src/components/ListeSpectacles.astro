@@ -1,0 +1,25 @@
+---
+// Les titres des spectacles belges, en grand : l'accueil (sans année) et la
+// page Spectacles (avec). Survoler un titre montre sa photo (Fond.astro).
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  spectacles: { slug: string; title: string; year: number | null }[];
+  annee?: boolean;
+}
+
+const { spectacles, annee = false } = Astro.props;
+---
+
+<ul class="list">
+  {
+    spectacles.map((s) => (
+      <li>
+        <a class="title" href={`/spectacle/${s.slug}/`} data-bg={s.slug} translate="no">
+          <Fragment set:html={tx(s.title)} />
+          {annee && s.year != null && <small>{s.year}</small>}
+        </a>
+      </li>
+    ))
+  }
+</ul>
