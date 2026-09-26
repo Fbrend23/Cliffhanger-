@@ -168,7 +168,8 @@ html:not(.js) .menu li{opacity:1;transform:none}
 @media (max-width:40em){
   .events,.events tbody,.events tr,.events td{display:block;width:auto}
   .events tr{padding:1rem 0;border-bottom:.0625rem solid var(--front)}
-  .events td,.events td:first-child,.events td:last-child{width:auto;padding:0;border:0;text-align:left}
+  /* empilées, les cellules reprennent le retour à la ligne : un long lieu (« Saint-Josse-ten-Noode ») était coupé */
+  .events td,.events td:first-child,.events td:last-child{width:auto;padding:0;border:0;text-align:left;white-space:normal}
   .events td + td{margin-top:.25rem}
 }
 
