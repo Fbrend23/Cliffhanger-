@@ -1,0 +1,44 @@
+---
+// Contact : l'adresse et les réseaux des réglages, sur un fond assombri. Un
+// champ vide n'est pas rendu : pas d'Instagram, pas de bouton.
+import Base from '../../layouts/Base.astro';
+import Fond from '../../components/Fond.astro';
+import Pied from '../../components/Pied.astro';
+import { contenu } from '../../lib/contenu.js';
+import { heros } from '../../lib/images.js';
+import { T } from '../../lib/textes.js';
+import { tx } from '../../lib/typo.js';
+
+const c = await contenu();
+const r = c.reglages;
+const fond = c.photo(r.fonds.contact);
+const precharger = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+const réseaux = [
+  { href: r.instagram, label: T.instagram },
+  { href: r.facebook, label: T.facebook },
+].filter((l) => l.href);
+---
+
+<Base title={T.contact} precharger={precharger}>
+  <section class="contact">
+    <Fond fond={fond} ton="bgs--dim" />
+    <div class="contact__inner">
+      <h1 class="title title--xl title--page" set:html={tx(T.contact)} />
+      <p class="contact__lead" set:html={tx(T.contactLead)} />
+      {r.email && <p class="contact__mail"><a href={`mailto:${r.email}`}>{r.email}</a></p>}
+      {
+        réseaux.length > 0 && (
+          <div class="pills">
+            {réseaux.map((l) => (
+              <a class="pill ext" href={l.href} target="_blank" rel="noopener">
+                {l.label}
+                <span class="v-h">{T.nouvelOnglet}</span>
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </div>
+    <Pied epingle />
+  </section>
+</Base>
