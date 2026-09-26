@@ -8,13 +8,13 @@ import Pied from '../../components/Pied.astro';
 import TableauDates from '../../components/TableauDates.astro';
 import { contenu } from '../../lib/contenu.js';
 import { aujourdhui, formatPlage, séries } from '../../lib/dates.js';
-import { heros } from '../../lib/images.js';
+import { herosPhoto } from '../../lib/images.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
 
 const c = await contenu();
 const fond = c.photo(c.reglages.fonds.agenda);
-const precharger = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+const precharger = await herosPhoto(fond);
 
 const belges = new Map(c.belges.map((s) => [s.slug, s]));
 const toutes = séries(c.représentations.filter((r) => belges.has(r.spectacle)));

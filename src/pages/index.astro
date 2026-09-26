@@ -6,14 +6,14 @@ import Fond from '../components/Fond.astro';
 import ListeSpectacles from '../components/ListeSpectacles.astro';
 import Pied from '../components/Pied.astro';
 import { contenu } from '../lib/contenu.js';
-import { heros, og } from '../lib/images.js';
+import { herosPhoto, og } from '../lib/images.js';
 import { organisation } from '../lib/seo.js';
 import { T } from '../lib/textes.js';
 import { tx } from '../lib/typo.js';
 
 const c = await contenu();
 const fond = c.photo(c.reglages.fonds.accueil);
-const precharger = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+const precharger = await herosPhoto(fond);
 
 // La compagnie pour les moteurs : son nom, son adresse, ses réseaux.
 const r = c.reglages;

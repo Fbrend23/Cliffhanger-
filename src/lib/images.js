@@ -41,6 +41,13 @@ async function réactive(image, taille, largeurs, sizes) {
  */
 export const heros = (image, taille) => réactive(image, taille, [960, 1440, 2048], '100vw');
 
+/**
+ * La même taille pour une photo de la photothèque (fond de page, photo de La
+ * compagnie), qui porte ses dimensions à plat. Sans photo, rien.
+ * @param {{ image: import('astro').ImageMetadata, width: number|null, height: number|null } | null | undefined} photo
+ */
+export const herosPhoto = (photo) => (photo ? heros(photo.image, { width: photo.width, height: photo.height }) : Promise.resolve(null));
+
 /** L'affiche, à ses proportions, 40rem de large au plus. */
 export const affiche = (image, taille) => réactive(image, taille, [400, 800, 1200], '(max-width: 40em) 100vw, 40rem');
 

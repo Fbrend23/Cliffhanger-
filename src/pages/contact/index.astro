@@ -5,14 +5,14 @@ import Base from '../../layouts/Base.astro';
 import Fond from '../../components/Fond.astro';
 import Pied from '../../components/Pied.astro';
 import { contenu } from '../../lib/contenu.js';
-import { heros } from '../../lib/images.js';
+import { herosPhoto } from '../../lib/images.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
 
 const c = await contenu();
 const r = c.reglages;
 const fond = c.photo(r.fonds.contact);
-const precharger = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+const precharger = await herosPhoto(fond);
 const réseaux = [
   { href: r.instagram, label: T.instagram },
   { href: r.facebook, label: T.facebook },

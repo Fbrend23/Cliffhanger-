@@ -10,14 +10,14 @@ import TableauDates from '../../components/TableauDates.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
 import { contenu } from '../../lib/contenu.js';
 import { joindreFr, projetsDe } from '../../lib/generique.js';
-import { cadrage, heros } from '../../lib/images.js';
+import { cadrage, herosPhoto } from '../../lib/images.js';
 import { T } from '../../lib/textes.js';
 import { tx, typographier } from '../../lib/typo.js';
 
 const c = await contenu();
 const r = c.reglages;
 const fond = c.photo(r.fonds.compagnie);
-const img = fond ? await heros(fond.image, { width: fond.width, height: fond.height }) : null;
+const img = await herosPhoto(fond);
 
 const équipe = c.personnes
   .filter((p) => p.groupe === 'equipe')
