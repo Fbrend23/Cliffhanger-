@@ -21,7 +21,7 @@ import logo from '../assets/logo-arc-en-ciel.webp';
 import { og } from '../lib/images.js';
 import type { Réactive } from '../lib/images.js';
 import { T } from '../lib/textes.js';
-import { typographier } from '../lib/typo.js';
+import { tx } from '../lib/typo.js';
 import '../styles/site.css';
 
 interface Props {
@@ -40,7 +40,7 @@ const { title, description = null, image = null, precharger = null, jsonLd = nul
 const site = (await getEntry('reglages', 'site'))!.data;
 
 // Le titre de l'onglet suit le prototype : « Page · Compagnie Cliffhanger ».
-const titreComplet = typographier(title ? `${title} · ${site.site_title}` : site.site_title);
+const titreComplet = tx(title ? `${title} · ${site.site_title}` : site.site_title);
 const résumé = description ?? site.site_description ?? T.descriptionParDéfaut;
 const canonique = new URL(Astro.url.pathname, Astro.site).toString();
 
@@ -115,7 +115,7 @@ const animation = { forwards: fondu, backwards: fondu };
   <body>
     <a class="skip" href="#contenu">{T.allerAuContenu}</a>
     <header class="mh">
-      <a href="/" class="mh__logo" translate="no" set:html={typographier(site.site_title)} />
+      <a href="/" class="mh__logo" translate="no" set:html={tx(site.site_title)} />
     </header>
     <button class="burger" id="burger" aria-label={T.menuOuvrir} aria-expanded="false" aria-controls="menu" data-ouvrir={T.menuOuvrir} data-fermer={T.menuFermer} transition:persist="burger">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect class="s1" y="4" width="32" height="4"></rect><rect class="s2" y="14" width="32" height="4"></rect><rect class="s3" y="24" width="32" height="4"></rect></svg>
@@ -129,7 +129,7 @@ const animation = { forwards: fondu, backwards: fondu };
         {
           T.menu.map((l, i) => (
             <li style={`--i:${i + 1}`}>
-              <a href={l.href} aria-current={l.href === rubrique ? 'page' : undefined} set:html={typographier(l.label)} />
+              <a href={l.href} aria-current={l.href === rubrique ? 'page' : undefined} set:html={tx(l.label)} />
             </li>
           ))
         }
