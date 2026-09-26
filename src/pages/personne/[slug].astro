@@ -1,0 +1,51 @@
+---
+// La fiche d'une personne : ses projets (tous les spectacles, Montréal
+// compris, les plus récents d'abord, avec ses rôles), puis sa biographie si
+// elle existe. Toutes les personnes ont une fiche, invitées comprises.
+import Base from '../../layouts/Base.astro';
+import Pied from '../../components/Pied.astro';
+import TableauDates from '../../components/TableauDates.astro';
+import { adresseSpectacle, contenu } from '../../lib/contenu.js';
+import { projetsDe } from '../../lib/generique.js';
+import { T } from '../../lib/textes.js';
+import { tx, typographier } from '../../lib/typo.js';
+
+export async function getStaticPaths() {
+  const c = await contenu();
+  return c.personnes.map((p) => ({ params: { slug: p.slug }, props: { slug: p.slug } }));
+}
+
+const c = await contenu();
+const p = c.personne(Astro.props.slug)!;
+const projets = projetsDe(p.slug, c.spectacles, c.lignesParSpectacle).map((x) => [
+  { html: tx(x.spectacle.year ?? '') },
+  { html: `<a href="${adresseSpectacle(x.spectacle)}">${tx(x.spectacle.title)}</a>`, titre: true },
+  { html: tx(x.roles.join(', ')) },
+]);
+---
+
+<Base title={p.name}>
+  <section class="page">
+    <div class="wrap">
+      <h1 class="title title--xl title--page" set:html={tx(p.name)} />
+      {
+        projets.length > 0 && (
+          <div class="section">
+            <h2 class="label" set:html={tx(T.projets)} />
+            <TableauDates lignes={projets} />
+          </div>
+        )
+      }
+      {
+        p.bio && (
+          <div class="section">
+            <h2 class="label" set:html={tx(T.biographie)} />
+            <div class="prose prose--justify" set:html={typographier(p.bio)} />
+          </div>
+        )
+      }
+      <a class="back" href="/compagnie/" set:html={tx(T.retourCompagnie)} />
+    </div>
+    <Pied />
+  </section>
+</Base>
