@@ -30,6 +30,20 @@ test('séries : soirs consécutifs d’un spectacle dans une salle, les plus ré
   ]);
 });
 
+test('séries : deux soirs sans salle dans deux villes restent deux lignes', () => {
+  const s = séries([
+    { spectacle: 'a', day: '2025-06-06', venue: null, city: 'Montréal' },
+    { spectacle: 'a', day: '2025-06-07', venue: null, city: 'Québec' },
+  ]);
+  assert.deepEqual(
+    s.map((x) => [x.de, x.lieu]),
+    [
+      ['2025-06-07', 'Québec'],
+      ['2025-06-06', 'Montréal'],
+    ]
+  );
+});
+
 test('lieu : ce qui existe seulement', () => {
   assert.equal(lieu({ venue: null, city: 'Montréal' }), 'Montréal');
   assert.equal(lieu({ venue: null, city: null }), '');

@@ -46,8 +46,8 @@ export const lieu = (r) => [r.venue, r.city].filter(Boolean).join(', ');
 
 /**
  * Les séries de l'agenda : les représentations consécutives (un jour d'écart
- * au plus) d'un même spectacle dans une même salle deviennent une ligne. Les
- * plus récentes d'abord, comme le prototype.
+ * au plus) d'un même spectacle au même lieu (salle et ville) deviennent une
+ * ligne. Les plus récentes d'abord, comme le prototype.
  *
  * @template {{ spectacle: string, day: string, venue: string|null, city: string|null }} R
  * @param {R[]} représentations
@@ -63,15 +63,17 @@ export function séries(représentations) {
   for (const [spectacle, liste] of parSpectacle) {
     let courante = null;
     for (const r of [...liste].sort((a, b) => a.day.localeCompare(b.day))) {
-      if (courante && courante.venue === r.venue && écart(courante.à, r.day) <= 1) {
+      // Le lieu complet, salle ET ville : deux soirs sans salle dans deux
+      // villes différentes ne sont pas une série.
+      if (courante && courante.lieu === lieu(r) && écart(courante.à, r.day) <= 1) {
         courante.à = r.day;
         continue;
       }
-      courante = { spectacle, de: r.day, à: r.day, venue: r.venue, lieu: lieu(r) };
+      courante = { spectacle, de: r.day, à: r.day, lieu: lieu(r) };
       sortie.push(courante);
     }
   }
-  return sortie.sort((x, y) => y.de.localeCompare(x.de)).map(({ venue, ...s }) => s);
+  return sortie.sort((x, y) => y.de.localeCompare(x.de));
 }
 
 /**
