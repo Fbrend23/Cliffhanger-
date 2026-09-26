@@ -1,0 +1,26 @@
+{
+  "name": "compagnie-cliffhanger",
+  "private": true,
+  "type": "module",
+  "description": "Site de la Compagnie Cliffhanger, théâtre à Bruxelles : site statique alimenté par Directus au build",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "node --test",
+    "migrer": "node --env-file-if-exists=.env.migration scripts/migrer.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.2",
+    "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^6.0.3"
+  }
+}

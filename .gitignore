@@ -1,3 +1,21 @@
-.netlify/
+# Environnement, jamais commité. Les valeurs vivent dans les secrets GitHub,
+# et les fichiers locaux ne sont là que pour le développement et la migration.
+.env
+.env.*
+!.env.example
+!.env.migration.example
+
+# Build
+dist/
+.astro/
+
+# Dépendances
+node_modules/
+
+# Originaux rapatriés du CMS au build, et leur manifeste. Reconstruit à la
+# demande : un fichier absent ou modifié est retéléchargé, le reste ne l'est pas.
+.cache/
+
+# Système
 .DS_Store
 Thumbs.db
