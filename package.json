@@ -11,7 +11,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "node --test",
+    "test": "node --test test/*.test.js",
     "migrer": "node --env-file-if-exists=.env.migration scripts/migrer.mjs"
   },
   "dependencies": {
