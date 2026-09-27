@@ -25,21 +25,32 @@ import { getImage } from 'astro:assets';
  * @param {string} sizes
  * @returns {Promise<Réactive>}
  */
-async function réactive(image, taille, largeurs, sizes) {
+async function réactive(image, taille, largeurs, sizes, qualité = 78) {
   const max = taille?.width ?? Math.max(...largeurs);
   const retenues = largeurs.filter((l) => l < max);
   const width = Math.min(max, Math.max(...largeurs));
   if (!retenues.includes(width)) retenues.push(width);
-  const img = await getImage({ src: image, width, widths: retenues, sizes, format: 'webp', quality: 78 });
+  const img = await getImage({ src: image, width, widths: retenues, sizes, format: 'webp', quality: qualité });
   const height = taille?.width && taille?.height ? Math.round((taille.height / taille.width) * width) : Number(img.attributes.height) || width;
   return { src: img.src, srcset: img.srcSet.attribute, sizes, width, height };
 }
 
+// Une photo qui couvre l'écran est la première chose que le visiteur regarde :
+// un portable de 1440 px en 2× demande 2880 px de large, un écran 4K plus
+// encore. Les largeurs montent donc jusqu'à 3200, jamais au-dessus de
+// l'original ; et la qualité est plus haute qu'ailleurs, parce qu'un grain de
+// compression se voit sur un aplat sombre en plein écran là où il disparaît
+// dans une vignette. Les fichiers du prototype, petits et déjà compressés,
+// avaient rendu tout le site flou : ce n'est pas le réglage qui les sauve,
+// c'est le remplacement par les originaux dans le Studio.
+const PLEIN_ÉCRAN = [960, 1440, 2048, 2560, 3200];
+const QUALITÉ_PLEIN_ÉCRAN = 84;
+
 /**
  * La grande photo du haut d'une page, et les fonds plein écran : 960 px pour
- * un téléphone, 1440 pour un portable, 2048 au-delà (les tailles du prototype).
+ * un téléphone, 1440 pour un portable en 1×, 2048 à 3200 pour les écrans 2×.
  */
-export const heros = (image, taille) => réactive(image, taille, [960, 1440, 2048], '100vw');
+export const heros = (image, taille) => réactive(image, taille, PLEIN_ÉCRAN, '100vw', QUALITÉ_PLEIN_ÉCRAN);
 
 /**
  * La même taille pour une photo de la photothèque (fond de page, photo de La
@@ -61,8 +72,8 @@ export const diapo = (image, taille) => réactive(image, taille, [700, 1100, 160
 export const vignetteGalerie = (image, taille) =>
   réactive(image, taille, [480, 800, 1200], '(max-width: 40em) 100vw, (max-width: 64em) 50vw, 33vw');
 
-/** La photo agrandie de la visionneuse : l'écran entier. */
-export const grande = (image, taille) => réactive(image, taille, [1200, 2048], '100vw');
+/** La photo agrandie de la visionneuse : l'écran entier, mêmes exigences que le héros. */
+export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2560, 3200], '100vw', QUALITÉ_PLEIN_ÉCRAN);
 
 /**
  * L'image des partages : les réseaux veulent un JPEG de 1200 px.
