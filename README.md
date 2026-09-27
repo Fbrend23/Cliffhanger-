@@ -64,6 +64,25 @@ Le modèle est décrit dans `../platform-cms/clients/cliffhanger.json`. Pour le 
 2. ici : le loader (`src/lib/loaders.js` : champ demandé, `data`, digest), le schéma zod
    (`src/content.config.js`), la page.
 
+### Les dates de Prodysos
+
+Les représentations programmées dans **Prodysos** (le back-office de la compagnie) rejoignent
+celles du CMS au build (`src/lib/prodysos.js`). Le site appelle `get_public_company_shows` en
+désignant la **compagnie** (`PRODYSOS_COMPANY`, son `public_slug`), jamais un spectacle : un slug
+de spectacle est unique sur toute la base Prodysos, en taper un exposerait à afficher la création
+d'une autre troupe. Chaque spectacle du CMS réclame ensuite le sien par son champ `prodysos_slug`.
+
+- Le jour et l'heure sont ceux de Bruxelles ; la commune est lue après le code postal de
+  l'adresse Prodysos (sinon la salle s'affiche seule, avec un warning).
+- Prodysos n'a pas de prix : c'est le champ `price` du spectacle, qui sert aussi aux dates du CMS
+  laissées sans prix.
+- Une date saisie dans le CMS l'emporte sur la même venue de Prodysos (même spectacle, jour et
+  heure ; sans heure, tout le jour) : c'est la correction à la main.
+- Un spectacle Prodysos qu'aucun spectacle publié ne réclame est ignoré avec un warning ; deux
+  spectacles qui réclament le même arrêtent le build, comme une compagnie inconnue de Prodysos.
+- Une date ajoutée dans Prodysos paraît à la reconstruction suivante (la nuit, ou « Mettre en
+  ligne »).
+
 Règles de saisie, rappelées dans les notes du Studio :
 
 - une ligne de générique de rôle « Avec », sans personne, marque la place de la distribution ;
@@ -97,9 +116,10 @@ des données de test).
   mirror` vers Infomaniak, puis date de mise en ligne écrite dans `cliff_publication`. Déclenché
   par un push sur `main`, par le bouton « Mettre en ligne » du Studio (`workflow_dispatch`), et
   **chaque nuit à 3 h UTC**, pour qu'une représentation jouée quitte « À venir » sans clic.
-- Variables de dépôt : `SITE_URL`, `DIRECTUS_URL`, `DEPLOY_MARKER` (ex.
+- Variables de dépôt : `SITE_URL`, `DIRECTUS_URL`, `PRODYSOS_URL`, `PRODYSOS_COMPANY`, `DEPLOY_MARKER` (ex.
   `.deploy-cible-cliffhanger`, un fichier vide de ce nom à la racine du compte FTP). Secrets :
-  `DIRECTUS_TOKEN` (posé par `npm run app-user` dans platform-cms), `FTP_HOST`, `FTP_USER`,
+  `DIRECTUS_TOKEN` (posé par `npm run app-user` dans platform-cms), `PRODYSOS_KEY` (la clé
+  publiable de Supabase), `FTP_HOST`, `FTP_USER`,
   `FTP_PASSWORD`.
 - Premier déploiement : `workflow_dispatch` avec `dry_run`, lire la liste, puis pour de vrai.
 

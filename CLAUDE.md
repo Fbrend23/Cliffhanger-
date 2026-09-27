@@ -27,6 +27,7 @@ commentaires (qui disent pourquoi), identifiants, commits.
 
 ## Architecture
 
+- **Prodysos** (back-office de la compagnie) : le loader des représentations y ajoute les dates des spectacles reliés par `prodysos_slug` (`src/lib/prodysos.js`, compagnie `PRODYSOS_COMPANY`, jamais un slug de spectacle). Heure de Bruxelles, commune tirée de l'adresse, prix du spectacle ; une date du CMS l'emporte sur la même de Prodysos. Les trois variables `PRODYSOS_*` : toutes ou aucune, exigées au déploiement.
 - **Le CMS n'est lu que par les loaders** (`src/lib/loaders.js`, un par collection : spectacles, photos, personnes, distribution, generique, representations, montreal, reglages), via `src/lib/directus.js` (fetch, rejeu sur 429, originaux dans `.cache/directus-assets/`, téléchargements partagés entre loaders). `src/content.config.js` valide (zod) et convertit les images en `ImageMetadata`. `src/lib/contenu.js` rassemble et relie tout pour les pages.
 - Zéro spectacle publié ou réglages sans titre : le build s'arrête. Une ligne liée à un spectacle ou une personne dépubliés est ignorée avec un warning.
 - Le **digest** de chaque entrée inclut tout ce qui se rend.
