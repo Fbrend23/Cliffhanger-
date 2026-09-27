@@ -28,6 +28,9 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
       DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
       DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+      PRODYSOS_URL: ${{ vars.PRODYSOS_URL }}
+      PRODYSOS_KEY: ${{ secrets.PRODYSOS_KEY }}
+      PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
     steps:
       - uses: actions/checkout@v7
 

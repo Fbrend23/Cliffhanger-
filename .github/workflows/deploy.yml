@@ -76,7 +76,7 @@ jobs:
       - name: Refuser un build sans ses sources
         run: |
           manquantes=""
-          for v in DIRECTUS_URL DIRECTUS_TOKEN SITE_URL DEPLOY_MARKER; do
+          for v in DIRECTUS_URL DIRECTUS_TOKEN PRODYSOS_URL PRODYSOS_KEY PRODYSOS_COMPANY SITE_URL DEPLOY_MARKER; do
             if [ -z "${!v:-}" ]; then
               manquantes="$manquantes $v"
             fi
@@ -84,14 +84,18 @@ jobs:
           if [ -n "$manquantes" ]; then
             echo "::error::Sources absentes :$manquantes"
             echo "DIRECTUS_TOKEN est un secret du dépôt, déposé par platform-cms (npm run app-user)."
-            echo "DIRECTUS_URL, SITE_URL et DEPLOY_MARKER sont des variables (Settings > Variables)."
+            echo "PRODYSOS_KEY est un secret : la clé publiable de Supabase, celle de Prodysos."
+            echo "DIRECTUS_URL, PRODYSOS_URL, PRODYSOS_COMPANY, SITE_URL et DEPLOY_MARKER sont des variables (Settings > Variables)."
             echo "DEPLOY_MARKER nomme le fichier témoin déposé à la racine du compte FTP de CE site."
             exit 1
           fi
-          echo "Les quatre sources sont fournies."
+          echo "Les sept sources sont fournies."
         env:
           DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
           DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+          PRODYSOS_URL: ${{ vars.PRODYSOS_URL }}
+          PRODYSOS_KEY: ${{ secrets.PRODYSOS_KEY }}
+          PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
           SITE_URL: ${{ vars.SITE_URL }}
           DEPLOY_MARKER: ${{ vars.DEPLOY_MARKER }}
 
@@ -163,6 +167,9 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
           DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
           DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+          PRODYSOS_URL: ${{ vars.PRODYSOS_URL }}
+          PRODYSOS_KEY: ${{ secrets.PRODYSOS_KEY }}
+          PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
         run: npm run build
 
       # 3 · Publication, en deux passes.
