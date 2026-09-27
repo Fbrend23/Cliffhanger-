@@ -19,3 +19,4 @@ node_modules/
 # Système
 .DS_Store
 Thumbs.db
+/private
