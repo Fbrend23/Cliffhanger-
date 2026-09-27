@@ -37,6 +37,15 @@ export default defineConfig({
       // `access: 'secret'` fait échouer le build si le jeton est référencé
       // depuis du code client. Une garde mécanique, plus sûre que la discipline.
       DIRECTUS_TOKEN: envField.string({ context: 'server', access: 'secret' }),
+
+      // Prodysos, source des dates programmées dans le back-office de la
+      // compagnie (src/lib/prodysos.js). Optionnelles, mais toutes ou aucune :
+      // sans elles, l'agenda vit sur les dates du CMS seules, annoncé dans le
+      // log. La clé est la clé PUBLIABLE de Supabase, sans droit sur aucune
+      // table ; elle reste côté serveur, le site ne s'en sert qu'au build.
+      PRODYSOS_URL: envField.string({ context: 'server', access: 'public', optional: true }),
+      PRODYSOS_KEY: envField.string({ context: 'server', access: 'public', optional: true }),
+      PRODYSOS_COMPANY: envField.string({ context: 'server', access: 'public', optional: true }),
     },
   },
 });

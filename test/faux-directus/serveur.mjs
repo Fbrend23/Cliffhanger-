@@ -2,7 +2,8 @@
 //
 // Il sert le contenu du prototype avec la forme de l'API que les loaders
 // interrogent : `/items/cliff_*` (fields, filter sur status, sort, deep,
-// limit, page) et `/assets/<id>`. Il ne vit que dans test/ : le site, lui,
+// limit, page) et `/assets/<id>`, plus la fonction de Prodysos que le site
+// appelle (`/rest/v1/rpc/get_public_company_shows`). Il ne vit que dans test/ : le site, lui,
 // n'a aucun contenu de repli, et ne connaît que le vrai CMS.
 //
 //   node test/faux-directus/serveur.mjs [port]      (8055 par défaut)
@@ -92,6 +93,18 @@ export async function démarrer(port = 8055) {
       res.writeHead(code, { 'content-type': 'application/json' });
       res.end(JSON.stringify(corps));
     };
+
+    // Prodysos (PostgREST) : la clé publiable, et la compagnie par son slug.
+    if (url.pathname === '/rest/v1/rpc/get_public_company_shows') {
+      if (!req.headers.apikey) return répondre(401, { message: 'clé absente' });
+      let corps = '';
+      req.on('data', (b) => (corps += b));
+      req.on('end', () => {
+        const { p_company_slug } = JSON.parse(corps || '{}');
+        répondre(200, p_company_slug === base.prodysos.company.slug ? base.prodysos : null);
+      });
+      return;
+    }
 
     if (!/^Bearer .+/.test(req.headers.authorization ?? '')) {
       return répondre(401, { errors: [{ message: 'jeton absent' }] });

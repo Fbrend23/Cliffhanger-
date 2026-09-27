@@ -31,6 +31,9 @@ before(async () => {
   faux = await démarrer(0);
   process.env.DIRECTUS_URL = faux.url;
   process.env.DIRECTUS_TOKEN = 'faux';
+  process.env.PRODYSOS_URL = faux.url;
+  process.env.PRODYSOS_KEY = 'faux';
+  process.env.PRODYSOS_COMPANY = 'cliffhanger';
   racine = await mkdtemp(path.join(tmpdir(), 'cliff-loaders-'));
   L = await import('../src/lib/loaders.js');
 });
@@ -159,6 +162,21 @@ test('représentations : jour, heure sans secondes, champs vides à null', async
   const montréal = toutes.find((r) => r.day === '2025-06-06');
   assert.equal(montréal.time, null);
   assert.equal(montréal.price, null);
+});
+
+test('représentations : les dates de Prodysos rejoignent celles du CMS', async () => {
+  const { entrées, avertissements, ctx } = contexte();
+  await L.representationsLoader().load(ctx);
+  const pe = [...entrées.entries()].filter(([, e]) => e.data.spectacle === 'par-endroits');
+  // Trois dates du CMS, deux de Prodysos ; la troisième de Prodysos est déjà dans le CMS.
+  assert.equal(pe.length, 5);
+  const venue = entrées.get('prodysos-p2').data;
+  assert.deepEqual(venue, { spectacle: 'par-endroits', day: '2027-03-12', time: '20:00', venue: 'Théâtre de la Vie', city: 'Saint-Josse-ten-Noode', price: '12 €' });
+  // La date du CMS garde son prix à elle.
+  assert.equal(pe.find(([, e]) => e.data.day === '2024-05-24')[1].data.price, '10 €');
+  assert.ok(!entrées.has('prodysos-p1'));
+  // Le spectacle Prodysos qu'aucun spectacle du CMS ne réclame est signalé.
+  assert.ok(avertissements.some((m) => /une-autre-creation/.test(m)));
 });
 
 test('réglages et Montréal : singletons, fonds par id de photo', async () => {

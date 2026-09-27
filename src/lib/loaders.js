@@ -24,6 +24,11 @@ import {
   requestAll,
 } from './directus.js';
 import { T } from './textes.js';
+import { fusionner, lignesProdysos, lireSpectaclesProdysos, prodysosConfiguré } from './prodysos.js';
+import { PRODYSOS_COMPANY, PRODYSOS_KEY, PRODYSOS_URL } from 'astro:env/server';
+
+/** Les variables de Prodysos, toutes optionnelles : voir prodysosConfiguré. */
+const ENV_PRODYSOS = { PRODYSOS_URL, PRODYSOS_KEY, PRODYSOS_COMPANY };
 
 export const SPECTACLES = 'cliff_spectacles';
 export const PERSONNES = 'cliff_personnes';
@@ -319,15 +324,23 @@ export function generiqueLoader() {
   };
 }
 
-/** Les représentations, dans l'ordre du calendrier. */
+/**
+ * Les représentations : celles du CMS, puis celles de Prodysos (lib/prodysos.js)
+ * pour les spectacles qui y sont reliés. Une date saisie dans le CMS l'emporte
+ * sur la même date venue de Prodysos. Le prix manquant d'une ligne est celui de
+ * son spectacle.
+ */
 export function representationsLoader() {
   return {
     name: 'directus-representations',
     async load({ store, parseData, logger }) {
-      const lignes = await requestAll(
-        `/items/${REPRESENTATIONS}?${PUBLIÉ}&sort=day,time,id&fields=id,spectacle.slug,day,time,venue,city,price`
-      );
-      store.clear();
+      const [lignes, spectacles] = await Promise.all([
+        requestAll(`/items/${REPRESENTATIONS}?${PUBLIÉ}&sort=day,time,id&fields=id,spectacle.slug,day,time,venue,city,price`),
+        requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=slug,prodysos_slug,price`),
+      ]);
+      const prixDe = new Map(spectacles.map((s) => [s.slug, texte(s.price)]));
+
+      const duCms = [];
       for (const r of lignes) {
         const spectacle = texte(r.spectacle?.slug);
         const day = typeof r.day === 'string' ? r.day.slice(0, 10) : null;
@@ -336,22 +349,46 @@ export function representationsLoader() {
           continue;
         }
         signalerTirets(logger, `représentation ${r.id}`, [r.venue, r.city, r.price]);
-        const id = String(r.id);
-        const data = await parseData({
-          id,
-          data: {
-            spectacle,
-            day,
-            // Directus rend « 20:00:00 » : on garde les heures et minutes.
-            time: typeof r.time === 'string' && r.time ? r.time.slice(0, 5) : null,
-            venue: texte(r.venue),
-            city: texte(r.city),
-            price: texte(r.price),
-          },
+        duCms.push({
+          id: String(r.id),
+          spectacle,
+          day,
+          // Directus rend « 20:00:00 » : on garde les heures et minutes.
+          time: typeof r.time === 'string' && r.time ? r.time.slice(0, 5) : null,
+          venue: texte(r.venue),
+          city: texte(r.city),
+          price: texte(r.price) ?? prixDe.get(spectacle) ?? null,
         });
-        store.set({ id, data, digest: JSON.stringify(r) });
       }
-      logger.info(`${lignes.length} représentation(s) chargée(s)`);
+
+      let deProdysos = [];
+      if (prodysosConfiguré(ENV_PRODYSOS)) {
+        const parSlugProdysos = new Map();
+        for (const s of spectacles) {
+          const clé = texte(s.prodysos_slug);
+          if (!clé) continue;
+          // Deux spectacles pour les mêmes dates : on n'en choisit aucun au hasard.
+          if (parSlugProdysos.has(clé)) {
+            throw new Error(`Deux spectacles publiés réclament le spectacle Prodysos « ${clé} » : ${parSlugProdysos.get(clé).slug} et ${s.slug}.`);
+          }
+          parSlugProdysos.set(clé, { slug: s.slug, price: texte(s.price) });
+        }
+        deProdysos = lignesProdysos(await lireSpectaclesProdysos(ENV_PRODYSOS), parSlugProdysos, (m) => logger.warn(m));
+        signalerTirets(logger, 'Prodysos', deProdysos.flatMap((l) => [l.venue, l.city]));
+      } else {
+        logger.warn('Prodysos non configuré (PRODYSOS_URL, PRODYSOS_KEY, PRODYSOS_COMPANY) : dates du CMS seules');
+      }
+
+      const { lignes: toutes, écartées } = fusionner(duCms, deProdysos);
+      store.clear();
+      for (const { id, ...champs } of toutes) {
+        const data = await parseData({ id, data: champs });
+        store.set({ id, data, digest: JSON.stringify(champs) });
+      }
+      logger.info(
+        `${duCms.length} représentation(s) du CMS, ${deProdysos.length - écartées} de Prodysos` +
+          (écartées ? ` (${écartées} déjà saisie(s) dans le CMS)` : '')
+      );
     },
   };
 }

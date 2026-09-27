@@ -28,6 +28,31 @@ const uuid = (nom) => {
  * `singletons[nom]` un objet, `fichiers` les lignes de directus_files avec le
  * chemin de l'original.
  */
+/**
+ * Ce que `get_public_company_shows` rend pour la compagnie : une date déjà
+ * saisie dans le CMS (écartée à la fusion), deux à venir, et un spectacle
+ * qu'aucun spectacle du CMS ne réclame (ses dates sont ignorées).
+ */
+export const PRODYSOS = {
+  company: { name: 'Compagnie Cliffhanger', slug: 'cliffhanger' },
+  shows: [
+    {
+      slug: 'par-endroits-cliffhanger',
+      title: 'Par endroits',
+      representations: [
+        { id: 'p1', date: '2024-05-24T20:00:00+02:00', location_name: 'Institut Européen de la Culture Arabe', location_address: null },
+        { id: 'p2', date: '2027-03-12T20:00:00+01:00', location_name: 'Théâtre de la Vie', location_address: 'Rue Traversière 45, 1210 Saint-Josse-ten-Noode' },
+        { id: 'p3', date: '2027-03-13T20:00:00+01:00', location_name: 'Théâtre de la Vie', location_address: 'Rue Traversière 45, 1210 Saint-Josse-ten-Noode' },
+      ],
+    },
+    {
+      slug: 'une-autre-creation',
+      title: 'Une autre création',
+      representations: [{ id: 'p4', date: '2027-01-08T19:00:00+01:00', location_name: 'Ailleurs', location_address: null }],
+    },
+  ],
+};
+
 export async function construireBase() {
   const modèle = modèleDuPrototype(await lirePrototype(path.join(racine, 'migration', 'content.js')));
 
@@ -60,6 +85,10 @@ export async function construireBase() {
 
   const spectacles = numéroter(modèle.spectacles.map(({ slides, hero, poster, ...s }) => ({ ...s, hero: fichierPublic(hero), poster: fichierPublic(poster), _slides: slides })));
   const parSlug = new Map(spectacles.map((s) => [s.slug, s]));
+
+  // Prodysos ne vient pas du prototype : un spectacle relié, et son tarif,
+  // pour que le build local fusionne des dates comme le vrai.
+  Object.assign(parSlug.get('par-endroits'), { prodysos_slug: 'par-endroits-cliffhanger', price: '12 €' });
   const personnes = numéroter(modèle.personnes);
   const parPersonne = new Map(personnes.map((p) => [p.slug, p]));
 
@@ -107,6 +136,7 @@ export async function construireBase() {
       cliff_representations: representations,
     },
     singletons: { cliff_montreal: modèle.montreal, cliff_reglages: reglages },
+    prodysos: PRODYSOS,
     fichiers: new Map([...fichiers.values()].map((f) => [f.id, f])),
   };
 }
