@@ -44,10 +44,15 @@ const figures = await Promise.all(survol.map(async (s) => ({ slug: s.slug, img: 
 </div>
 
 <script>
-  // Poser le srcset gardé en attente : le navigateur choisit alors sa taille.
-  // En priorité basse : même au survol, la photo de fond passe d'abord.
+  // Poser les srcset gardés en attente : le navigateur choisit alors sa
+  // source et sa taille. Les <source> d'abord, sinon l'<img> partirait en
+  // WebP. En priorité basse : même au survol, la photo de fond passe d'abord.
   const charger = (i: HTMLImageElement) => {
     if (!i.dataset.srcset) return;
+    i.parentElement?.querySelectorAll<HTMLSourceElement>('source[data-srcset]').forEach((s) => {
+      s.srcset = s.dataset.srcset!;
+      s.removeAttribute('data-srcset');
+    });
     i.fetchPriority = 'low';
     i.srcset = i.dataset.srcset;
     i.src = i.dataset.src ?? '';

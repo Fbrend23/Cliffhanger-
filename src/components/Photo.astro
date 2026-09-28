@@ -2,9 +2,14 @@
 // Un <img> rendu par une taille de lib/images.js : srcset WebP, dimensions
 // réelles pour réserver la place, chargement paresseux sauf la photo du haut.
 //
-// `differee` : les photos de survol de l'accueil et de la liste. Leur srcset
-// est gardé dans data-srcset, et le script de Fond.astro le pose au repos
-// (requestIdleCallback) ou au premier survol, pour qu'elles ne concurrencent
+// Les photos plein écran passent par un <picture> : le navigateur prend
+// l'AVIF s'il le lit, sinon l'<img> elle-même, en WebP. Le <picture> est en
+// `display: contents` : l'<img> reste l'enfant direct du conteneur, ses
+// classes (size-full, js-hero) et son flou au défilement n'en voient rien.
+//
+// `differee` : les photos de survol de l'accueil et de la liste. Leurs srcset
+// sont gardés dans data-srcset, et le script de Fond.astro les pose une fois
+// le fond arrivé, ou au premier survol, pour qu'elles ne concurrencent
 // jamais la photo visible.
 import type { Réactive } from '../lib/images.js';
 
@@ -18,24 +23,34 @@ interface Props {
 }
 
 const { img, alt = '', eager = false, differee = false, class: classe, style } = Astro.props;
+
+// Un attribut srcset, posé tout de suite ou gardé en attente.
+const srcset = (valeur: string) => (differee ? { 'data-srcset': valeur } : { srcset: valeur });
+const sources = [img.avif && { type: 'image/avif', srcset: img.avif, sizes: img.sizes }].filter((s) => !!s);
+const attributs = {
+  class: classe,
+  ...(differee ? { 'data-src': img.src } : { src: img.src }),
+  ...srcset(img.srcset),
+  sizes: img.sizes,
+  width: img.width,
+  height: img.height,
+  alt,
+  loading: eager || differee ? undefined : 'lazy',
+  fetchpriority: eager ? 'high' : undefined,
+  decoding: 'async',
+  style,
+} as const;
 ---
 
 {
-  differee ? (
-    <img class={classe} data-srcset={img.srcset} data-src={img.src} sizes={img.sizes} width={img.width} height={img.height} alt={alt} decoding="async" style={style} />
+  sources.length > 0 ? (
+    <picture class="contents">
+      {sources.map((s) => (
+        <source type={s.type} sizes={s.sizes} {...srcset(s.srcset)} />
+      ))}
+      <img {...attributs} />
+    </picture>
   ) : (
-    <img
-      class={classe}
-      src={img.src}
-      srcset={img.srcset}
-      sizes={img.sizes}
-      width={img.width}
-      height={img.height}
-      alt={alt}
-      loading={eager ? undefined : 'lazy'}
-      fetchpriority={eager ? 'high' : undefined}
-      decoding="async"
-      style={style}
-    />
+    <img {...attributs} />
   )
 }

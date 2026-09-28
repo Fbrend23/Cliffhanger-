@@ -58,6 +58,20 @@ const logoMenu = await getImage({ src: logo, width: 384, format: 'webp' });
 // l'adresse, comme le prototype (une fiche spectacle n'allume pas « Spectacles »).
 const rubrique = `/${Astro.url.pathname.split('/').filter(Boolean)[0] ?? ''}/`;
 
+// Le préchargement de la photo du haut vise ce que le <picture> choisira :
+// l'AVIF (un navigateur qui ne le lit pas ignore le lien et trouve le WebP
+// dans la page).
+const préchargements = precharger
+  ? [
+      {
+        media: undefined,
+        type: precharger.avif ? 'image/avif' : undefined,
+        srcset: precharger.avif ?? precharger.srcset,
+        sizes: precharger.sizes,
+      },
+    ]
+  : [];
+
 const ld = jsonLd
   ? JSON.stringify(Array.isArray(jsonLd) ? jsonLd.map((o) => ({ '@context': 'https://schema.org', ...o })) : { '@context': 'https://schema.org', ...jsonLd }).replace(
       /</g,
@@ -103,7 +117,7 @@ const entrée =
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="preload" href="/fonts/jost-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/archivo-800-latin.woff2" as="font" type="font/woff2" crossorigin />
-    {precharger && <link rel="preload" as="image" href={precharger.src} imagesrcset={precharger.srcset} imagesizes={precharger.sizes} fetchpriority="high" />}
+    {préchargements.map((p) => <link rel="preload" as="image" media={p.media} type={p.type} imagesrcset={p.srcset} imagesizes={p.sizes} fetchpriority="high" />)}
     {site.head_verification && <Fragment set:html={site.head_verification} />}
     {ld && <script type="application/ld+json" set:html={ld} />}
     <script is:inline>

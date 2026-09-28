@@ -13,26 +13,34 @@
 import { getImage } from 'astro:assets';
 
 /** @typedef {{ width: number|null, height: number|null }} Taille */
-/** @typedef {{ src: string, srcset: string, sizes: string, width: number, height: number }} Réactive */
+/**
+ * Ce que Photo.astro rend : le WebP (`src`, `srcset`), et selon la taille
+ * l'AVIF.
+ * @typedef {{ src: string, srcset: string, sizes: string, width: number, height: number, avif: string|null }} Réactive
+ */
 
 /**
  * Une image en plusieurs largeurs, jamais au-dessus de l'original : ce qu'un
  * `<img srcset sizes>` attend, avec les dimensions qui réservent sa place.
+ * Avec `avif`, les mêmes largeurs aussi en AVIF, pour une `<source>`.
  *
  * @param {import('astro').ImageMetadata} image
  * @param {Taille|null|undefined} taille  les dimensions de l'original, lues par le loader
  * @param {number[]} largeurs
  * @param {string} sizes
+ * @param {{ qualité?: number, avif?: boolean }} [options]
  * @returns {Promise<Réactive>}
  */
-async function réactive(image, taille, largeurs, sizes, qualité = 78) {
+async function réactive(image, taille, largeurs, sizes, { qualité = 78, avif = false } = {}) {
   const max = taille?.width ?? Math.max(...largeurs);
   const retenues = largeurs.filter((l) => l < max);
   const width = Math.min(max, Math.max(...largeurs));
   if (!retenues.includes(width)) retenues.push(width);
-  const img = await getImage({ src: image, width, widths: retenues, sizes, format: 'webp', quality: qualité });
+  const options = { src: image, width, widths: retenues, sizes };
+  const img = await getImage({ ...options, format: 'webp', quality: qualité });
+  const enAvif = avif ? await getImage({ ...options, format: 'avif', quality: QUALITÉ_AVIF }) : null;
   const height = taille?.width && taille?.height ? Math.round((taille.height / taille.width) * width) : Number(img.attributes.height) || width;
-  return { src: img.src, srcset: img.srcSet.attribute, sizes, width, height };
+  return { src: img.src, srcset: img.srcSet.attribute, sizes, width, height, avif: enAvif?.srcSet.attribute ?? null };
 }
 
 // Une photo qui couvre l'écran est la première chose que le visiteur regarde :
@@ -46,11 +54,22 @@ async function réactive(image, taille, largeurs, sizes, qualité = 78) {
 const PLEIN_ÉCRAN = [960, 1440, 2048, 2560, 3200];
 const QUALITÉ_PLEIN_ÉCRAN = 84;
 
+// Les photos plein écran sont aussi servies en AVIF, WebP en repli : c'est le
+// premier téléchargement de presque chaque page, et l'AVIF y pèse nettement
+// moins à qualité vue égale. Seulement elles : sur les affiches et les
+// vignettes, le gain fond et l'encodage AVIF, lent, allongerait le build.
+// L'échelle de qualité n'est pas celle du WebP. Mesuré sur trois originaux du
+// site (dont la photo sombre de l'accueil) en 960, 1440 et 2880 px, par
+// l'écart à l'original (PSNR, image entière et ombres) : 60 égale ou dépasse
+// le WebP 84 partout, pour 61 à 89 % de son poids ; 55 passait dessous.
+const QUALITÉ_AVIF = 60;
+
 /**
  * La grande photo du haut d'une page, et les fonds plein écran : 960 px pour
- * un téléphone, 1440 pour un portable en 1×, 2048 à 3200 pour les écrans 2×.
+ * un téléphone, 1440 pour un portable en 1×, 2048 à 3200 pour les écrans 2×,
+ * en AVIF et en WebP.
  */
-export const heros = (image, taille) => réactive(image, taille, PLEIN_ÉCRAN, '100vw', QUALITÉ_PLEIN_ÉCRAN);
+export const heros = (image, taille) => réactive(image, taille, PLEIN_ÉCRAN, '100vw', { qualité: QUALITÉ_PLEIN_ÉCRAN, avif: true });
 
 /**
  * La même taille pour une photo de la photothèque (fond de page, photo de La
@@ -73,7 +92,7 @@ export const vignetteGalerie = (image, taille) =>
   réactive(image, taille, [480, 800, 1200], '(max-width: 40em) 100vw, (max-width: 64em) 50vw, 33vw');
 
 /** La photo agrandie de la visionneuse : l'écran entier, mêmes exigences que le héros. */
-export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2560, 3200], '100vw', QUALITÉ_PLEIN_ÉCRAN);
+export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2560, 3200], '100vw', { qualité: QUALITÉ_PLEIN_ÉCRAN });
 
 /**
  * L'image des partages : les réseaux veulent un JPEG de 1200 px.
