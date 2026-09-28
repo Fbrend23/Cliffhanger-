@@ -10,14 +10,14 @@ import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
 import TexteRiche from '../../components/TexteRiche.astro';
 import { contenu } from '../../lib/contenu.js';
-import { cadrage, heros } from '../../lib/images.js';
+import { cadrage, herosSpectacle } from '../../lib/images.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
 
 const c = await contenu();
 const m = c.montreal;
 const s = c.montrealSpectacle;
-const img = s ? await heros(s.hero, s.heroTaille) : null;
+const img = s ? await herosSpectacle(s) : null;
 ---
 
 <Base title={T.montreal} description={m.lead} image={s?.poster ?? s?.hero ?? null} precharger={img}>

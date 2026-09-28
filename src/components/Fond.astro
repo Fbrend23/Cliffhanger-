@@ -9,20 +9,21 @@
 // survol. Survoler un titre montre alors sa photo tout de suite, sans jamais
 // retarder celle du fond.
 import Photo from './Photo.astro';
-import { cadrage, heros, herosPhoto } from '../lib/images.js';
+import { cadrage, herosPhoto, herosSpectacle } from '../lib/images.js';
 
+type Focal = { x: number; y: number } | null;
 interface Props {
-  fond: { image: any; width: number | null; height: number | null; focal: { x: number; y: number } | null } | null;
+  fond: { image: any; width: number | null; height: number | null; portrait: any; focal: Focal } | null;
   // La photo plus ou moins éteinte sous le texte : pleine (accueil), voilée (listes, contact), sombre (agenda).
   ton?: 'plein' | 'voile' | 'sombre';
-  survol?: { slug: string; hero: any; heroTaille: { width: number | null; height: number | null }; focal: { x: number; y: number } | null }[];
+  survol?: { slug: string; hero: any; heroTaille: { width: number | null; height: number | null }; heroPortrait: any; focal: Focal }[];
 }
 
 const { fond, ton = 'plein', survol = [] } = Astro.props;
 const lumière = { plein: 'brightness-75', voile: 'brightness-45', sombre: 'brightness-30' }[ton];
 const photo = `size-full object-cover ${lumière}`;
 const base = await herosPhoto(fond);
-const figures = await Promise.all(survol.map(async (s) => ({ slug: s.slug, img: await heros(s.hero, s.heroTaille), style: cadrage(s.focal) })));
+const figures = await Promise.all(survol.map(async (s) => ({ slug: s.slug, img: await herosSpectacle(s), style: cadrage(s.focal) })));
 ---
 
 {/* Le texte blanc reste lisible sur les photos claires : une ombre douce en haut (logo) et en bas (titres). */}

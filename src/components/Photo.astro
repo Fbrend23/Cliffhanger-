@@ -2,10 +2,12 @@
 // Un <img> rendu par une taille de lib/images.js : srcset WebP, dimensions
 // réelles pour réserver la place, chargement paresseux sauf la photo du haut.
 //
-// Les photos plein écran passent par un <picture> : le navigateur prend
-// l'AVIF s'il le lit, sinon l'<img> elle-même, en WebP. Le <picture> est en
-// `display: contents` : l'<img> reste l'enfant direct du conteneur, ses
-// classes (size-full, js-hero) et son flou au défilement n'en voient rien.
+// Les photos plein écran passent par un <picture> : le navigateur prend la
+// première source dont le média et le type lui vont, dans l'ordre du
+// portfolio : portrait AVIF, portrait WebP (écran tenu droit), paysage AVIF,
+// et l'<img> elle-même, paysage WebP. Le <picture> est en `display:
+// contents` : l'<img> reste l'enfant direct du conteneur, ses classes
+// (size-full, js-hero) et son flou au défilement n'en voient rien.
 //
 // `differee` : les photos de survol de l'accueil et de la liste. Leurs srcset
 // sont gardés dans data-srcset, et le script de Fond.astro les pose une fois
@@ -26,7 +28,11 @@ const { img, alt = '', eager = false, differee = false, class: classe, style } =
 
 // Un attribut srcset, posé tout de suite ou gardé en attente.
 const srcset = (valeur: string) => (differee ? { 'data-srcset': valeur } : { srcset: valeur });
-const sources = [img.avif && { type: 'image/avif', srcset: img.avif, sizes: img.sizes }].filter((s) => !!s);
+const sources = [
+  img.portrait?.avif && { media: '(orientation: portrait)', type: 'image/avif', srcset: img.portrait.avif, sizes: img.portrait.sizes },
+  img.portrait && { media: '(orientation: portrait)', type: 'image/webp', srcset: img.portrait.srcset, sizes: img.portrait.sizes },
+  img.avif && { type: 'image/avif', srcset: img.avif, sizes: img.sizes },
+].filter((s) => !!s);
 const attributs = {
   class: classe,
   ...(differee ? { 'data-src': img.src } : { src: img.src }),
@@ -46,7 +52,7 @@ const attributs = {
   sources.length > 0 ? (
     <picture class="contents">
       {sources.map((s) => (
-        <source type={s.type} sizes={s.sizes} {...srcset(s.srcset)} />
+        <source media={s.media} type={s.type} sizes={s.sizes} {...srcset(s.srcset)} />
       ))}
       <img {...attributs} />
     </picture>

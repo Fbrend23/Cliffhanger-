@@ -13,10 +13,11 @@
 import { getImage } from 'astro:assets';
 
 /** @typedef {{ width: number|null, height: number|null }} Taille */
+/** @typedef {{ srcset: string, avif: string|null, sizes: string }} Portrait */
 /**
  * Ce que Photo.astro rend : le WebP (`src`, `srcset`), et selon la taille
- * l'AVIF.
- * @typedef {{ src: string, srcset: string, sizes: string, width: number, height: number, avif: string|null }} Réactive
+ * l'AVIF et le recadrage portrait.
+ * @typedef {{ src: string, srcset: string, sizes: string, width: number, height: number, avif: string|null, portrait: Portrait|null }} Réactive
  */
 
 /**
@@ -40,7 +41,20 @@ async function réactive(image, taille, largeurs, sizes, { qualité = 78, avif =
   const img = await getImage({ ...options, format: 'webp', quality: qualité });
   const enAvif = avif ? await getImage({ ...options, format: 'avif', quality: QUALITÉ_AVIF }) : null;
   const height = taille?.width && taille?.height ? Math.round((taille.height / taille.width) * width) : Number(img.attributes.height) || width;
-  return { src: img.src, srcset: img.srcSet.attribute, sizes, width, height, avif: enAvif?.srcSet.attribute ?? null };
+  return { src: img.src, srcset: img.srcSet.attribute, sizes, width, height, avif: enAvif?.srcSet.attribute ?? null, portrait: null };
+}
+
+/**
+ * Ce que `sizes` doit dire d'une image qui COUVRE l'écran (object-fit:
+ * cover) : tant que l'écran est plus large qu'elle, elle est calée sur la
+ * largeur (100vw) ; sinon sur la hauteur, et sa largeur affichée vaut
+ * 100vh × son ratio. `100vw` seul la sous-estimait d'autant : un téléphone
+ * tenu droit prenait une image trois fois trop petite, agrandie et floue.
+ * @param {Taille|null|undefined} taille
+ */
+function couvre(taille) {
+  if (!taille?.width || !taille?.height) return '100vw';
+  return `(min-aspect-ratio: ${taille.width}/${taille.height}) 100vw, ${Math.round((taille.width / taille.height) * 100)}vh`;
 }
 
 // Une photo qui couvre l'écran est la première chose que le visiteur regarde :
@@ -64,19 +78,60 @@ const QUALITÉ_PLEIN_ÉCRAN = 84;
 // le WebP 84 partout, pour 61 à 89 % de son poids ; 55 passait dessous.
 const QUALITÉ_AVIF = 60;
 
+// Le recadrage portrait (lib/directus.js) couvre un téléphone ou une
+// tablette tenus droits : 56vh de large sur un téléphone. Plafond à 1280 px,
+// comme le portfolio : 0,9 pixel physique sur un téléphone 3×, c'est la
+// photo que le visiteur attend, et 1600 px la faisait passer de 270 à près
+// de 400 Ko pour une différence qu'on ne voit pas.
+const PORTRAIT_LARGEURS = [640, 960, 1280];
+const PORTRAIT = { width: 9, height: 16 };
+
+/**
+ * Les dimensions du recadrage portrait d'un original : même calcul que
+ * `cadrePortrait` (lib/directus.js), sans lire le fichier.
+ * @param {Taille} taille
+ * @returns {Taille}
+ */
+function taillePortrait({ width, height }) {
+  if (!width || !height) return { width: null, height: null };
+  const ratio = PORTRAIT.width / PORTRAIT.height;
+  return width / height > ratio ? { width: Math.round(height * ratio), height } : { width, height: Math.round(width / ratio) };
+}
+
 /**
  * La grande photo du haut d'une page, et les fonds plein écran : 960 px pour
  * un téléphone, 1440 pour un portable en 1×, 2048 à 3200 pour les écrans 2×,
- * en AVIF et en WebP.
+ * en AVIF et en WebP. Avec son recadrage portrait, les écrans tenus droits
+ * reçoivent celui-ci.
+ *
+ * @param {import('astro').ImageMetadata} image
+ * @param {Taille|null|undefined} taille
+ * @param {{ portrait?: import('astro').ImageMetadata|null }} [extras]
+ * @returns {Promise<Réactive>}
  */
-export const heros = (image, taille) => réactive(image, taille, PLEIN_ÉCRAN, '100vw', { qualité: QUALITÉ_PLEIN_ÉCRAN, avif: true });
+export async function heros(image, taille, { portrait = null } = {}) {
+  const options = { qualité: QUALITÉ_PLEIN_ÉCRAN, avif: true };
+  const r = await réactive(image, taille, PLEIN_ÉCRAN, couvre(taille), options);
+  if (portrait && taille?.width && taille?.height) {
+    const tp = taillePortrait(taille);
+    const p = await réactive(portrait, tp, PORTRAIT_LARGEURS, couvre(PORTRAIT), options);
+    r.portrait = { srcset: p.srcset, avif: p.avif, sizes: p.sizes };
+  }
+  return r;
+}
+
+/**
+ * La grande photo d'un spectacle, avec son portrait.
+ * @param {{ hero: import('astro').ImageMetadata, heroTaille: Taille, heroPortrait: import('astro').ImageMetadata }} s
+ */
+export const herosSpectacle = (s) => heros(s.hero, s.heroTaille, { portrait: s.heroPortrait });
 
 /**
  * La même taille pour une photo de la photothèque (fond de page, photo de La
  * compagnie), qui porte ses dimensions à plat. Sans photo, rien.
- * @param {{ image: import('astro').ImageMetadata, width: number|null, height: number|null } | null | undefined} photo
+ * @param {{ image: import('astro').ImageMetadata, width: number|null, height: number|null, portrait?: import('astro').ImageMetadata|null } | null | undefined} photo
  */
-export const herosPhoto = (photo) => (photo ? heros(photo.image, { width: photo.width, height: photo.height }) : Promise.resolve(null));
+export const herosPhoto = (photo) => (photo ? heros(photo.image, { width: photo.width, height: photo.height }, { portrait: photo.portrait }) : Promise.resolve(null));
 
 /** L'affiche, à ses proportions, 40rem de large au plus. */
 export const affiche = (image, taille) => réactive(image, taille, [400, 800, 1200], '(max-width: 40em) 100vw, 40rem');

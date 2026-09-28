@@ -60,16 +60,23 @@ const rubrique = `/${Astro.url.pathname.split('/').filter(Boolean)[0] ?? ''}/`;
 
 // Le préchargement de la photo du haut vise ce que le <picture> choisira :
 // l'AVIF (un navigateur qui ne le lit pas ignore le lien et trouve le WebP
-// dans la page).
+// dans la page), et le recadrage portrait sur un écran tenu droit. Les deux
+// médias sont complémentaires : un seul lien part.
 const préchargements = precharger
   ? [
+      precharger.portrait && {
+        media: '(orientation: portrait)',
+        type: precharger.portrait.avif ? 'image/avif' : undefined,
+        srcset: precharger.portrait.avif ?? precharger.portrait.srcset,
+        sizes: precharger.portrait.sizes,
+      },
       {
-        media: undefined,
+        media: precharger.portrait ? '(orientation: landscape)' : undefined,
         type: precharger.avif ? 'image/avif' : undefined,
         srcset: precharger.avif ?? precharger.srcset,
         sizes: precharger.sizes,
       },
-    ]
+    ].filter((p) => !!p)
   : [];
 
 const ld = jsonLd
