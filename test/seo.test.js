@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { décalageBruxelles, duréeEnMinutes, extrait, organisation, prixEnEuros, theaterEvent } from '../src/lib/seo.js';
+import { décalageBruxelles, duréeEnMinutes, extrait, organisation, prixEnEuros, siteWeb, theaterEvent } from '../src/lib/seo.js';
 
 test('le décalage de Bruxelles suit l’heure d’été', () => {
   assert.equal(décalageBruxelles('2026-04-17', '20:00'), '+02:00');
@@ -43,6 +43,18 @@ test('organisation : les réseaux vides ne sont pas listés', () => {
   assert.deepEqual(o.sameAs, ['https://instagram.com/x']);
   assert.equal(o.email, undefined);
   assert.equal(o.address.addressLocality, 'Bruxelles');
+  assert.equal(o.member, undefined);
+});
+
+test('le site, la compagnie et ses représentations partagent un identifiant', () => {
+  const url = 'https://exemple.test/';
+  const o = organisation({ nom: 'Compagnie Cliffhanger', url, membres: [{ nom: 'Alexandre Van Campenhout', url: `${url}personne/a/` }] });
+  assert.equal(o['@id'], 'https://exemple.test/#compagnie');
+  assert.deepEqual(o.member, [{ '@type': 'Person', name: 'Alexandre Van Campenhout', url: `${url}personne/a/` }]);
+  assert.deepEqual(siteWeb({ nom: 'Compagnie Cliffhanger', url }).publisher, { '@id': o['@id'] });
+  const e = theaterEvent({ title: 'X' }, { day: '2027-01-01', time: null, venue: null, city: null, price: null }, { url: 'u', organisateur: { nom: 'Compagnie Cliffhanger', url } });
+  assert.equal(e.organizer['@id'], o['@id']);
+  assert.equal(e.performer['@id'], o['@id']);
 });
 
 test('extrait : le texte seul, entier s’il est court', () => {

@@ -74,20 +74,40 @@ export function duréeEnMinutes(durée) {
 const instantBruxelles = (jour, heure) => `${jour}T${heure}:00${décalageBruxelles(jour, heure)}`;
 
 /**
- * La compagnie.
- * @param {{ nom: string, url: string, description?: string|null, email?: string|null, réseaux?: (string|null)[], image?: string|null }} o
+ * L'identifiant de la compagnie dans les données structurées : le même sur
+ * toutes les pages, pour qu'un moteur relie les représentations, les fiches
+ * et le site à une seule compagnie.
+ * @param {string} url  l'accueil
  */
-export function organisation({ nom, url, description = null, email = null, réseaux = [], image = null }) {
+export const idCompagnie = (url) => `${url}#compagnie`;
+
+/**
+ * Le site : c'est lui qui donne son nom au site dans les résultats de Google.
+ * @param {{ nom: string, url: string }} o
+ */
+export function siteWeb({ nom, url }) {
+  return { '@type': 'WebSite', '@id': `${url}#site`, name: nom, url, inLanguage: 'fr-BE', publisher: { '@id': idCompagnie(url) } };
+}
+
+/**
+ * La compagnie, et son équipe (le groupe « equipe » seulement : un invité
+ * n'en est pas membre).
+ * @param {{ nom: string, url: string, description?: string|null, email?: string|null, réseaux?: (string|null)[], image?: string|null, logo?: string|null, membres?: { nom: string, url: string }[] }} o
+ */
+export function organisation({ nom, url, description = null, email = null, réseaux = [], image = null, logo = null, membres = [] }) {
   const liens = réseaux.filter(Boolean);
   return {
     '@type': 'TheaterGroup',
+    '@id': idCompagnie(url),
     name: nom,
     url,
     ...(description ? { description } : {}),
     ...(email ? { email } : {}),
+    ...(logo ? { logo } : {}),
     ...(image ? { image } : {}),
     ...(liens.length ? { sameAs: liens } : {}),
     address: { '@type': 'PostalAddress', addressLocality: 'Bruxelles', addressCountry: 'BE' },
+    ...(membres.length ? { member: membres.map((m) => ({ '@type': 'Person', name: m.nom, url: m.url })) } : {}),
   };
 }
 
@@ -103,7 +123,7 @@ export function theaterEvent(spectacle, r, { url, image = null, organisateur, r�
   const minutes = r.time ? duréeEnMinutes(spectacle.duration) : null;
   const finale = minutes ? jourEtHeure(Date.parse(début) + minutes * 60_000) : null;
   const prix = prixEnEuros(r.price);
-  const compagnie = { '@type': 'TheaterGroup', name: organisateur.nom, url: organisateur.url };
+  const compagnie = { '@type': 'TheaterGroup', '@id': idCompagnie(organisateur.url), name: organisateur.nom, url: organisateur.url };
   return {
     '@type': 'TheaterEvent',
     name: spectacle.title,

@@ -7,7 +7,7 @@ import ListeSpectacles from '../components/ListeSpectacles.astro';
 import Pied from '../components/Pied.astro';
 import { contenu } from '../lib/contenu.js';
 import { herosPhoto, og } from '../lib/images.js';
-import { organisation } from '../lib/seo.js';
+import { organisation, siteWeb } from '../lib/seo.js';
 import { T } from '../lib/textes.js';
 import { tx } from '../lib/typo.js';
 
@@ -15,17 +15,24 @@ const c = await contenu();
 const fond = c.photo(c.reglages.fonds.accueil);
 const precharger = await herosPhoto(fond);
 
-// La compagnie pour les moteurs : son nom, son adresse, ses réseaux.
+// Le site et la compagnie pour les moteurs : son nom, son adresse, ses
+// réseaux, son équipe (chacun vers sa fiche).
 const r = c.reglages;
 const imageOg = r.og_image ?? fond?.image ?? null;
-const jsonLd = organisation({
-  nom: r.site_title,
-  url: new URL('/', Astro.site).toString(),
-  description: r.site_description,
-  email: r.email,
-  réseaux: [r.instagram, r.facebook],
-  image: imageOg ? new URL(await og(imageOg), Astro.site).toString() : null,
-});
+const accueil = new URL('/', Astro.site).toString();
+const jsonLd = [
+  siteWeb({ nom: r.site_title, url: accueil }),
+  organisation({
+    nom: r.site_title,
+    url: accueil,
+    description: r.site_description,
+    email: r.email,
+    réseaux: [r.instagram, r.facebook],
+    image: imageOg ? new URL(await og(imageOg), Astro.site).toString() : null,
+    logo: new URL('/apple-touch-icon.png', Astro.site).toString(),
+    membres: c.personnes.filter((p) => p.groupe === 'equipe').map((p) => ({ nom: p.name, url: new URL(`/personne/${p.slug}/`, Astro.site).toString() })),
+  }),
+];
 ---
 
 <Base precharger={precharger} jsonLd={jsonLd}>
