@@ -107,7 +107,7 @@ export async function requestAll(chemin) {
 
 const existe = (chemin) => access(chemin).then(() => true, () => false);
 
-/** @typedef {{ modified_on: string, fichier: string, portrait?: { focal: string, fichier: string } }} Entrée */
+/** @typedef {{ modified_on: string, fichier: string, aperçu?: string, portrait?: { focal: string, fichier: string } }} Entrée */
 /** @typedef {{ dossier: string, manifest: Record<string, Entrée>, enregistrer(): Promise<void> }} Cache */
 
 /** Un seul cache par dossier, partagé entre les loaders (voir `ouvrirCache`). */
@@ -314,6 +314,43 @@ async function ranger(cache, id, nom, version, logger, libellé, charger) {
 
 /** Les téléchargements en cours, partagés entre loaders (voir `ranger`). */
 const enCours = new Map();
+
+// L'aperçu : trente-deux pixels de large. Assez pour la lumière et la
+// composition, assez peu pour tenir en quelques centaines d'octets une fois
+// en base64 dans la page. Le flou est cuit dedans : agrandi cent fois par le
+// navigateur, un aperçu net montrerait ses blocs.
+const APERÇU_LARGEUR = 32;
+
+/**
+ * L'aperçu flou d'un fichier du cache, en `data:` URI, posé sous la photo le
+ * temps qu'elle arrive : le visiteur voit la photo se préciser, jamais un
+ * rectangle noir. C'est aussi ce qui tient le fondu de page « photo sur
+ * photo » quand la photo de la page suivante n'est pas encore en cache.
+ *
+ * Gardé dans le manifeste, à côté du nom du fichier : le fabriquer demande de
+ * décoder l'original, et il ne change qu'avec lui. `ranger` remplace l'entrée
+ * entière quand le fichier est retéléchargé, ce qui jette l'aperçu avec.
+ * Même fonction que le portfolio.
+ *
+ * @param {string} id  la clé du manifeste
+ * @param {Cache} cache
+ */
+export async function assurerAperçu(id, cache) {
+  const entrée = cache.manifest[id];
+  if (!entrée) throw new Error(`aperçu demandé pour ${id} avant son téléchargement`);
+  if (!entrée.aperçu) {
+    // Lu depuis un tampon : sur un chemin, sharp garde le fichier ouvert, et
+    // Windows refuse alors de le purger ou de le remplacer.
+    const buf = await sharp(await readFile(path.join(cache.dossier, entrée.fichier)))
+      .rotate()
+      .resize(APERÇU_LARGEUR, APERÇU_LARGEUR, { fit: 'inside' })
+      .blur(0.8)
+      .webp({ quality: 45 })
+      .toBuffer();
+    entrée.aperçu = `data:image/webp;base64,${buf.toString('base64')}`;
+  }
+  return entrée.aperçu;
+}
 
 // Le recadrage portrait : 9:16, un téléphone tenu droit. Plus étroit (9:19,5
 // sur les récents), le navigateur rogne encore un peu les côtés avec
