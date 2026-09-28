@@ -15,6 +15,7 @@ import TexteRiche from '../../components/TexteRiche.astro';
 import { contenu } from '../../lib/contenu.js';
 import { joindreFr, projetsDe } from '../../lib/generique.js';
 import { cadrage, herosPhoto } from '../../lib/images.js';
+import { extrait } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
 
@@ -31,7 +32,7 @@ const équipe = c.personnes
   ]);
 ---
 
-<Base title={T.laCompagnie} description={r.compagnie_punch} image={fond?.image ?? null} precharger={img}>
+<Base title={T.laCompagnie} description={r.compagnie_punch ?? extrait(r.compagnie_text)} image={fond?.image ?? null} precharger={img}>
   <article>
     <TeteDePage img={img} alt={fond?.caption ?? ''} style={cadrage(fond?.focal)} titre={T.laCompagnie} sous={r.compagnie_sub} />
     {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { décalageBruxelles, organisation, prixEnEuros, theaterEvent } from '../src/lib/seo.js';
+import { décalageBruxelles, extrait, organisation, prixEnEuros, theaterEvent } from '../src/lib/seo.js';
 
 test('le décalage de Bruxelles suit l’heure d’été', () => {
   assert.equal(décalageBruxelles('2026-04-17', '20:00'), '+02:00');
@@ -43,4 +43,20 @@ test('organisation : les réseaux vides ne sont pas listés', () => {
   assert.deepEqual(o.sameAs, ['https://instagram.com/x']);
   assert.equal(o.email, undefined);
   assert.equal(o.address.addressLocality, 'Bruxelles');
+});
+
+test('extrait : le texte seul, entier s’il est court', () => {
+  assert.equal(extrait('<p>Comédienne &amp; metteuse en scène.</p><p>Née à Liège.</p>'), 'Comédienne & metteuse en scène. Née à Liège.');
+  assert.equal(extrait('<p>Un&nbsp;texte<br>sur deux lignes&#39;</p>'), "Un texte sur deux lignes'");
+  assert.equal(extrait('<p> </p>'), null);
+  assert.equal(extrait(null), null);
+});
+
+test('extrait : coupé à la fin d’une phrase, sinon au dernier mot', () => {
+  const phrases = `${'a'.repeat(100)}. ${'b'.repeat(100)}.`;
+  assert.equal(extrait(phrases), `${'a'.repeat(100)}.`);
+  const mots = Array.from({ length: 40 }, () => 'mot').join(' ');
+  const e = extrait(mots, 20);
+  assert.equal(e, 'mot mot mot mot mot…');
+  assert.ok(e.length <= 21);
 });

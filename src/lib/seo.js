@@ -1,7 +1,39 @@
-// Les données structurées (schema.org) : la compagnie sur l'accueil, une
-// représentation par TheaterEvent sur la fiche d'un spectacle. C'est ce qui
-// permet à un moteur de montrer « 17 avr., Théâtre L'Improviste » sous le
+// Ce que les pages disent aux moteurs : les descriptions tirées d'un texte
+// riche, et les données structurées (schema.org), la compagnie sur l'accueil,
+// une représentation par TheaterEvent sur la fiche d'un spectacle. C'est ce
+// qui permet à un moteur de montrer « 17 avr., Théâtre L'Improviste » sous le
 // lien. Pur, testé dans test/seo.test.js ; Base.astro pose le contexte.
+
+const ENTITÉS = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+/**
+ * La description d'une page tirée d'un texte riche du CMS (une biographie, un
+ * texte de spectacle) : le texte seul, sur une ligne, arrêté à la fin d'une
+ * phrase si elle tombe assez loin, sinon au dernier mot avant `max`, avec
+ * « … ». Google coupe vers 155 caractères : au-delà, la fin serait perdue.
+ * @param {string|null|undefined} html
+ * @param {number} [max]
+ * @returns {string|null} null pour un texte vide
+ */
+export function extrait(html, max = 155) {
+  const texte = String(html ?? '')
+    .replace(/<\/(p|li|h\d)>|<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(#x[\da-f]+|#\d+|\w+);/gi, (tout, e) => {
+      if (e[0] !== '#') return ENTITÉS[e.toLowerCase()] ?? tout;
+      return String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : Number(e.slice(1)));
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!texte) return null;
+  if (texte.length <= max) return texte;
+  const début = texte.slice(0, max);
+  // Une phrase entière vaut mieux qu'une coupe, si elle dit assez.
+  const phrase = Math.max(...['. ', '! ', '? ', '… '].map((f) => début.lastIndexOf(f)));
+  if (phrase >= max / 2) return début.slice(0, phrase + 1);
+  const mot = début.lastIndexOf(' ');
+  return `${(mot > 0 ? début.slice(0, mot) : début).replace(/[\s,;:.]+$/, '')}…`;
+}
 
 /**
  * Le décalage de Bruxelles à une date donnée, « +01:00 » ou « +02:00 » : une

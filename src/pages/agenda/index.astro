@@ -27,6 +27,10 @@ const maintenant = aujourdhui();
 const àVenir = toutes.filter((s) => s.à >= maintenant).reverse();
 const passées = toutes.filter((s) => s.à < maintenant);
 
+// La description annonce la prochaine série : « Hamlet, 17 et 18 avr. 2026, Théâtre L'Improviste, Forest ».
+const prochaine = àVenir[0];
+const description = T.descriptionAgenda(prochaine ? [belges.get(prochaine.spectacle)!.title, formatPlage(prochaine.de, prochaine.à), prochaine.lieu].filter(Boolean).join(', ') : null);
+
 // Une série se réserve si l'un de ses soirs, à venir, se réserve : même
 // spectacle, même lieu, entre ses bornes.
 const réservable = (s: (typeof toutes)[number]) =>
@@ -44,7 +48,7 @@ const lignes = (liste: typeof toutes) =>
   });
 ---
 
-<Base title={T.agenda} precharger={precharger}>
+<Base title={T.agenda} description={description} precharger={precharger}>
   <PageListe>
     <Fond fond={fond} ton="sombre" />
     <div class="mx-auto w-full max-w-[96rem] px-gouttiere">

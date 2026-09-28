@@ -11,6 +11,7 @@ import TeteDePage from '../../components/TeteDePage.astro';
 import TexteRiche from '../../components/TexteRiche.astro';
 import { contenu } from '../../lib/contenu.js';
 import { cadrage, herosSpectacle } from '../../lib/images.js';
+import { extrait } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
 
@@ -20,7 +21,7 @@ const s = c.montrealSpectacle;
 const img = s ? await herosSpectacle(s) : null;
 ---
 
-<Base title={T.montreal} description={m.lead} image={s?.poster ?? s?.hero ?? null} precharger={img}>
+<Base title={T.montreal} description={m.lead ?? extrait(m.text)} image={s?.poster ?? s?.hero ?? null} precharger={img}>
   <article>
     <TeteDePage img={img} alt={s?.title ?? ''} style={cadrage(s?.focal)} titre={T.montreal} sous={m.sub} />
     {

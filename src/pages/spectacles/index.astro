@@ -5,6 +5,7 @@ import Fond from '../../components/Fond.astro';
 import ListeSpectacles from '../../components/ListeSpectacles.astro';
 import Pied from '../../components/Pied.astro';
 import { contenu } from '../../lib/contenu.js';
+import { joindreFr } from '../../lib/generique.js';
 import { herosPhoto } from '../../lib/images.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
@@ -12,9 +13,10 @@ import { tx } from '../../lib/typo.js';
 const c = await contenu();
 const fond = c.photo(c.reglages.fonds.spectacles);
 const precharger = await herosPhoto(fond);
+const description = T.descriptionSpectacles(joindreFr(c.belges.map((s) => s.title)));
 ---
 
-<Base title={T.spectacles} precharger={precharger}>
+<Base title={T.spectacles} description={description} precharger={precharger}>
   <section class="relative isolate flex min-h-svh flex-col items-center justify-center px-gouttiere pt-24 pb-27 text-center">
     <h1 class="sr-only" set:html={tx(T.spectacles)} />
     <Fond fond={fond} ton="voile" survol={c.belges} />

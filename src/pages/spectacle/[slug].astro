@@ -8,7 +8,7 @@ import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
 import { contenu } from '../../lib/contenu.js';
 import { cadrage, herosSpectacle, og } from '../../lib/images.js';
-import { theaterEvent } from '../../lib/seo.js';
+import { extrait, theaterEvent } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
 
 export async function getStaticPaths() {
@@ -28,7 +28,7 @@ const organisateur = { nom: c.reglages.site_title, url: new URL('/', Astro.site)
 const jsonLd = c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url, image, organisateur }));
 ---
 
-<Base title={s.title} description={s.punch} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd.length ? jsonLd : null}>
+<Base title={s.title} description={s.punch ?? extrait(s.text)} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd.length ? jsonLd : null}>
   <article>
     <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
     <SectionsSpectacle spectacle={s} />

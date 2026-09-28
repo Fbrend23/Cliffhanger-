@@ -21,7 +21,7 @@ import logo from '../assets/logo-arc-en-ciel.webp';
 import { og } from '../lib/images.js';
 import type { Réactive } from '../lib/images.js';
 import { T } from '../lib/textes.js';
-import { tx } from '../lib/typo.js';
+import { tx, typographier } from '../lib/typo.js';
 import '../styles/site.css';
 
 interface Props {
@@ -41,7 +41,8 @@ const site = (await getEntry('reglages', 'site'))!.data;
 
 // Le titre de l'onglet suit le prototype : « Page · Compagnie Cliffhanger ».
 const titreComplet = tx(title ? `${title} · ${site.site_title}` : site.site_title);
-const résumé = description ?? site.site_description ?? T.descriptionParDéfaut;
+// La description, typographiée comme le titre (Astro échappe l'attribut).
+const résumé = typographier(description || site.site_description || T.descriptionParDéfaut);
 const canonique = new URL(Astro.url.pathname, Astro.site).toString();
 
 // L'image des partages : celle de la page, sinon celle des réglages, sinon
