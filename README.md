@@ -8,9 +8,9 @@ alimenté **au build** par l'instance Directus mutualisée de
 - **Référence de style :** https://www.focusandchaliwate.be/fr
 - **Originaux des médias :** Google Drive de la compagnie, dossier `CLIFFHANGER/03_MEDIAS` (accès via Hans)
 
-Le site reprend le prototype qui a servi à montrer le projet à la compagnie : mêmes pages, mêmes
-classes, mêmes animations, mais de vraies adresses par page, le contenu dans le CMS, un sitemap,
-Open Graph et des données structurées.
+Le site reprend le prototype qui a servi à montrer le projet à la compagnie : mêmes pages, même
+rendu, mêmes animations, mais de vraies adresses par page, le contenu dans le CMS, un sitemap,
+Open Graph et des données structurées. Le style est écrit en **Tailwind CSS 4** (voir « Le style »).
 
 ## Commandes
 
@@ -115,6 +115,23 @@ Règles de saisie, rappelées dans les notes du Studio :
   un fond de page ;
 - le point focal d'une photo se règle dans l'éditeur d'image du Studio ;
 - aucun tiret long : le build le signale et le remplace au rendu.
+
+## Le style
+
+Tailwind CSS 4, par son plugin Vite, sans fichier de configuration. Les gabarits s'écrivent en
+utilitaires ; `src/styles/site.css` ne garde que ce qu'ils partagent :
+
+- les jetons du « Guide dev » dans `@theme` : noir, blanc, gris (la palette de Tailwind est
+  retirée), Jost et Archivo, les tailles de texte sans interligne imposé, la gouttière et la
+  respiration qui grandissent avec l'écran (`px-gouttiere`, `my-respiration`) ;
+- les variantes d'état : `menu-ouvert:`, `sans-js:`, `visible:` (photo de survol), `parti:`
+  (Découvrir), `tactile:` ;
+- deux utilitaires maison, `titre` et `lien-souligne`, la base, les polices et les animations.
+
+Le balisage qui revient d'une page à l'autre est un composant, pas une classe : `Section`,
+`Accroche`, `TexteRiche` (le HTML du CMS, stylé depuis son conteneur), `Intitule`, `Pastille`,
+`TitrePage`, `PageListe`, `PageCentree`, `LienRetour`. Les scripts trouvent leurs éléments par
+`js-*` ou `data-*`, jamais par une classe de style.
 
 ## La migration du prototype
 
