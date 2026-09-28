@@ -124,10 +124,6 @@
 .contact{position:relative;isolation:isolate;min-height:100svh;display:flex;align-items:center;justify-content:center;padding:7rem var(--spacing-gouttiere) 5rem;text-align:center}
 .contact__inner{display:grid;justify-items:center;gap:1.25rem}
 .contact__lead{font-size:1.25rem;opacity:.75;--o:.75}
-.contact__mail{font-size:clamp(1.25rem,3vw,2rem);font-weight:400;word-break:break-word}
-.contact__mail a{border-bottom:.0625rem solid rgba(255,255,255,.4);transition:border-color .25s}
-.contact__mail a:hover,.contact__mail a:focus-visible{border-color:var(--color-front)}
-.ext::after{content:"↗";margin-left:.35em;font-size:.8em}
 .contact .pills{justify-content:center;margin-top:1rem}
 
 /* ---------- mouvement ---------- */
