@@ -74,6 +74,18 @@ test('spectacles : slugs, troupe, carrousel ordonné, point focal en %', async (
   assert.equal(entrées.get('les-femmes-se-vantent').data.cite, 'Karoo, novembre 2019');
 });
 
+test('cadre portrait : 9:16 autour du point focal, sans sortir de l’image', async () => {
+  const { cadrePortrait } = await import('../src/lib/directus.js');
+  // Paysage : toute la hauteur, la largeur d'un 9:16.
+  assert.deepEqual(cadrePortrait(1600, 900, null), { left: 547, top: 0, width: 506, height: 900 });
+  assert.equal(cadrePortrait(1600, 900, { x: 0, y: 50 }).left, 0);
+  assert.equal(cadrePortrait(1600, 900, { x: 100, y: 50 }).left, 1600 - 506);
+  // Plus étroit qu'un 9:16 : toute la largeur, le haut et le bas rognés selon le point.
+  assert.deepEqual(cadrePortrait(900, 2000, { x: 30, y: 25 }), { left: 0, top: 100, width: 900, height: 1600 });
+  // Exactement 9:16 : l'image entière.
+  assert.deepEqual(cadrePortrait(900, 1600, { x: 80, y: 80 }), { left: 0, top: 0, width: 900, height: 1600 });
+});
+
 test('spectacles : sans affiche ni texte dans le CMS, ceux de la page publique Prodysos', async () => {
   const inédit = faux.base.collections.cliff_spectacles.find((s) => s.slug === 'linedit-de-moliere');
   const { poster, text } = inédit;
