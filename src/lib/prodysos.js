@@ -6,8 +6,8 @@
 // `get_public_company_shows` en désignant la COMPAGNIE, jamais un spectacle :
 // le slug d'un spectacle est unique sur toute la base Prodysos, en nommer un à
 // la main exposerait à afficher la création d'une autre troupe. Chaque
-// spectacle du CMS dit ensuite lequel des spectacles Prodysos est le sien
-// (champ `prodysos_slug`).
+// spectacle Prodysos rejoint ensuite celui du CMS qui porte le même titre, ou
+// celui qui le réclame par son champ `prodysos_slug` (voir relier).
 //
 // Lu au build seulement : Prodysos en panne fait échouer le build, et le site
 // en ligne reste intact. Même connecteur que Maisallezfieu.
@@ -119,9 +119,80 @@ export function commune(adresse) {
 }
 
 /**
+ * Un titre réduit à ce qui le distingue : sans casse, accents, apostrophes
+ * ni ponctuation. « L’Inédit de Molière » et « L'inedit de moliere » se
+ * valent ; la compagnie ne tape pas deux fois la même typographie.
+ */
+export function titreNormalisé(titre) {
+  if (typeof titre !== 'string') return '';
+  return titre
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/œ/g, 'oe')
+    .replace(/æ/g, 'ae')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
+ * Quel spectacle du CMS reçoit les dates de quel spectacle Prodysos.
+ *
+ * 1. Le `prodysos_slug` saisi dans le CMS : le lien forcé, pour des titres qui
+ *    diffèrent. Deux spectacles qui réclament le même arrêtent le build.
+ * 2. Sinon, le même titre (titreNormalisé). C'est le cas courant, et il ne
+ *    demande rien à la compagnie : elle nomme son projet dans Prodysos comme
+ *    sur le site. Un spectacle du CMS déjà relié à la main n'est pas candidat.
+ *    Un titre porté par deux spectacles du CMS ne relie rien : on n'en choisit
+ *    aucun au hasard, et on le dit.
+ *
+ * Les titres comparés sont ceux de la compagnie seule (la réponse de
+ * Prodysos ne contient qu'elle) : aucun risque d'attraper la création d'une
+ * autre troupe du même nom.
+ *
+ * @param {any[]} spectaclesProdysos  la réponse de Prodysos
+ * @param {{ slug: string, title?: string|null, prodysos_slug?: string|null, price?: string|null }[]} spectaclesCms  publiés
+ * @param {{ avertir: (message: string) => void, informer?: (message: string) => void }} journal
+ * @returns {Map<string, { slug: string, price: string|null }>}  slug Prodysos → spectacle du CMS
+ */
+export function relier(spectaclesProdysos, spectaclesCms, { avertir, informer = () => {} }) {
+  const liens = new Map();
+  const libres = [];
+  for (const s of spectaclesCms) {
+    const clé = texteOuNull(s.prodysos_slug);
+    if (!clé) {
+      libres.push(s);
+      continue;
+    }
+    if (liens.has(clé)) {
+      throw new Error(`Deux spectacles publiés réclament le spectacle Prodysos « ${clé} » : ${liens.get(clé).slug} et ${s.slug}.`);
+    }
+    liens.set(clé, { slug: s.slug, price: texteOuNull(s.price) });
+  }
+
+  const parTitre = new Map();
+  for (const s of libres) {
+    const titre = titreNormalisé(s.title);
+    if (titre) parTitre.set(titre, [...(parTitre.get(titre) ?? []), s]);
+  }
+  for (const show of spectaclesProdysos) {
+    if (!show?.slug || liens.has(show.slug)) continue;
+    const candidats = parTitre.get(titreNormalisé(show.title)) ?? [];
+    if (candidats.length > 1) {
+      avertir(`Prodysos « ${show.slug} » : le titre « ${show.title} » est celui de ${candidats.map((s) => s.slug).join(' et ')}, aucun n'est relié (préciser le champ Prodysos de l'un d'eux)`);
+    } else if (candidats.length === 1) {
+      const [s] = candidats;
+      liens.set(show.slug, { slug: s.slug, price: texteOuNull(s.price) });
+      informer(`Prodysos « ${show.slug} » relié par son titre à ${s.slug}`);
+    }
+  }
+  return liens;
+}
+
+/**
  * Les représentations Prodysos, sous la forme des lignes du CMS. Seules
- * comptent celles d'un spectacle Prodysos qu'un spectacle publié du CMS
- * réclame par son `prodysos_slug` ; le prix est celui de ce spectacle.
+ * comptent celles d'un spectacle Prodysos relié à un spectacle publié du CMS
+ * (voir relier) ; le prix est celui de ce spectacle.
  *
  * @param {any[]} spectaclesProdysos  la réponse de Prodysos
  * @param {Map<string, { slug: string, price: string|null }>} parSlugProdysos
@@ -133,7 +204,7 @@ export function lignesProdysos(spectaclesProdysos, parSlugProdysos, avertir) {
     const cible = parSlugProdysos.get(show?.slug);
     const représentations = Array.isArray(show?.representations) ? show.representations : [];
     if (!cible) {
-      if (représentations.length) avertir(`Prodysos « ${show?.slug} » : aucun spectacle publié ne le réclame (prodysos_slug), ${représentations.length} date(s) ignorée(s)`);
+      if (représentations.length) avertir(`Prodysos « ${show?.slug} » (« ${show?.title} ») : aucun spectacle publié de ce titre ni qui le réclame (prodysos_slug), ${représentations.length} date(s) ignorée(s)`);
       continue;
     }
     for (const r of représentations) {

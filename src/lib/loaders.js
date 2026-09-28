@@ -24,7 +24,7 @@ import {
   requestAll,
 } from './directus.js';
 import { T } from './textes.js';
-import { fusionner, lignesProdysos, lireSpectaclesProdysos, prodysosConfiguré } from './prodysos.js';
+import { fusionner, lignesProdysos, lireSpectaclesProdysos, prodysosConfiguré, relier } from './prodysos.js';
 import { PRODYSOS_COMPANY, PRODYSOS_KEY, PRODYSOS_URL } from 'astro:env/server';
 
 /** Les variables de Prodysos, toutes optionnelles : voir prodysosConfiguré. */
@@ -336,7 +336,7 @@ export function representationsLoader() {
     async load({ store, parseData, logger }) {
       const [lignes, spectacles] = await Promise.all([
         requestAll(`/items/${REPRESENTATIONS}?${PUBLIÉ}&sort=day,time,id&fields=id,spectacle.slug,day,time,venue,city,price`),
-        requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=slug,prodysos_slug,price`),
+        requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=slug,title,prodysos_slug,price`),
       ]);
       const prixDe = new Map(spectacles.map((s) => [s.slug, texte(s.price)]));
 
@@ -363,17 +363,10 @@ export function representationsLoader() {
 
       let deProdysos = [];
       if (prodysosConfiguré(ENV_PRODYSOS)) {
-        const parSlugProdysos = new Map();
-        for (const s of spectacles) {
-          const clé = texte(s.prodysos_slug);
-          if (!clé) continue;
-          // Deux spectacles pour les mêmes dates : on n'en choisit aucun au hasard.
-          if (parSlugProdysos.has(clé)) {
-            throw new Error(`Deux spectacles publiés réclament le spectacle Prodysos « ${clé} » : ${parSlugProdysos.get(clé).slug} et ${s.slug}.`);
-          }
-          parSlugProdysos.set(clé, { slug: s.slug, price: texte(s.price) });
-        }
-        deProdysos = lignesProdysos(await lireSpectaclesProdysos(ENV_PRODYSOS), parSlugProdysos, (m) => logger.warn(m));
+        const spectaclesProdysos = await lireSpectaclesProdysos(ENV_PRODYSOS);
+        const avertir = (m) => logger.warn(m);
+        const liens = relier(spectaclesProdysos, spectacles, { avertir, informer: (m) => logger.info(m) });
+        deProdysos = lignesProdysos(spectaclesProdysos, liens, avertir);
         signalerTirets(logger, 'Prodysos', deProdysos.flatMap((l) => [l.venue, l.city]));
       } else {
         logger.warn('Prodysos non configuré (PRODYSOS_URL, PRODYSOS_KEY, PRODYSOS_COMPANY) : dates du CMS seules');

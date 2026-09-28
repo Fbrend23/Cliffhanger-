@@ -177,6 +177,15 @@ test('représentations : les dates de Prodysos rejoignent celles du CMS', async 
   assert.ok(!entrées.has('prodysos-p1'));
   // Le spectacle Prodysos qu'aucun spectacle du CMS ne réclame est signalé.
   assert.ok(avertissements.some((m) => /une-autre-creation/.test(m)));
+  // Sans champ Prodysos, le même titre suffit.
+  assert.deepEqual(entrées.get('prodysos-p5').data, {
+    spectacle: 'linedit-de-moliere',
+    day: '2027-02-05',
+    time: '20:30',
+    venue: 'Théâtre L’Improviste',
+    city: 'Forest',
+    price: null,
+  });
 });
 
 test('réglages et Montréal : singletons, fonds par id de photo', async () => {

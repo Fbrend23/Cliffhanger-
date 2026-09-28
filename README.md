@@ -70,7 +70,10 @@ Les représentations programmées dans **Prodysos** (le back-office de la compag
 celles du CMS au build (`src/lib/prodysos.js`). Le site appelle `get_public_company_shows` en
 désignant la **compagnie** (`PRODYSOS_COMPANY`, son `public_slug`), jamais un spectacle : un slug
 de spectacle est unique sur toute la base Prodysos, en taper un exposerait à afficher la création
-d'une autre troupe. Chaque spectacle du CMS réclame ensuite le sien par son champ `prodysos_slug`.
+d'une autre troupe. Chaque spectacle Prodysos rejoint ensuite le spectacle du CMS **du même titre**
+(comparé sans casse, accents, apostrophes ni ponctuation) : la compagnie n'a rien à relier, il lui
+suffit de nommer son projet dans Prodysos comme sur le site. Le champ `prodysos_slug` du CMS ne sert
+qu'à forcer le lien quand les titres diffèrent.
 
 - Le jour et l'heure sont ceux de Bruxelles ; la commune est lue après le code postal de
   l'adresse Prodysos (sinon la salle s'affiche seule, avec un warning).
@@ -78,8 +81,9 @@ d'une autre troupe. Chaque spectacle du CMS réclame ensuite le sien par son cha
   laissées sans prix.
 - Une date saisie dans le CMS l'emporte sur la même venue de Prodysos (même spectacle, jour et
   heure ; sans heure, tout le jour) : c'est la correction à la main.
-- Un spectacle Prodysos qu'aucun spectacle publié ne réclame est ignoré avec un warning ; deux
-  spectacles qui réclament le même arrêtent le build, comme une compagnie inconnue de Prodysos.
+- Un spectacle Prodysos sans spectacle publié du même titre ni qui le réclame est ignoré avec un
+  warning, qui donne son titre ; un titre porté par deux spectacles du CMS ne relie rien (warning) ;
+  deux spectacles qui réclament le même arrêtent le build, comme une compagnie inconnue de Prodysos.
 - Une date ajoutée dans Prodysos paraît à la reconstruction suivante (la nuit, ou « Mettre en
   ligne »).
 

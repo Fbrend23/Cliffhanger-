@@ -1,10 +1,11 @@
 // Le connecteur Prodysos : l'heure de Bruxelles, la commune tirée de
-// l'adresse, le lien par prodysos_slug, la fusion avec les dates du CMS, et
-// ce que le build fait d'une réponse vide ou d'une configuration partielle.
+// l'adresse, le lien par le titre ou prodysos_slug, la fusion avec les
+// dates du CMS, et ce que le build fait d'une réponse vide ou d'une
+// configuration partielle.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { commune, fusionner, jourEtHeure, lignesProdysos, lireSpectaclesProdysos, prodysosConfiguré } from '../src/lib/prodysos.js';
+import { commune, fusionner, jourEtHeure, lignesProdysos, lireSpectaclesProdysos, prodysosConfiguré, relier, titreNormalisé } from '../src/lib/prodysos.js';
 import { démarrer } from './faux-directus/serveur.mjs';
 
 test('une date Prodysos devient le jour et l’heure de Bruxelles', () => {
@@ -40,6 +41,71 @@ test('seuls les spectacles réclamés par le CMS donnent des dates, au prix du s
   // L'orphelin est dit ; un spectacle sans date n'a rien à dire.
   assert.equal(avertissements.length, 1);
   assert.match(avertissements[0], /orphelin/);
+});
+
+test('un titre se compare sans casse, accents, apostrophes ni ponctuation', () => {
+  assert.equal(titreNormalisé('L’Inédit de Molière'), titreNormalisé("l'inedit de moliere"));
+  assert.equal(titreNormalisé('Un C(h)œur silencieux'), 'un c h oeur silencieux');
+  assert.equal(titreNormalisé('  Par   Endroits ! '), 'par endroits');
+  assert.equal(titreNormalisé(null), '');
+});
+
+test('relier : le même titre suffit, le champ Prodysos force un autre lien', () => {
+  const informations = [];
+  const avertissements = [];
+  const liens = relier(
+    [
+      { slug: 'hamlet', title: 'L’inédit de Molière' },
+      { slug: 'pe-2027', title: 'Par Endroits' },
+      { slug: 'sans-titre', title: '' },
+      { slug: 'inconnu', title: 'Rien à voir' },
+    ],
+    [
+      { slug: 'linedit-de-moliere', title: "L'Inédit de Molière", prodysos_slug: null, price: ' 15 € ' },
+      // Relié à la main : il ne prend pas en plus le projet qui porte son titre.
+      { slug: 'par-endroits', title: 'Par endroits', prodysos_slug: 'pe', price: null },
+    ],
+    { avertir: (m) => avertissements.push(m), informer: (m) => informations.push(m) }
+  );
+  assert.deepEqual(
+    [...liens],
+    [
+      ['pe', { slug: 'par-endroits', price: null }],
+      ['hamlet', { slug: 'linedit-de-moliere', price: '15 €' }],
+    ]
+  );
+  assert.equal(informations.length, 1);
+  assert.match(informations[0], /hamlet.*linedit-de-moliere/);
+  assert.deepEqual(avertissements, []);
+});
+
+test('relier : un titre porté par deux spectacles ne relie rien, et le dit', () => {
+  const avertissements = [];
+  const liens = relier(
+    [{ slug: 'x', title: 'Hamlet' }],
+    [
+      { slug: 'hamlet-2019', title: 'Hamlet' },
+      { slug: 'hamlet-2026', title: 'hamlet' },
+    ],
+    { avertir: (m) => avertissements.push(m) }
+  );
+  assert.equal(liens.size, 0);
+  assert.match(avertissements[0], /hamlet-2019 et hamlet-2026/);
+});
+
+test('relier : deux spectacles qui réclament le même projet arrêtent le build', () => {
+  assert.throws(
+    () =>
+      relier(
+        [],
+        [
+          { slug: 'a', prodysos_slug: 'pe' },
+          { slug: 'b', prodysos_slug: 'pe' },
+        ],
+        { avertir: () => {} }
+      ),
+    /Deux spectacles publiés réclament le spectacle Prodysos « pe » : a et b/
+  );
 });
 
 test('une adresse sans code postal : la salle seule, et un avertissement', () => {

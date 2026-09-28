@@ -45,6 +45,12 @@ export const PRODYSOS = {
         { id: 'p3', date: '2027-03-13T20:00:00+01:00', location_name: 'Théâtre de la Vie', location_address: 'Rue Traversière 45, 1210 Saint-Josse-ten-Noode' },
       ],
     },
+    // Aucun champ Prodysos dans le CMS : relié par son titre, écrit autrement.
+    {
+      slug: 'hamlet',
+      title: 'L’inédit de moliere',
+      representations: [{ id: 'p5', date: '2027-02-05T20:30:00+01:00', location_name: 'Théâtre L’Improviste', location_address: 'Rue de Fierlant 120, 1190 Forest' }],
+    },
     {
       slug: 'une-autre-creation',
       title: 'Une autre création',
