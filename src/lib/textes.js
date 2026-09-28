@@ -8,6 +8,8 @@
 
 export const T = {
   compagnie: 'Compagnie Cliffhanger',
+  // La première étape du fil d'Ariane, pour les moteurs.
+  accueil: 'Accueil',
   // Le h1 caché de l'accueil : la page n'a pas de titre visible, la liste des
   // spectacles en tient lieu, mais un lecteur d'écran et un moteur en veulent un.
   accueilH1: 'Compagnie Cliffhanger, compagnie de théâtre bruxelloise',

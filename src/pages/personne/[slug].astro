@@ -13,7 +13,7 @@ import TexteRiche from '../../components/TexteRiche.astro';
 import TitrePage from '../../components/TitrePage.astro';
 import { adresseSpectacle, contenu } from '../../lib/contenu.js';
 import { joindreFr, projetsDe } from '../../lib/generique.js';
-import { extrait } from '../../lib/seo.js';
+import { extrait, filAriane, personne } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
 import { tx } from '../../lib/typo.js';
 
@@ -32,9 +32,21 @@ const projets = sesProjets.map((x) => [
 ]);
 // Le début de sa biographie, sinon ses spectacles : chaque fiche a la sienne.
 const description = extrait(p.bio) ?? T.descriptionPersonne(p.name, joindreFr(sesProjets.map((x) => x.spectacle.title)));
+
+// Pour les moteurs : la personne, et le chemin du lien retour.
+const adresse = (chemin: string) => new URL(chemin, Astro.site).toString();
+const url = adresse(Astro.url.pathname);
+const jsonLd = [
+  personne({ nom: p.name, url, description: extrait(p.bio), membre: p.groupe === 'equipe', compagnie: adresse('/') }),
+  filAriane([
+    { nom: T.accueil, url: adresse('/') },
+    { nom: T.laCompagnie, url: adresse('/compagnie/') },
+    { nom: p.name, url },
+  ]),
+];
 ---
 
-<Base title={p.name} description={description}>
+<Base title={p.name} description={description} jsonLd={jsonLd}>
   <PageListe>
     <div class="mx-auto w-full max-w-4xl px-gouttiere">
       <TitrePage texte={p.name} />

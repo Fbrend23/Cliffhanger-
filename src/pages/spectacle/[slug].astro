@@ -9,7 +9,7 @@ import TeteDePage from '../../components/TeteDePage.astro';
 import { contenu } from '../../lib/contenu.js';
 import { aujourdhui } from '../../lib/dates.js';
 import { cadrage, herosSpectacle, og } from '../../lib/images.js';
-import { extrait, theaterEvent } from '../../lib/seo.js';
+import { extrait, filAriane, theaterEvent } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
 
 export async function getStaticPaths() {
@@ -28,10 +28,17 @@ const url = new URL(Astro.url.pathname, Astro.site).toString();
 const image = new URL(await og(s.poster ?? s.hero), Astro.site).toString();
 const organisateur = { nom: c.reglages.site_title, url: new URL('/', Astro.site).toString() };
 const maintenant = aujourdhui();
-const jsonLd = c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url, image, organisateur, réservable: !!r.reservation && r.day >= maintenant }));
+const jsonLd = [
+  ...c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url, image, organisateur, réservable: !!r.reservation && r.day >= maintenant })),
+  filAriane([
+    { nom: T.accueil, url: organisateur.url },
+    { nom: T.spectacles, url: new URL('/spectacles/', Astro.site).toString() },
+    { nom: s.title, url },
+  ]),
+];
 ---
 
-<Base title={s.title} description={s.punch ?? extrait(s.text)} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd.length ? jsonLd : null}>
+<Base title={s.title} description={s.punch ?? extrait(s.text)} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd}>
   <article>
     <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
     <SectionsSpectacle spectacle={s} />

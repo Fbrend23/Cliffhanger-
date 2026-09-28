@@ -59,6 +59,33 @@ export function prixEnEuros(prix) {
 }
 
 /**
+ * Une personne, sur sa fiche. Seule l'équipe est membre de la compagnie ;
+ * un invité ou quelqu'un de Montréal y a sa fiche sans en être.
+ * @param {{ nom: string, url: string, description?: string|null, membre: boolean, compagnie: string }} o  compagnie : l'accueil
+ */
+export function personne({ nom, url, description = null, membre, compagnie }) {
+  return {
+    '@type': 'Person',
+    '@id': idPersonne(url),
+    name: nom,
+    url,
+    ...(description ? { description } : {}),
+    ...(membre ? { memberOf: { '@id': idCompagnie(compagnie) } } : {}),
+  };
+}
+
+/**
+ * Le fil d'Ariane d'une page, que Google montre à la place de l'adresse.
+ * @param {{ nom: string, url: string }[]} étapes  de l'accueil à la page
+ */
+export function filAriane(étapes) {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: étapes.map((é, i) => ({ '@type': 'ListItem', position: i + 1, name: é.nom, item: é.url })),
+  };
+}
+
+/**
  * La durée d'un spectacle, telle que le Studio la dit, en minutes :
  * « 1 h 30, sans entracte » → 90, « 1h15 » → 75, « 75 min » → 75. Illisible : null.
  * @param {string|null|undefined} durée
@@ -80,6 +107,9 @@ const instantBruxelles = (jour, heure) => `${jour}T${heure}:00${décalageBruxell
  * @param {string} url  l'accueil
  */
 export const idCompagnie = (url) => `${url}#compagnie`;
+
+/** L'identifiant d'une personne : sa fiche. */
+const idPersonne = (url) => `${url}#personne`;
 
 /**
  * Le site : c'est lui qui donne son nom au site dans les résultats de Google.
@@ -107,7 +137,7 @@ export function organisation({ nom, url, description = null, email = null, rése
     ...(image ? { image } : {}),
     ...(liens.length ? { sameAs: liens } : {}),
     address: { '@type': 'PostalAddress', addressLocality: 'Bruxelles', addressCountry: 'BE' },
-    ...(membres.length ? { member: membres.map((m) => ({ '@type': 'Person', name: m.nom, url: m.url })) } : {}),
+    ...(membres.length ? { member: membres.map((m) => ({ '@type': 'Person', '@id': idPersonne(m.url), name: m.nom, url: m.url })) } : {}),
   };
 }
 
