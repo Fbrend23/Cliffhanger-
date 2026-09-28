@@ -438,6 +438,9 @@ export function representationsLoader() {
           time: typeof r.time === 'string' && r.time ? r.time.slice(0, 5) : null,
           venue: texte(r.venue),
           city: texte(r.city),
+          // Le CMS n'a que la salle et la ville ; la rue vient de Prodysos.
+          street: null,
+          postalCode: null,
           price: texte(r.price) ?? prixDe.get(spectacle) ?? null,
           reservation: null,
         });

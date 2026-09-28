@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { décalageBruxelles, extrait, organisation, prixEnEuros, theaterEvent } from '../src/lib/seo.js';
+import { décalageBruxelles, duréeEnMinutes, extrait, organisation, prixEnEuros, theaterEvent } from '../src/lib/seo.js';
 
 test('le décalage de Bruxelles suit l’heure d’été', () => {
   assert.equal(décalageBruxelles('2026-04-17', '20:00'), '+02:00');
@@ -59,4 +59,38 @@ test('extrait : coupé à la fin d’une phrase, sinon au dernier mot', () => {
   const e = extrait(mots, 20);
   assert.equal(e, 'mot mot mot mot mot…');
   assert.ok(e.length <= 21);
+});
+
+test('durée : heures et minutes, telles que le Studio les écrit', () => {
+  assert.equal(duréeEnMinutes('1 h 30, sans entracte'), 90);
+  assert.equal(duréeEnMinutes('1h15'), 75);
+  assert.equal(duréeEnMinutes('2 h'), 120);
+  assert.equal(duréeEnMinutes('75 min'), 75);
+  assert.equal(duréeEnMinutes('une soirée'), null);
+  assert.equal(duréeEnMinutes(null), null);
+});
+
+test('TheaterEvent : adresse entière, fin, compagnie qui joue, places', () => {
+  const e = theaterEvent(
+    { title: 'Par Endroits', duration: '1 h 30' },
+    { day: '2027-03-27', time: '23:00', venue: 'Théâtre de la Vie', city: 'Saint-Josse-ten-Noode', street: 'Rue Traversière 45', postalCode: '1210', price: '12 €' },
+    { url: 'u', organisateur, réservable: true }
+  );
+  assert.deepEqual(e.location.address, {
+    '@type': 'PostalAddress',
+    streetAddress: 'Rue Traversière 45',
+    postalCode: '1210',
+    addressLocality: 'Saint-Josse-ten-Noode',
+    addressCountry: 'BE',
+  });
+  // Minuit passé : la fin tombe le lendemain.
+  assert.equal(e.endDate, '2027-03-28T00:30:00+01:00');
+  assert.equal(e.performer.name, 'Compagnie Cliffhanger');
+  assert.equal(e.offers.availability, 'https://schema.org/InStock');
+});
+
+test('TheaterEvent : sans heure, pas de fin ; passée, pas de places', () => {
+  const e = theaterEvent({ title: 'X', duration: '1 h' }, { day: '2024-05-26', time: null, venue: null, city: null, price: '10 €' }, { url: 'u', organisateur });
+  assert.equal(e.endDate, undefined);
+  assert.equal(e.offers.availability, undefined);
 });

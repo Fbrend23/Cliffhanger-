@@ -108,6 +108,9 @@ const representations = defineCollection({
     time: z.string().nullable(),
     venue: z.string().nullable(),
     city: z.string().nullable(),
+    // La rue et le code postal, pour les moteurs : Prodysos seulement.
+    street: z.string().nullable(),
+    postalCode: z.string().nullable(),
     price: z.string().nullable(),
     // De quoi la réserver dans Prodysos : le spectacle (sa page publique) et
     // la représentation. Null pour une date qui n'existe que dans le CMS.

@@ -4,6 +4,8 @@
 // qui permet à un moteur de montrer « 17 avr., Théâtre L'Improviste » sous le
 // lien. Pur, testé dans test/seo.test.js ; Base.astro pose le contexte.
 
+import { jourEtHeure } from './prodysos.js';
+
 const ENTITÉS = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 /**
@@ -57,6 +59,21 @@ export function prixEnEuros(prix) {
 }
 
 /**
+ * La durée d'un spectacle, telle que le Studio la dit, en minutes :
+ * « 1 h 30, sans entracte » → 90, « 1h15 » → 75, « 75 min » → 75. Illisible : null.
+ * @param {string|null|undefined} durée
+ */
+export function duréeEnMinutes(durée) {
+  const h = /(\d+)\s*h(?:\s*(\d{1,2}))?/i.exec(durée ?? '');
+  if (h) return Number(h[1]) * 60 + Number(h[2] ?? 0);
+  const m = /(\d+)\s*min/i.exec(durée ?? '');
+  return m ? Number(m[1]) : null;
+}
+
+/** « 2026-04-17T20:00:00+02:00 » : un jour et une heure de Bruxelles, avec leur décalage. */
+const instantBruxelles = (jour, heure) => `${jour}T${heure}:00${décalageBruxelles(jour, heure)}`;
+
+/**
  * La compagnie.
  * @param {{ nom: string, url: string, description?: string|null, email?: string|null, réseaux?: (string|null)[], image?: string|null }} o
  */
@@ -75,18 +92,23 @@ export function organisation({ nom, url, description = null, email = null, rése
 }
 
 /**
- * Une représentation.
- * @param {{ title: string, punch?: string|null }} spectacle
- * @param {{ day: string, time: string|null, venue: string|null, city: string|null, price: string|null }} r
- * @param {{ url: string, image?: string|null, organisateur: { nom: string, url: string } }} o
+ * Une représentation. La compagnie l'organise et la joue ; la fin se déduit
+ * de la durée quand elle se lit ; une date encore réservable a des places.
+ * @param {{ title: string, punch?: string|null, duration?: string|null }} spectacle
+ * @param {{ day: string, time: string|null, venue: string|null, city: string|null, street?: string|null, postalCode?: string|null, price: string|null }} r
+ * @param {{ url: string, image?: string|null, organisateur: { nom: string, url: string }, réservable?: boolean }} o
  */
-export function theaterEvent(spectacle, r, { url, image = null, organisateur }) {
-  const début = r.time ? `${r.day}T${r.time}:00${décalageBruxelles(r.day, r.time)}` : r.day;
+export function theaterEvent(spectacle, r, { url, image = null, organisateur, réservable = false }) {
+  const début = r.time ? instantBruxelles(r.day, r.time) : r.day;
+  const minutes = r.time ? duréeEnMinutes(spectacle.duration) : null;
+  const finale = minutes ? jourEtHeure(Date.parse(début) + minutes * 60_000) : null;
   const prix = prixEnEuros(r.price);
+  const compagnie = { '@type': 'TheaterGroup', name: organisateur.nom, url: organisateur.url };
   return {
     '@type': 'TheaterEvent',
     name: spectacle.title,
     startDate: début,
+    ...(finale ? { endDate: instantBruxelles(finale.day, finale.time) } : {}),
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     url,
@@ -95,9 +117,18 @@ export function theaterEvent(spectacle, r, { url, image = null, organisateur }) 
     location: {
       '@type': 'Place',
       name: r.venue ?? r.city ?? organisateur.nom,
-      address: { '@type': 'PostalAddress', ...(r.city ? { addressLocality: r.city } : {}), addressCountry: 'BE' },
+      address: {
+        '@type': 'PostalAddress',
+        ...(r.street ? { streetAddress: r.street } : {}),
+        ...(r.postalCode ? { postalCode: r.postalCode } : {}),
+        ...(r.city ? { addressLocality: r.city } : {}),
+        addressCountry: 'BE',
+      },
     },
-    ...(prix ? { offers: { '@type': 'Offer', price: prix, priceCurrency: 'EUR', url } } : {}),
-    organizer: { '@type': 'TheaterGroup', name: organisateur.nom, url: organisateur.url },
+    ...(prix
+      ? { offers: { '@type': 'Offer', price: prix, priceCurrency: 'EUR', url, ...(réservable ? { availability: 'https://schema.org/InStock' } : {}) } }
+      : {}),
+    organizer: compagnie,
+    performer: compagnie,
   };
 }

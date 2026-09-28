@@ -231,6 +231,8 @@ test('représentations : les dates de Prodysos rejoignent celles du CMS', async 
     time: '20:00',
     venue: 'Théâtre de la Vie',
     city: 'Saint-Josse-ten-Noode',
+    street: 'Rue Traversière 45',
+    postalCode: '1210',
     price: '12 €',
     reservation: { slug: 'par-endroits-cliffhanger', id: 'p2' },
   });
@@ -250,6 +252,8 @@ test('représentations : les dates de Prodysos rejoignent celles du CMS', async 
     time: '20:30',
     venue: 'Théâtre L’Improviste',
     city: 'Forest',
+    street: 'Rue de Fierlant 120',
+    postalCode: '1190',
     price: null,
     reservation: { slug: 'hamlet', id: 'p5' },
   });

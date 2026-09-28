@@ -7,6 +7,7 @@ import Pied from '../../components/Pied.astro';
 import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
 import { contenu } from '../../lib/contenu.js';
+import { aujourdhui } from '../../lib/dates.js';
 import { cadrage, herosSpectacle, og } from '../../lib/images.js';
 import { extrait, theaterEvent } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
@@ -21,11 +22,13 @@ const s = c.belges.find((x) => x.slug === Astro.props.slug)!;
 const img = await herosSpectacle(s);
 
 // Une représentation, un TheaterEvent : l'affiche (sinon la grande photo)
-// comme image, la même que celle des partages.
+// comme image, la même que celle des partages. Une date à venir qui se
+// réserve a des places.
 const url = new URL(Astro.url.pathname, Astro.site).toString();
 const image = new URL(await og(s.poster ?? s.hero), Astro.site).toString();
 const organisateur = { nom: c.reglages.site_title, url: new URL('/', Astro.site).toString() };
-const jsonLd = c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url, image, organisateur }));
+const maintenant = aujourdhui();
+const jsonLd = c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url, image, organisateur, réservable: !!r.reservation && r.day >= maintenant }));
 ---
 
 <Base title={s.title} description={s.punch ?? extrait(s.text)} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd.length ? jsonLd : null}>
