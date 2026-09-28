@@ -1,0 +1,14 @@
+---
+// Le lien discret qui ramène à la liste : d'une fiche spectacle vers les
+// spectacles, d'une fiche personne vers la compagnie.
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  href: string;
+  texte: string;
+}
+
+const { href, texte } = Astro.props;
+---
+
+<a class="mt-8 inline-block opacity-75 hover:opacity-100 focus-visible:opacity-100" href={href} set:html={tx(texte)} />

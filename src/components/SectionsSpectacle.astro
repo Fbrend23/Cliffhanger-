@@ -5,11 +5,15 @@
 // sous « À venir » tant qu'une représentation reste à jouer (calculé au
 // build, la reconstruction de la nuit fait le reste). Une date à venir venue
 // de Prodysos se réserve : un lien sur sa ligne, le formulaire en dessous.
+import Accroche from './Accroche.astro';
 import Carrousel from './Carrousel.astro';
 import Generique from './Generique.astro';
+import Intitule from './Intitule.astro';
 import Photo from './Photo.astro';
 import Reservation from './Reservation.astro';
+import Section from './Section.astro';
 import TableauDates from './TableauDates.astro';
+import TexteRiche from './TexteRiche.astro';
 import { contenu } from '../lib/contenu.js';
 import { aujourdhui, formatJourHeure, lieu } from '../lib/dates.js';
 import { affiche, diapo } from '../lib/images.js';
@@ -40,51 +44,49 @@ const réservable = new Set(réservables);
 // Le prix, puis « Réserver » pour une date réservable : le tableau garde ses
 // trois colonnes.
 const dernière = (r: any) =>
-  [tx(r.price ?? ''), réservable.has(r) ? `<a class="resa-lien" href="#reserver" data-reservation="${échapper(r.reservation.id)}">${tx(T.réserver)}</a>` : '']
+  [tx(r.price ?? ''), réservable.has(r) ? `<a class="lien-souligne" href="#reserver" data-reservation="${échapper(r.reservation.id)}">${tx(T.réserver)}</a>` : '']
     .filter(Boolean)
     .join(' · ');
 ---
 
 {
   s.punch && (
-    <div class="section wrap">
-      <blockquote class="punch">
-        <p set:html={tx(s.punch)} />
-        {s.cite && <cite set:html={tx(s.cite)} />}
-      </blockquote>
-    </div>
+    <Section>
+      <Accroche texte={s.punch} source={s.cite} citation />
+    </Section>
   )
 }
 {
   imgAffiche && (
-    <div class="section wrap wrap--wide">
-      <figure class="wide">
-        <Photo img={imgAffiche} alt={typographier(T.afficheDe(s.title))} />
+    <Section large>
+      {/* L'affiche à ses propres proportions : une boîte 16:9 la rendait minuscule sur téléphone. */}
+      <figure class="flex justify-center">
+        <Photo img={imgAffiche} alt={typographier(T.afficheDe(s.title))} basse class="h-auto max-h-[min(80svh,48rem)] w-auto max-w-full" />
       </figure>
-    </div>
+    </Section>
   )
 }
 {
   s.text && (
-    <div class="section wrap">
-      <div class="prose prose--justify" set:html={typographier(s.text)} />
-    </div>
+    <Section>
+      <TexteRiche html={s.text} justifie />
+    </Section>
   )
 }
 <Carrousel diapos={diapos} />
 {
   (lignes.length > 0 || s.duration) && (
-    <div class="section wrap">
+    <Section>
       <Generique lignes={lignes} personne={c.personne} duree={s.duration} />
-    </div>
+    </Section>
   )
 }
 {
   dates.length > 0 && (
-    <div class="section wrap">
-      <h2 class="label" set:html={tx(aVenir ? T.àVenir : T.représentations)} />
+    <Section>
+      <Intitule texte={aVenir ? T.àVenir : T.représentations} />
       <TableauDates lignes={dates.map((r) => [{ html: tx(formatJourHeure(r.day, r.time)) }, { html: tx(lieu(r)) }, { html: dernière(r) }])} />
-    </div>
+    </Section>
   )
 }
 <Reservation dates={réservables} email={c.reglages.email} />

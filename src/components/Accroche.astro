@@ -1,0 +1,26 @@
+---
+// L'accroche d'une page, en grand : celle d'un spectacle (une citation, avec
+// sa source), de la compagnie, de Montréal.
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  texte: string;
+  // La source d'une citation : l'accroche devient un <blockquote>.
+  source?: string | null;
+  citation?: boolean;
+}
+
+const { texte, source = null, citation = false } = Astro.props;
+const classe = 'text-punch font-normal text-balance opacity-75';
+---
+
+{
+  citation ? (
+    <blockquote class={classe}>
+      <p set:html={tx(texte)} />
+      {source && <cite class="mt-4 block text-base not-italic opacity-80" set:html={tx(source)} />}
+    </blockquote>
+  ) : (
+    <p class={classe} set:html={tx(texte)} />
+  )
+}

@@ -8,9 +8,9 @@ alimenté **au build** par l'instance Directus mutualisée de
 - **Référence de style :** https://www.focusandchaliwate.be/fr
 - **Originaux des médias :** Google Drive de la compagnie, dossier `CLIFFHANGER/03_MEDIAS` (accès via Hans)
 
-Le site reprend le prototype qui a servi à montrer le projet à la compagnie : mêmes pages, mêmes
-classes, mêmes animations, mais de vraies adresses par page, le contenu dans le CMS, un sitemap,
-Open Graph et des données structurées.
+Le site reprend le prototype qui a servi à montrer le projet à la compagnie : mêmes pages, même
+rendu, mêmes animations, mais de vraies adresses par page, le contenu dans le CMS, un sitemap,
+Open Graph et des données structurées. Le style est écrit en **Tailwind CSS 4** (voir « Le style »).
 
 ## Commandes
 
@@ -48,8 +48,15 @@ Il ne vit que dans `test/` : le site, lui, ne connaît que le vrai CMS.
 ## Le cache des images
 
 `.cache/directus-assets/` (git-ignoré) garde les originaux téléchargés et un manifeste : un
-fichier absent ou modifié dans le Studio est retéléchargé, le reste ne l'est pas. Le loader des
-photos le purge en fin de chargement. Le supprimer force un retéléchargement complet.
+fichier absent ou modifié dans le Studio est retéléchargé, le reste ne l'est pas. Le manifeste
+garde aussi, par fichier, son aperçu flou (32 px en `data:`) et, pour les photos plein écran
+(grandes photos des spectacles, fonds de page), le nom de son recadrage portrait 9:16 autour du
+point focal (`<id>.portrait.webp`), refait quand le point bouge. Le loader des photos le purge
+en fin de chargement. Le supprimer force un retéléchargement complet.
+
+Les photos plein écran sont servies en AVIF (qualité 60, calibrée face au WebP 84), WebP en
+repli, et en recadrage portrait aux écrans tenus droits ; leur `sizes` tient compte de
+`object-fit: cover`. Le reste reste en WebP. Tout est décidé dans `src/lib/images.js`.
 
 ## Le contenu vit dans le CMS
 
@@ -116,6 +123,23 @@ Règles de saisie, rappelées dans les notes du Studio :
 - le point focal d'une photo se règle dans l'éditeur d'image du Studio ;
 - aucun tiret long : le build le signale et le remplace au rendu.
 
+## Le style
+
+Tailwind CSS 4, par son plugin Vite, sans fichier de configuration. Les gabarits s'écrivent en
+utilitaires ; `src/styles/site.css` ne garde que ce qu'ils partagent :
+
+- les jetons du « Guide dev » dans `@theme` : noir, blanc, gris (la palette de Tailwind est
+  retirée), Jost et Archivo, les tailles de texte sans interligne imposé, la gouttière et la
+  respiration qui grandissent avec l'écran (`px-gouttiere`, `my-respiration`) ;
+- les variantes d'état : `menu-ouvert:`, `sans-js:`, `visible:` (photo de survol), `parti:`
+  (Découvrir), `tactile:` ;
+- deux utilitaires maison, `titre` et `lien-souligne`, la base, les polices et les animations.
+
+Le balisage qui revient d'une page à l'autre est un composant, pas une classe : `Section`,
+`Accroche`, `TexteRiche` (le HTML du CMS, stylé depuis son conteneur), `Intitule`, `Pastille`,
+`TitrePage`, `PageListe`, `PageCentree`, `LienRetour`. Les scripts trouvent leurs éléments par
+`js-*` ou `data-*`, jamais par une classe de style.
+
 ## La migration du prototype
 
 Le dossier `migration/` garde `content.js` et `img/` du prototype jusqu'à ce que le CMS soit
@@ -149,8 +173,6 @@ des données de test).
 
 ## Reste à faire
 
-- **Le domaine.** Une fois choisi : `SITE_URL`, et l'adresse canonique en dur dans
-  `public/.htaccess` (les redirections s'appuient pour l'instant sur l'hôte demandé).
 - La version anglaise : un bloc `languages` et des champs `translations` dans le fichier client,
   un second dictionnaire dans `textes.js`.
 - Les polices Adobe, si la compagnie les retient (Jost et Archivo en attendant).

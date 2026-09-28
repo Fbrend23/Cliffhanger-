@@ -111,17 +111,27 @@ export function jourEtHeure(horodatage) {
 }
 
 /**
- * La commune d'une adresse Prodysos, rangée en un seul champ : ce qui suit le
- * code postal belge en fin d'adresse (« Rue Traversière 45, 1210
- * Saint-Josse-ten-Noode » → « Saint-Josse-ten-Noode »), pays final permis.
- * Autre forme : null, et la salle s'affiche seule.
+ * Une adresse Prodysos, rangée en un seul champ, en ses parties : la rue, le
+ * code postal belge et la commune qui le suit en fin d'adresse (« Rue
+ * Traversière 45, 1210 Saint-Josse-ten-Noode »), pays final permis. Les
+ * moteurs veulent l'adresse entière d'une représentation. Autre forme : null.
+ * @returns {{ street: string|null, postalCode: string, city: string } | null}
  */
-export function commune(adresse) {
-  if (typeof adresse !== 'string') return null;
-  const sansPays = adresse.trim().replace(/[,\s]+(Belgique|Belgium|België|Belgien)$/i, '');
-  const m = /(?:^|[\s,])\d{4}\s+([^\d,][^,]*)$/.exec(sansPays);
-  return m ? m[1].trim() : null;
+export function adresse(texte) {
+  if (typeof texte !== 'string') return null;
+  const sansPays = texte.trim().replace(/[,\s]+(Belgique|Belgium|België|Belgien)$/i, '');
+  const m = /(?:^|[\s,])(\d{4})\s+([^\d,][^,]*)$/.exec(sansPays);
+  if (!m) return null;
+  const street = sansPays.slice(0, m.index).replace(/[,\s]+$/, '');
+  return { street: street || null, postalCode: m[1], city: m[2].trim() };
 }
+
+/**
+ * La commune d'une adresse Prodysos (« Rue Traversière 45, 1210
+ * Saint-Josse-ten-Noode » → « Saint-Josse-ten-Noode »). Autre forme : null,
+ * et la salle s'affiche seule.
+ */
+export const commune = (texte) => adresse(texte)?.city ?? null;
 
 /**
  * Un titre réduit à ce qui le distingue : sans casse, accents, apostrophes
@@ -219,12 +229,23 @@ export function lignesProdysos(spectaclesProdysos, parSlugProdysos, avertir) {
         continue;
       }
       const venue = texteOuNull(r.location_name);
-      const city = commune(r.location_address);
+      const lieu = adresse(r.location_address);
+      const city = lieu?.city ?? null;
       if (r.location_address && !city) avertir(`Prodysos « ${show.slug} » : commune introuvable dans « ${r.location_address} », la salle s’affiche seule`);
       // De quoi réserver cette date : le spectacle Prodysos (sa page publique)
       // et la représentation, ce qu'attend create_public_reservation.
       const reservation = { slug: show.slug, id: String(r.id) };
-      lignes.push({ id: `prodysos-${r.id}`, spectacle: cible.slug, ...quand, venue, city, price: cible.price, reservation });
+      lignes.push({
+        id: `prodysos-${r.id}`,
+        spectacle: cible.slug,
+        ...quand,
+        venue,
+        city,
+        street: lieu?.street ?? null,
+        postalCode: lieu?.postalCode ?? null,
+        price: cible.price,
+        reservation,
+      });
     }
   }
   return lignes;

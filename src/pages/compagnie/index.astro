@@ -5,14 +5,19 @@
 // pas : ils ont leur fiche et leurs génériques. Le lien vers Montréal vit
 // dans le texte riche.
 import Base from '../../layouts/Base.astro';
+import Accroche from '../../components/Accroche.astro';
+import Intitule from '../../components/Intitule.astro';
 import Pied from '../../components/Pied.astro';
+import Section from '../../components/Section.astro';
 import TableauDates from '../../components/TableauDates.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
+import TexteRiche from '../../components/TexteRiche.astro';
 import { contenu } from '../../lib/contenu.js';
 import { joindreFr, projetsDe } from '../../lib/generique.js';
 import { cadrage, herosPhoto } from '../../lib/images.js';
+import { extrait } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
-import { tx, typographier } from '../../lib/typo.js';
+import { tx } from '../../lib/typo.js';
 
 const c = await contenu();
 const r = c.reglages;
@@ -22,28 +27,34 @@ const img = await herosPhoto(fond);
 const équipe = c.personnes
   .filter((p) => p.groupe === 'equipe')
   .map((p) => [
-    { html: `<a class="person" href="/personne/${p.slug}/">${tx(p.name)}</a>` },
+    { html: `<a class="lien-souligne" href="/personne/${p.slug}/">${tx(p.name)}</a>` },
     { html: tx(joindreFr(projetsDe(p.slug, c.belges, c.lignesParSpectacle).map((x) => x.spectacle.title))) },
   ]);
 ---
 
-<Base title={T.laCompagnie} description={r.compagnie_punch} image={fond?.image ?? null} precharger={img}>
+<Base title={T.laCompagnie} description={r.compagnie_punch ?? extrait(r.compagnie_text)} image={fond?.image ?? null} precharger={img}>
   <article>
     <TeteDePage img={img} alt={fond?.caption ?? ''} style={cadrage(fond?.focal)} titre={T.laCompagnie} sous={r.compagnie_sub} />
-    {r.compagnie_punch && <div class="section wrap"><p class="punch" set:html={tx(r.compagnie_punch)} /></div>}
+    {
+      r.compagnie_punch && (
+        <Section>
+          <Accroche texte={r.compagnie_punch} />
+        </Section>
+      )
+    }
     {
       r.compagnie_text && (
-        <div class="section wrap">
-          <div class="prose prose--justify" set:html={typographier(r.compagnie_text)} />
-        </div>
+        <Section>
+          <TexteRiche html={r.compagnie_text} justifie />
+        </Section>
       )
     }
     {
       équipe.length > 0 && (
-        <div class="section wrap">
-          <h2 class="label" set:html={tx(T.léquipe)} />
+        <Section>
+          <Intitule texte={T.léquipe} />
           <TableauDates lignes={équipe} equipe />
-        </div>
+        </Section>
       )
     }
     <Pied />

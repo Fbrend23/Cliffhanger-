@@ -8,10 +8,27 @@
 
 export const T = {
   compagnie: 'Compagnie Cliffhanger',
+  // La première étape du fil d'Ariane, pour les moteurs.
+  accueil: 'Accueil',
   // Le h1 caché de l'accueil : la page n'a pas de titre visible, la liste des
   // spectacles en tient lieu, mais un lecteur d'écran et un moteur en veulent un.
   accueilH1: 'Compagnie Cliffhanger, compagnie de théâtre bruxelloise',
-  descriptionParDéfaut: 'Compagnie de théâtre bruxelloise.',
+  // Les descriptions des pages (ce que Google montre sous le lien), quand le
+  // CMS n'en donne pas : chacune la sienne, un moteur signale les doublons.
+  // Moins de 155 caractères, où il coupe.
+  // Ce que le titre de l'accueil ajoute au nom : ce qu'on cherche pour la trouver.
+  titreAccueil: 'Théâtre à Bruxelles',
+  descriptionParDéfaut: 'La Compagnie Cliffhanger, compagnie de théâtre bruxelloise : ses spectacles, ses prochaines dates, son équipe.',
+  descriptionSpectacles: (titres) => `Les spectacles de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : ${titres}.`,
+  // La prochaine série, s'il y en a une : « Hamlet, 17 et 18 avr. 2026, Théâtre L'Improviste, Forest ».
+  descriptionAgenda: (prochaine) =>
+    prochaine
+      ? `Les représentations de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise. Prochainement : ${prochaine}.`
+      : 'Les représentations de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : dates, lieux, réservations.',
+  descriptionGalerie: (titres) => `Les photos des spectacles de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : ${titres}.`,
+  descriptionContact: 'Écrire à la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : réservations, diffusion, presse.',
+  // Une fiche sans biographie : ses spectacles, s'il y en a.
+  descriptionPersonne: (nom, titres) => (titres ? `${nom}, avec la Compagnie Cliffhanger : ${titres}.` : `${nom}, avec la Compagnie Cliffhanger, compagnie de théâtre bruxelloise.`),
   allerAuContenu: 'Aller au contenu',
   menuOuvrir: 'Ouvrir le menu',
   menuFermer: 'Fermer le menu',

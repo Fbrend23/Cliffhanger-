@@ -1,7 +1,7 @@
 ---
 // Le tableau à filets du site : dates d'un spectacle, séries de l'agenda,
-// projets d'une personne, équipe. Trois colonnes au plus ; sous 40em, les
-// cellules passent en colonne (site.css). Chaque cellule arrive en HTML déjà
+// projets d'une personne, équipe. Trois colonnes au plus ; sous 40rem, les
+// cellules passent en colonne. Chaque cellule arrive en HTML déjà
 // typographié ; `titre` marque la cellule du titre, plus grande.
 
 interface Props {
@@ -10,16 +10,26 @@ interface Props {
 }
 
 const { lignes, equipe = false } = Astro.props;
+
+// Sur téléphone, chaque ligne est un bloc et ses cellules s'empilent, avec
+// retour à la ligne : un long lieu (« Saint-Josse-ten-Noode ») était coupé.
+// Au-delà, un vrai tableau : la date sur une largeur fixe, le prix à droite.
+const cellule = [
+  'block align-middle [&+td]:mt-1 sm:table-cell sm:border-b sm:border-front sm:px-2 sm:py-4',
+  'sm:first:pl-0 sm:first:whitespace-nowrap sm:last:pr-0 sm:last:text-right sm:last:whitespace-nowrap',
+  equipe ? 'last:text-lg' : 'sm:first:w-60',
+];
+const titre = 'text-2xl font-normal [&_a]:transition-opacity [&_a]:duration-250 [&_a:hover]:opacity-75';
 ---
 
-<div class="table-wrap">
-  <table class:list={['events', { 'events--team': equipe }]}>
-    <tbody>
+<div class="overflow-x-auto">
+  <table class="block w-full border-t-2 border-front tabular-nums sm:table">
+    <tbody class="block sm:table-row-group">
       {
         lignes.map((cellules) => (
-          <tr>
+          <tr class="block border-b border-front py-4 sm:table-row sm:border-0 sm:py-0">
             {cellules.map((c) => (
-              <td class={c.titre ? 'ev-title' : undefined} set:html={c.html} />
+              <td class:list={[cellule, c.titre ? titre : 'text-xl']} set:html={c.html} />
             ))}
           </tr>
         ))

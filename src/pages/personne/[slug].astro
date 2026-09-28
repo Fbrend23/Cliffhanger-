@@ -3,12 +3,19 @@
 // compris, les plus récents d'abord, avec ses rôles), puis sa biographie si
 // elle existe. Toutes les personnes ont une fiche, invitées comprises.
 import Base from '../../layouts/Base.astro';
+import Intitule from '../../components/Intitule.astro';
+import LienRetour from '../../components/LienRetour.astro';
+import PageListe from '../../components/PageListe.astro';
 import Pied from '../../components/Pied.astro';
+import Section from '../../components/Section.astro';
 import TableauDates from '../../components/TableauDates.astro';
+import TexteRiche from '../../components/TexteRiche.astro';
+import TitrePage from '../../components/TitrePage.astro';
 import { adresseSpectacle, contenu } from '../../lib/contenu.js';
-import { projetsDe } from '../../lib/generique.js';
+import { joindreFr, projetsDe } from '../../lib/generique.js';
+import { extrait, filAriane, personne } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
-import { tx, typographier } from '../../lib/typo.js';
+import { tx } from '../../lib/typo.js';
 
 export async function getStaticPaths() {
   const c = await contenu();
@@ -17,35 +24,50 @@ export async function getStaticPaths() {
 
 const c = await contenu();
 const p = c.personne(Astro.props.slug)!;
-const projets = projetsDe(p.slug, c.spectacles, c.lignesParSpectacle).map((x) => [
+const sesProjets = projetsDe(p.slug, c.spectacles, c.lignesParSpectacle);
+const projets = sesProjets.map((x) => [
   { html: tx(x.spectacle.year ?? '') },
   { html: `<a href="${adresseSpectacle(x.spectacle)}">${tx(x.spectacle.title)}</a>`, titre: true },
   { html: tx(x.roles.join(', ')) },
 ]);
+// Le début de sa biographie, sinon ses spectacles : chaque fiche a la sienne.
+const description = extrait(p.bio) ?? T.descriptionPersonne(p.name, joindreFr(sesProjets.map((x) => x.spectacle.title)));
+
+// Pour les moteurs : la personne, et le chemin du lien retour.
+const adresse = (chemin: string) => new URL(chemin, Astro.site).toString();
+const url = adresse(Astro.url.pathname);
+const jsonLd = [
+  personne({ nom: p.name, url, description: extrait(p.bio), membre: p.groupe === 'equipe', compagnie: adresse('/') }),
+  filAriane([
+    { nom: T.accueil, url: adresse('/') },
+    { nom: T.laCompagnie, url: adresse('/compagnie/') },
+    { nom: p.name, url },
+  ]),
+];
 ---
 
-<Base title={p.name}>
-  <section class="page">
-    <div class="wrap">
-      <h1 class="title title--xl title--page" set:html={tx(p.name)} />
+<Base title={p.name} description={description} jsonLd={jsonLd}>
+  <PageListe>
+    <div class="mx-auto w-full max-w-4xl px-gouttiere">
+      <TitrePage texte={p.name} />
       {
         projets.length > 0 && (
-          <div class="section">
-            <h2 class="label" set:html={tx(T.projets)} />
+          <Section nu>
+            <Intitule texte={T.projets} />
             <TableauDates lignes={projets} />
-          </div>
+          </Section>
         )
       }
       {
         p.bio && (
-          <div class="section">
-            <h2 class="label" set:html={tx(T.biographie)} />
-            <div class="prose prose--justify" set:html={typographier(p.bio)} />
-          </div>
+          <Section nu>
+            <Intitule texte={T.biographie} />
+            <TexteRiche html={p.bio} justifie />
+          </Section>
         )
       }
-      <a class="back" href="/compagnie/" set:html={tx(T.retourCompagnie)} />
+      <LienRetour href="/compagnie/" texte={T.retourCompagnie} />
     </div>
     <Pied />
-  </section>
+  </PageListe>
 </Base>

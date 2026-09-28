@@ -1,0 +1,20 @@
+---
+// Un texte riche du CMS (synopsis, présentation, biographie), déjà en HTML.
+// Ses balises n'ont pas de classes (le Studio peut les retirer, pas les
+// balises) : les paragraphes et les liens sont stylés depuis le conteneur.
+// `justifie` : justifié et césuré, sauf sur téléphone où les blancs
+// deviendraient trop grands.
+import { typographier } from '../lib/typo.js';
+
+interface Props {
+  html: string;
+  justifie?: boolean;
+}
+
+const { html, justifie = false } = Astro.props;
+---
+
+<div
+  class:list={['grid gap-4 text-prose leading-normal [&_a]:lien-souligne [&_p]:text-pretty', justifie && 'sm:text-justify sm:hyphens-auto']}
+  set:html={typographier(html)}
+/>

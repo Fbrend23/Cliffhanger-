@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  adresse,
   commune,
   fusionner,
   idAfficheProdysos,
@@ -38,6 +39,13 @@ test('la commune est ce qui suit le code postal, pays final permis', () => {
   assert.equal(commune(null), null);
 });
 
+test('l’adresse en rue, code postal et commune', () => {
+  assert.deepEqual(adresse('Rue Traversière 45, 1210 Saint-Josse-ten-Noode'), { street: 'Rue Traversière 45', postalCode: '1210', city: 'Saint-Josse-ten-Noode' });
+  assert.deepEqual(adresse('Chaussée de Waterloo 12 1180 Uccle, Belgique'), { street: 'Chaussée de Waterloo 12', postalCode: '1180', city: 'Uccle' });
+  assert.deepEqual(adresse('1000 Bruxelles'), { street: null, postalCode: '1000', city: 'Bruxelles' });
+  assert.equal(adresse('Rue Traversière 45'), null);
+});
+
 test('seuls les spectacles réclamés par le CMS donnent des dates, au prix du spectacle', () => {
   const avertissements = [];
   const lignes = lignesProdysos(
@@ -57,6 +65,8 @@ test('seuls les spectacles réclamés par le CMS donnent des dates, au prix du s
       time: '20:00',
       venue: 'Théâtre de la Vie',
       city: 'Saint-Josse',
+      street: 'Rue X 1',
+      postalCode: '1210',
       price: '12 €',
       reservation: { slug: 'pe', id: 'a' },
     },

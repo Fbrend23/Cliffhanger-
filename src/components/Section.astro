@@ -1,0 +1,27 @@
+---
+// Un bloc d'une page article : sa marge au-dessus et en dessous (plus grande
+// juste sous la photo du haut), son entrée dans la cascade, et la colonne de
+// texte centrée. `large` : la colonne large (affiche, agenda) ; `nu` : pas de
+// colonne, le contenu va d'un bord à l'autre (carrousel) ou est déjà dans une
+// colonne (agenda, fiche personne).
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends HTMLAttributes<'div'> {
+  large?: boolean;
+  nu?: boolean;
+}
+
+const { large = false, nu = false, class: classe, ...attributs } = Astro.props;
+---
+
+<div
+  class:list={[
+    'my-respiration [[data-tete]+&]:mt-[calc(var(--spacing-respiration)*1.5)]',
+    !nu && ['mx-auto w-full px-gouttiere', large ? 'max-w-[96rem]' : 'max-w-4xl'],
+    classe,
+  ]}
+  data-cascade
+  {...attributs}
+>
+  <slot />
+</div>

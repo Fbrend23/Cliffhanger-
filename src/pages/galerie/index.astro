@@ -2,21 +2,26 @@
 // La galerie : les photos cochées « Dans la galerie », dans l'ordre du Studio.
 import Base from '../../layouts/Base.astro';
 import Galerie from '../../components/Galerie.astro';
+import PageListe from '../../components/PageListe.astro';
 import Pied from '../../components/Pied.astro';
+import TitrePage from '../../components/TitrePage.astro';
 import { contenu } from '../../lib/contenu.js';
+import { joindreFr } from '../../lib/generique.js';
 import { T } from '../../lib/textes.js';
-import { tx } from '../../lib/typo.js';
 
 const c = await contenu();
 const photos = c.photos.filter((p) => p.galerie);
+// Les spectacles belges qu'elle montre, dans son ordre : Montréal n'a que sa page.
+const montrés = [...new Set(photos.map((p) => p.spectacle))].map((slug) => c.belges.find((s) => s.slug === slug)?.title).filter((t) => !!t);
+const description = montrés.length ? T.descriptionGalerie(joindreFr(montrés)) : null;
 ---
 
-<Base title={T.galerie} image={photos[0]?.image ?? null}>
-  <section class="page">
-    <div class="wrap wrap--wide">
-      <h1 class="title title--xl title--page" set:html={tx(T.galerie)} />
+<Base title={T.galerie} description={description} image={photos[0]?.image ?? null}>
+  <PageListe>
+    <div class="mx-auto w-full max-w-[96rem] px-gouttiere">
+      <TitrePage texte={T.galerie} />
       <Galerie photos={photos} />
     </div>
     <Pied />
-  </section>
+  </PageListe>
 </Base>

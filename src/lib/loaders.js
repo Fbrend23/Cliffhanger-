@@ -14,9 +14,12 @@
 
 import {
   MANIFEST_REL,
+  assurerAperçu,
   assurerFichier,
   assurerFichierExterne,
+  assurerPortrait,
   champsFichier,
+  dimensionsFichier,
   mapLimit,
   ouvrirCache,
   pointFocal,
@@ -102,8 +105,6 @@ function prodysosDuBuild(logger) {
 /** @type {ReturnType<typeof prodysosDuBuild> | null} */
 let lectureProdysos = null;
 
-/** Les dimensions d'un fichier, lues ici pour ne jamais les lire sur une ImageMetadata (ce qui émettrait l'original dans dist/). */
-const dimensions = (f) => ({ width: f?.width ?? null, height: f?.height ?? null });
 
 /**
  * Les spectacles publiés, dans l'ordre du Studio, puis du plus récent.
@@ -151,11 +152,16 @@ export function spectaclesLoader() {
         const text = texte(s.text) ?? synopsisEnHtml(show?.synopsis);
         signalerTirets(logger, `spectacle « ${title} »`, [s.title, s.punch, s.cite, text, s.credit, s.duration]);
         const hero = await assurerFichier(s.hero, cache, logger);
+        const focal = pointFocal(s.hero);
+        // La grande photo couvre l'écran : son recadrage pour les téléphones
+        // tenus droits, et son aperçu flou (lib/directus.js).
+        const heroPortrait = await assurerPortrait(s.hero.id, focal, cache, logger);
+        const heroApercu = await assurerAperçu(s.hero.id, cache);
         let poster = null;
         let posterTaille = null;
         if (s.poster?.id) {
           poster = await assurerFichier(s.poster, cache, logger);
-          posterTaille = dimensions(s.poster);
+          posterTaille = await dimensionsFichier(s.poster, cache);
         } else if (texte(show?.poster_url)) {
           const a = await assurerFichierExterne(show.poster_url.trim(), idAfficheProdysos(show.slug), cache, logger);
           poster = a.chemin;
@@ -176,8 +182,10 @@ export function spectaclesLoader() {
             duration: texte(s.duration),
             sort: s.sort ?? 0,
             hero,
-            heroTaille: dimensions(s.hero),
-            focal: pointFocal(s.hero),
+            heroTaille: await dimensionsFichier(s.hero, cache),
+            heroPortrait,
+            heroApercu,
+            focal,
             poster,
             posterTaille,
             slides: (s.slides ?? []).map((l) => l?.[`${PHOTOS}_id`]).filter((id) => id != null).map(String),
@@ -241,7 +249,11 @@ export function photosLoader() {
       const réglages = await request(`/items/${REGLAGES}?fields=og_image,${FONDS.join(',')}`);
       const servies = new Set();
       for (const s of autres) for (const l of s.slides ?? []) if (l?.[`${PHOTOS}_id`] != null) servies.add(String(l[`${PHOTOS}_id`]));
-      for (const f of FONDS) if (réglages?.[f] != null) servies.add(String(réglages[f]));
+      // Les fonds couvrent l'écran : eux seuls ont un recadrage portrait.
+      // Astro émet l'original de tout champ image() ; un portrait que rien ne
+      // sert partirait en ligne tel quel.
+      const fonds = new Set(FONDS.map((f) => réglages?.[f]).filter((id) => id != null).map(String));
+      for (const id of fonds) servies.add(id);
 
       let ignorées = 0;
       // Même règle que les spectacles : téléchargées en parallèle, rangées
@@ -262,6 +274,7 @@ export function photosLoader() {
         signalerTirets(logger, `photo ${p.id}`, [caption]);
         const id = String(p.id);
         const image = await assurerFichier(p.image, cache, logger);
+        const focal = pointFocal(p.image);
         const data = await parseData({
           id,
           filePath: MANIFEST_REL,
@@ -271,11 +284,14 @@ export function photosLoader() {
             spectacle: texte(p.spectacle?.slug),
             sort: p.sort ?? 0,
             image,
-            ...dimensions(p.image),
-            focal: pointFocal(p.image),
+            portrait: fonds.has(id) ? await assurerPortrait(p.image.id, focal, cache, logger) : null,
+            apercu: await assurerAperçu(p.image.id, cache),
+            ...(await dimensionsFichier(p.image, cache)),
+            focal,
           },
         });
-        return { id, data, filePath: MANIFEST_REL, digest: JSON.stringify([p, p.image.modified_on]) };
+        // Devenir un fond (réglages) donne un portrait : ça compte dans le digest.
+        return { id, data, filePath: MANIFEST_REL, digest: JSON.stringify([p, p.image.modified_on, fonds.has(id)]) };
       });
       store.clear();
       for (const e of entrées) if (e) store.set(e);
@@ -422,6 +438,9 @@ export function representationsLoader() {
           time: typeof r.time === 'string' && r.time ? r.time.slice(0, 5) : null,
           venue: texte(r.venue),
           city: texte(r.city),
+          // Le CMS n'a que la salle et la ville ; la rue vient de Prodysos.
+          street: null,
+          postalCode: null,
           price: texte(r.price) ?? prixDe.get(spectacle) ?? null,
           reservation: null,
         });

@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig, envField } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import tailwindcss from '@tailwindcss/vite';
 import { loadEnv } from 'vite';
 
 // Astro ne charge le .env qu'après avoir lu cette configuration : sans
@@ -13,8 +14,8 @@ const { SITE_URL } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd()
 
 // https://astro.build/config
 export default defineConfig({
-  // Le .env en local, la variable de dépôt SITE_URL en CI (le domaine n'est
-  // pas encore choisi). Sans lui, le sitemap, l'adresse canonique et les balises
+  // Le .env en local, la variable de dépôt SITE_URL en CI
+  // (https://compagniecliffhanger.be, sans www). Sans lui, le sitemap, l'adresse canonique et les balises
   // Open Graph porteraient des adresses locales : des URL fausses sur un site
   // qui, lui, se construirait parfaitement. En développement, localhost est
   // la bonne réponse.
@@ -27,6 +28,10 @@ export default defineConfig({
   build: { format: 'directory' },
 
   integrations: [sitemap()],
+
+  // Tailwind 4 passe par Vite, sans intégration Astro ni fichier de configuration : les jetons,
+  // les points de rupture et les variantes du site sont déclarés dans src/styles/site.css.
+  vite: { plugins: [tailwindcss()] },
 
   // Les deux variables ne sont PAS optionnelles : le site n'a aucun contenu
   // local sur lequel retomber, et c'est voulu. Sans source, le build doit

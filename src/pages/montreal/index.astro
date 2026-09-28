@@ -3,38 +3,48 @@
 // pied) où Montréal apparaît. La grande photo est celle du spectacle de la
 // troupe de Montréal, dont les sections suivent le texte du collectif.
 import Base from '../../layouts/Base.astro';
+import Accroche from '../../components/Accroche.astro';
 import Pied from '../../components/Pied.astro';
+import Section from '../../components/Section.astro';
 import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
+import TexteRiche from '../../components/TexteRiche.astro';
 import { contenu } from '../../lib/contenu.js';
-import { cadrage, heros } from '../../lib/images.js';
+import { cadrage, herosSpectacle } from '../../lib/images.js';
+import { extrait } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
-import { tx, typographier } from '../../lib/typo.js';
+import { tx } from '../../lib/typo.js';
 
 const c = await contenu();
 const m = c.montreal;
 const s = c.montrealSpectacle;
-const img = s ? await heros(s.hero, s.heroTaille) : null;
+const img = s ? await herosSpectacle(s) : null;
 ---
 
-<Base title={T.montreal} description={m.lead} image={s?.poster ?? s?.hero ?? null} precharger={img}>
+<Base title={T.montreal} description={m.lead ?? extrait(m.text)} image={s?.poster ?? s?.hero ?? null} precharger={img}>
   <article>
     <TeteDePage img={img} alt={s?.title ?? ''} style={cadrage(s?.focal)} titre={T.montreal} sous={m.sub} />
-    {m.lead && <div class="section wrap"><p class="punch" set:html={tx(m.lead)} /></div>}
+    {
+      m.lead && (
+        <Section>
+          <Accroche texte={m.lead} />
+        </Section>
+      )
+    }
     {
       m.text && (
-        <div class="section wrap">
-          <div class="prose prose--justify" set:html={typographier(m.text)} />
-        </div>
+        <Section>
+          <TexteRiche html={m.text} justifie />
+        </Section>
       )
     }
     {
       s && (
         <>
-          <div class="section wrap">
-            <h2 class="title title--xl title--page" translate="no" set:html={tx(s.title)} />
-            {s.year != null && <p class="sub">{s.year}</p>}
-          </div>
+          <Section>
+            <h2 class="titre text-titre opacity-75 [--o:.75]" data-cascade translate="no" set:html={tx(s.title)} />
+            {s.year != null && <p class="mt-2 text-xl font-normal opacity-75">{s.year}</p>}
+          </Section>
           <SectionsSpectacle spectacle={s} />
         </>
       )

@@ -107,7 +107,7 @@ export async function requestAll(chemin) {
 
 const existe = (chemin) => access(chemin).then(() => true, () => false);
 
-/** @typedef {{ modified_on: string, fichier: string }} Entrée */
+/** @typedef {{ modified_on: string, fichier: string, aperçu?: string, portrait?: { focal: string, fichier: string } }} Entrée */
 /** @typedef {{ dossier: string, manifest: Record<string, Entrée>, enregistrer(): Promise<void> }} Cache */
 
 /** Un seul cache par dossier, partagé entre les loaders (voir `ouvrirCache`). */
@@ -220,6 +220,27 @@ export async function assurerFichier(fichier, cache, logger) {
 }
 
 /**
+ * Les dimensions d'un fichier : celles du CMS, sinon lues sur l'original du
+ * cache (déjà là : appeler après `assurerFichier`). Directus ne les calcule
+ * pas toujours (la photo de fond de l'accueil, 8256 px, n'en avait pas) :
+ * sans elles, `sizes` ne sait pas que la photo couvre l'écran, et un recadrage
+ * ne peut pas être calculé.
+ *
+ * @param {{id:string, width?:number|null, height?:number|null}} fichier
+ * @param {Cache} cache
+ * @returns {Promise<{ width: number|null, height: number|null }>}
+ */
+export async function dimensionsFichier(fichier, cache) {
+  if (fichier.width && fichier.height) return { width: fichier.width, height: fichier.height };
+  const entrée = cache.manifest[fichier.id];
+  if (!entrée) return { width: null, height: null };
+  // Depuis un tampon, comme plus bas : Windows et les fichiers restés ouverts.
+  const méta = await sharp(await readFile(path.join(cache.dossier, entrée.fichier))).metadata();
+  const { width = null, height = null } = méta.autoOrient ?? méta;
+  return { width, height };
+}
+
+/**
  * Le même cache pour une image qui ne vient pas de Directus : l'affiche de
  * la page publique Prodysos d'un spectacle (lib/prodysos.js). L'URL tient
  * lieu de date de modification : Prodysos la change (`?v=`) quand l'affiche
@@ -293,6 +314,119 @@ async function ranger(cache, id, nom, version, logger, libellé, charger) {
 
 /** Les téléchargements en cours, partagés entre loaders (voir `ranger`). */
 const enCours = new Map();
+
+// L'aperçu : trente-deux pixels de large. Assez pour la lumière et la
+// composition, assez peu pour tenir en quelques centaines d'octets une fois
+// en base64 dans la page. Le flou est cuit dedans : agrandi cent fois par le
+// navigateur, un aperçu net montrerait ses blocs.
+const APERÇU_LARGEUR = 32;
+
+/**
+ * L'aperçu flou d'un fichier du cache, en `data:` URI, posé sous la photo le
+ * temps qu'elle arrive : le visiteur voit la photo se préciser, jamais un
+ * rectangle noir. C'est aussi ce qui tient le fondu de page « photo sur
+ * photo » quand la photo de la page suivante n'est pas encore en cache.
+ *
+ * Gardé dans le manifeste, à côté du nom du fichier : le fabriquer demande de
+ * décoder l'original, et il ne change qu'avec lui. `ranger` remplace l'entrée
+ * entière quand le fichier est retéléchargé, ce qui jette l'aperçu avec.
+ * Même fonction que le portfolio.
+ *
+ * @param {string} id  la clé du manifeste
+ * @param {Cache} cache
+ */
+export async function assurerAperçu(id, cache) {
+  const entrée = cache.manifest[id];
+  if (!entrée) throw new Error(`aperçu demandé pour ${id} avant son téléchargement`);
+  if (!entrée.aperçu) {
+    // Lu depuis un tampon : sur un chemin, sharp garde le fichier ouvert, et
+    // Windows refuse alors de le purger ou de le remplacer.
+    const buf = await sharp(await readFile(path.join(cache.dossier, entrée.fichier)))
+      .rotate()
+      .resize(APERÇU_LARGEUR, APERÇU_LARGEUR, { fit: 'inside' })
+      .blur(0.8)
+      .webp({ quality: 45 })
+      .toBuffer();
+    entrée.aperçu = `data:image/webp;base64,${buf.toString('base64')}`;
+  }
+  return entrée.aperçu;
+}
+
+// Le recadrage portrait : 9:16, un téléphone tenu droit. Plus étroit (9:19,5
+// sur les récents), le navigateur rogne encore un peu les côtés avec
+// `object-fit: cover` ; plus large (une tablette), un peu le haut et le bas.
+export const PORTRAIT = 9 / 16;
+
+/**
+ * Le cadre 9:16 d'une image de W × H autour de son point focal. Même règle
+ * que `object-position` : la fenêtre visible commence à `(W − cw) · x`. Le
+ * sujet, à `x · W`, tombe alors à `x · cw` dans le recadrage : les
+ * pourcentages du point focal sont conservés, et le même `object-position`
+ * sert à l'image paysage et à la portrait. Sans point focal, le centre.
+ *
+ * @param {number} W
+ * @param {number} H
+ * @param {{x:number, y:number}|null} focal  en % (voir `pointFocal`)
+ * @returns {{ left: number, top: number, width: number, height: number }}
+ */
+export function cadrePortrait(W, H, focal) {
+  const x = (focal?.x ?? 50) / 100;
+  const y = (focal?.y ?? 50) / 100;
+  const width = W / H > PORTRAIT ? Math.round(H * PORTRAIT) : W;
+  const height = W / H > PORTRAIT ? H : Math.round(W / PORTRAIT);
+  return { left: Math.round((W - width) * x), top: Math.round((H - height) * y), width, height };
+}
+
+/**
+ * Le recadrage portrait d'un fichier du cache, à servir en
+ * `<source media="(orientation: portrait)">` aux photos plein écran. Un
+ * téléphone tenu droit couvre son écran avec une photo paysage en n'en
+ * montrant qu'un quart : télécharger l'image entière pour ce quart, c'est
+ * soit un poids inutile, soit, plus petite, une image agrandie trois fois et
+ * floue. Repris du portfolio (c8c7a7e).
+ *
+ * Pas de redimensionnement ici, Astro fabrique les tailles ; la qualité est
+ * haute pour ne pas cumuler deux compressions visibles. Le résultat dépend du
+ * fichier ET du point focal : le manifeste retient le point qui l'a produit.
+ * Nommé `<id>.portrait.webp` : la purge rattache un fichier à son id par ce
+ * qui précède le premier point.
+ *
+ * @param {string} id  la clé du manifeste
+ * @param {{x:number, y:number}|null} focal
+ * @param {Cache} cache
+ * @param {{ info(msg:string):void }} logger
+ * @returns {Promise<string>}  le chemin relatif au manifeste, comme `assurerFichier`
+ */
+export async function assurerPortrait(id, focal, cache, logger) {
+  const entrée = cache.manifest[id];
+  if (!entrée) throw new Error(`portrait demandé pour ${id} avant son téléchargement`);
+  const clé = focal ? `${focal.x},${focal.y}` : 'centre';
+  const nom = `${id}.portrait.webp`;
+  const cible = path.join(cache.dossier, nom);
+  if (entrée.portrait?.focal === clé && entrée.portrait.fichier === nom && (await existe(cible))) return `./${nom}`;
+
+  // Deux loaders peuvent demander le même portrait (une photo de fond qui est
+  // aussi dans la galerie) : le premier le fabrique, les autres l'attendent.
+  const tâche = `${id}|portrait|${clé}`;
+  let promesse = enCours.get(tâche);
+  if (!promesse) {
+    promesse = (async () => {
+      logger.info(`recadrage portrait de ${entrée.fichier}`);
+      // `rotate()` sans argument applique l'orientation EXIF avant le
+      // recadrage ; les dimensions lues sont celles de l'image redressée.
+      const original = sharp(await readFile(path.join(cache.dossier, entrée.fichier))).rotate();
+      const méta = await original.metadata();
+      const { width: W, height: H } = méta.autoOrient ?? méta;
+      const tmp = `${cible}.part`;
+      await original.extract(cadrePortrait(W, H, focal)).webp({ quality: 92 }).toFile(tmp);
+      await rename(tmp, cible);
+      entrée.portrait = { focal: clé, fichier: nom };
+    })().finally(() => enCours.delete(tâche));
+    enCours.set(tâche, promesse);
+  }
+  await promesse;
+  return `./${nom}`;
+}
 
 /**
  * Le point focal d'un fichier, tel que le Studio le pose (en pixels, dans
