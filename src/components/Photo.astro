@@ -18,6 +18,8 @@
 // sont gardés dans data-srcset, et le script de Fond.astro les pose une fois
 // le fond arrivé, ou au premier survol, pour qu'elles ne concurrencent
 // jamais la photo visible.
+//
+// `basse` : sous la photo du haut (carrousel, affiche), priorité basse.
 import type { Réactive } from '../lib/images.js';
 
 interface Props {
@@ -25,11 +27,12 @@ interface Props {
   alt?: string;
   eager?: boolean;
   differee?: boolean;
+  basse?: boolean;
   class?: string;
   style?: string;
 }
 
-const { img, alt = '', eager = false, differee = false, class: classe, style } = Astro.props;
+const { img, alt = '', eager = false, differee = false, basse = false, class: classe, style } = Astro.props;
 
 // Un attribut srcset, posé tout de suite ou gardé en attente.
 const srcset = (valeur: string) => (differee ? { 'data-srcset': valeur } : { srcset: valeur });
@@ -48,7 +51,7 @@ const attributs = {
   height: img.height,
   alt,
   loading: eager || differee ? undefined : 'lazy',
-  fetchpriority: eager ? 'high' : undefined,
+  fetchpriority: eager ? 'high' : basse ? 'low' : undefined,
   decoding: 'async',
   style: [fond, style].filter(Boolean).join(';') || undefined,
 } as const;
