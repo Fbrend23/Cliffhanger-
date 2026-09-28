@@ -160,8 +160,9 @@ export const diapo = (image, taille) => réactive(image, taille, [700, 1100, 160
  * plus, espacées de 1rem, entre deux gouttières (1 à 4rem). Deux colonnes
  * tiennent dès 39em d'écran, trois dès 60em, et au-delà de 104em la page ne
  * s'élargit plus : une colonne fait alors 31,5rem. `sizes` suit ces paliers
- * (gouttière la plus étroite de chacun, pour ne jamais sous-estimer) : dire
- * 33vw sur un grand écran faisait prendre la taille au-dessus.
+ * (gouttière la plus étroite de chacun, et un tiers exact, `100vw / 3`, pour
+ * ne jamais sous-estimer) : dire 33vw sur un grand écran faisait prendre la
+ * taille au-dessus.
  * Avec son aperçu flou dessous.
  * @param {import('astro').ImageMetadata} image
  * @param {Taille} taille
@@ -172,7 +173,7 @@ export async function vignetteGalerie(image, taille, apercu = null) {
     image,
     taille,
     [480, 800, 1200],
-    '(max-width: 39em) calc(100vw - 2rem), (max-width: 60em) calc(50vw - 1.5rem), (max-width: 104em) calc(33vw - 2rem), 31.5rem'
+    '(max-width: 39em) calc(100vw - 2rem), (max-width: 60em) calc(50vw - 1.5rem), (max-width: 104em) calc(100vw / 3 - 2rem), 31.5rem'
   );
   r.apercu = apercu;
   return r;
