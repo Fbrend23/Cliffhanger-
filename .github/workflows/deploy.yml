@@ -172,7 +172,7 @@ jobs:
           PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
         run: npm run build
 
-      # 3 · Publication : quatre passes dans une seule connexion, dans un
+      # 3 · Publication : quatre passes en deux connexions, dans un
       #     ordre où le site en ligne n'est jamais cassé.
       #
       #     a. /_astro/ : ses fichiers portent une empreinte de leur contenu
@@ -216,14 +216,11 @@ jobs:
           sansTextes="--exclude '\.(html|xml|txt)\$' --exclude '^\.htaccess\$'"
           sansLourds="--exclude '\.(mp4|webm|webp|avif|png|jpe?g|gif|svg|ico|pdf|woff2?)\$'"
           commun="--overwrite --verbose $DRY_RUN"
-          passes=(
-            "mirror -R $commun --only-missing --parallel=8 dist/_astro/ ./_astro/"
-            "mirror -R $commun --ignore-time --parallel=4 $garder $sansTextes dist/ ./"
-            "mirror -R $commun --transfer-all --delete --parallel=4 $garder $sansLourds dist/ ./"
-            "mirror -R $commun --delete --only-missing dist/_astro/ ./_astro/"
-            "mirror -R $commun --delete --ignore-time $garder $sansTextes dist/ ./"
-          )
-          publier "$(IFS=';'; echo "${passes[*]}")"
+          # Deux connexions : dans une seule, la passe des pages restait
+          # bloquée plus d'une minute sur une connexion que le serveur avait
+          # fermée pendant les passes précédentes.
+          publier "mirror -R $commun --only-missing --parallel=8 dist/_astro/ ./_astro/; mirror -R $commun --ignore-time --parallel=4 $garder $sansTextes dist/ ./"
+          publier "mirror -R $commun --transfer-all --delete --parallel=4 $garder $sansLourds dist/ ./; mirror -R $commun --delete --only-missing dist/_astro/ ./_astro/; mirror -R $commun --delete --ignore-time $garder $sansTextes dist/ ./"
 
       # 4 · Dater la publication dans le CMS, une fois le site vraiment en
       #     ligne. Un échec ici ne casse pas le run : le site EST publié, et
