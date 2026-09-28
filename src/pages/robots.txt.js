@@ -1,7 +1,6 @@
 // robots.txt, fabriqué au build plutôt que posé dans public/ : il doit
-// annoncer l'adresse du sitemap, et le domaine du site n'est pas encore
-// choisi. SITE_URL, variable du build, n'arrive pas jusqu'à un fichier
-// statique ; ici, si.
+// annoncer l'adresse du sitemap, qui suit le domaine du build. SITE_URL,
+// variable du build, n'arrive pas jusqu'à un fichier statique ; ici, si.
 //
 // Les règles sont celles du portfolio. Les moteurs de recherche sont
 // bienvenus : une compagnie vit de ce qu'on la trouve. Les robots qui

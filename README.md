@@ -173,8 +173,6 @@ des données de test).
 
 ## Reste à faire
 
-- **Le domaine.** Une fois choisi : `SITE_URL`, et l'adresse canonique en dur dans
-  `public/.htaccess` (les redirections s'appuient pour l'instant sur l'hôte demandé).
 - La version anglaise : un bloc `languages` et des champs `translations` dans le fichier client,
   un second dictionnaire dans `textes.js`.
 - Les polices Adobe, si la compagnie les retient (Jost et Archivo en attendant).
