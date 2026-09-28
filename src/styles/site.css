@@ -173,6 +173,28 @@ html:not(.js) .menu li{opacity:1;transform:none}
   .events td + td{margin-top:.25rem}
 }
 
+/* ---------- réservation (fiche spectacle) ---------- */
+/* Pas de maquette : les filets des tableaux, les pastilles, rien d'autre. Sans JS rien ne partirait, le
+   formulaire est caché et la ligne du <noscript> renvoie à l'e-mail ; sans e-mail, tout le bloc part. */
+.resa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem 2rem;margin-top:1rem;border-top:.125rem solid var(--front);padding-top:1.5rem}
+.resa__champ{display:grid;gap:.35rem;align-content:start}
+.resa__champ span{font-size:1rem;opacity:.75}
+.resa__champ--large,.resa__pied,.resa__note{grid-column:1/-1}
+.resa input,.resa select,.resa textarea{width:100%;padding:.5rem 0;border:0;border-bottom:.0625rem solid var(--front);border-radius:0;background:transparent;color:var(--front);font:inherit;font-size:1.25rem}
+.resa select option{background:var(--back);color:var(--front)}
+.resa textarea{min-height:4.5rem;resize:vertical}
+.resa :is(input,select,textarea):focus-visible{outline:.0625rem solid var(--front);outline-offset:.25rem}
+.resa__pied{display:flex;flex-wrap:wrap;align-items:center;gap:1rem 1.5rem}
+.resa button:disabled{opacity:.5;cursor:wait}
+.resa__statut{font-size:1rem}
+.resa__statut--erreur{font-weight:500}
+.resa__note{font-size:.875rem;opacity:.75}
+.resa__note a,.resa-lien{border-bottom:.0625rem solid rgba(255,255,255,.35);transition:border-color .25s}
+.resa__note a:hover,.resa__note a:focus-visible,.resa-lien:hover,.resa-lien:focus-visible{border-color:var(--front)}
+.resa__merci{margin-top:1rem;padding-top:1.5rem;border-top:.125rem solid var(--front);font-size:1.25rem;outline:none}
+@media (max-width:40em){.resa{grid-template-columns:1fr}}
+html:not(.js) .resa,html:not(.js) .resa-bloc--sans-repli{display:none}
+
 /* ---------- pastilles ---------- */
 .pills{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}
 .pill{display:inline-flex;align-items:center;min-height:2.25rem;padding:.5rem 1rem;border:.0625rem solid var(--front);border-radius:2rem;font-size:1rem;font-weight:400;transition:background-color .2s,color .2s}

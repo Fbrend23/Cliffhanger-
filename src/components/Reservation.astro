@@ -1,0 +1,157 @@
+---
+// Le formulaire de réservation d'une fiche spectacle : la demande part vers
+// Prodysos (`create_public_reservation`), dans le navigateur, et rejoint
+// l'onglet « Page publique » du spectacle, où la compagnie la suit. Le site
+// reste statique : c'est son seul appel au moment de la visite.
+//
+// Seules les dates réservables sont proposées : venues de Prodysos (ou d'une
+// date du CMS qui en remplace une), et pas encore passées au build. Prodysos
+// revalide tout de son côté ; une date jouée depuis la dernière
+// reconstruction est refusée avec son message.
+//
+// Sans JavaScript, le formulaire ne peut rien envoyer : il est caché
+// (html.js absent, site.css), et une ligne renvoie vers l'adresse e-mail des
+// réglages.
+import { PRODYSOS_KEY, PRODYSOS_URL } from 'astro:env/server';
+import { formatJourHeure, lieu } from '../lib/dates.js';
+import { T } from '../lib/textes.js';
+import { tx, typographier } from '../lib/typo.js';
+
+interface Props {
+  /** Les représentations réservables, dans l'ordre du calendrier (une ligne sans réservation est ignorée). */
+  dates: { day: string; time: string | null; venue: string | null; city: string | null; reservation: { slug: string; id: string } | null }[];
+  email: string | null;
+}
+
+const { dates, email } = Astro.props;
+const options = dates.flatMap((r) => (r.reservation ? [{ ...r, reservation: r.reservation }] : [])).map((r) => ({
+  ...r.reservation,
+  libellé: tx([formatJourHeure(r.day, r.time), lieu(r)].filter(Boolean).join(' · ')),
+}));
+---
+
+{
+  options.length > 0 && PRODYSOS_URL && PRODYSOS_KEY && (
+    <div class:list={['section wrap resa-bloc', { 'resa-bloc--sans-repli': !email }]} id="reserver">
+      <h2 class="label" set:html={tx(T.réserver)} />
+      {/* L'adresse et la clé publiable de Prodysos : celles que le navigateur
+          doit connaître pour envoyer la demande, rien d'autre. Les messages
+          sont typographiés ici, le script n'a qu'à les poser.
+          `data-astro-reload` : sans lui, le ClientRouter prend l'envoi pour
+          une navigation, avant que le script ne l'arrête. */}
+      <form
+        class="resa"
+        data-reservation
+        data-astro-reload
+        data-url={PRODYSOS_URL}
+        data-cle={PRODYSOS_KEY}
+        data-envoi={typographier(T.envoiEnCours)}
+        data-merci={typographier(T.réservationEnvoyée)}
+        data-refus={typographier(T.réservationRefusée)}
+        data-hors-ligne={typographier(T.réservationHorsLigne)}
+      >
+        <label class="resa__champ">
+          <span set:html={tx(T.réservationPrénom)} />
+          <input type="text" name="prenom" autocomplete="given-name" maxlength="59" required />
+        </label>
+        <label class="resa__champ">
+          <span set:html={tx(T.réservationNom)} />
+          <input type="text" name="nom" autocomplete="family-name" maxlength="60" required />
+        </label>
+        <label class="resa__champ">
+          <span set:html={tx(T.réservationEmail)} />
+          <input type="email" name="email" autocomplete="email" maxlength="200" required />
+        </label>
+        {/* Prodysos accepte de 1 à 20 places par demande. */}
+        <label class="resa__champ">
+          <span set:html={tx(T.réservationPlaces)} />
+          <input type="number" name="places" min="1" max="20" value="1" inputmode="numeric" required />
+        </label>
+        <label class="resa__champ resa__champ--large">
+          <span set:html={tx(T.réservationDate)} />
+          <select name="representation" required>
+            {options.map((o) => <option value={o.id} data-slug={o.slug} set:html={o.libellé} />)}
+          </select>
+        </label>
+        <label class="resa__champ resa__champ--large">
+          <span set:html={tx(T.réservationMessage)} />
+          <textarea name="message" rows="3" maxlength="2000" />
+        </label>
+        {/* Piège à robots : un humain ne voit ni ne coche jamais cette case. */}
+        <input class="v-h" type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <div class="resa__pied">
+          <button class="pill" type="submit" set:html={tx(T.envoyer)} />
+          <p class="resa__statut" role="status" aria-live="polite" hidden />
+        </div>
+        <p class="resa__note" set:html={tx(T.réservationDonnées)} />
+      </form>
+      {
+        email && (
+          <noscript>
+            <p class="resa__note">
+              <Fragment set:html={tx(T.réservationSansJs)} /> <a href={`mailto:${email}`}>{email}</a>
+            </p>
+          </noscript>
+        )
+      }
+    </div>
+  )
+}
+
+<script>
+  import { réserver } from '../lib/prodysos.js';
+
+  // Délégués sur le document : le routeur change de page sans recharger, et
+  // un écouteur posé sur le formulaire se perdrait d'une visite à l'autre.
+  document.addEventListener('submit', async (e) => {
+    const form = (e.target as Element).closest<HTMLFormElement>('form[data-reservation]');
+    if (!form) return;
+    e.preventDefault();
+    const d = new FormData(form);
+    if (d.get('botcheck')) return;
+
+    const statut = form.querySelector<HTMLElement>('.resa__statut')!;
+    const bouton = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const choix = form.querySelector<HTMLSelectElement>('select[name="representation"]')!.selectedOptions[0];
+    const dire = (texte: string, erreur = false) => {
+      statut.textContent = texte;
+      statut.classList.toggle('resa__statut--erreur', erreur);
+      statut.hidden = false;
+    };
+
+    bouton.disabled = true;
+    dire(form.dataset.envoi!);
+    const résultat = await réserver(
+      { url: form.dataset.url!, clé: form.dataset.cle! },
+      {
+        slug: choix.dataset.slug!,
+        id: choix.value,
+        nom: `${d.get('prenom') ?? ''} ${d.get('nom') ?? ''}`.trim(),
+        email: String(d.get('email') ?? '').trim(),
+        places: Number(d.get('places') ?? 1),
+        message: String(d.get('message') ?? '').trim() || null,
+      }
+    ).catch(() => ({ ok: false as const, message: form.dataset.horsLigne! }));
+
+    if (résultat.ok) {
+      // Le formulaire laisse place au remerciement, qui prend le focus : un
+      // lecteur d'écran l'annonce, et personne n'envoie deux fois.
+      const merci = document.createElement('p');
+      merci.className = 'resa__merci';
+      merci.tabIndex = -1;
+      merci.textContent = form.dataset.merci!;
+      form.replaceWith(merci);
+      merci.focus();
+      return;
+    }
+    dire(résultat.message ?? form.dataset.refus!, true);
+    bouton.disabled = false;
+  });
+
+  // « Réserver » sur une date du tableau : c'est elle que le formulaire propose.
+  document.addEventListener('click', (e) => {
+    const lien = (e.target as Element).closest<HTMLAnchorElement>('a[data-reservation]');
+    const choix = document.querySelector<HTMLSelectElement>('form[data-reservation] select[name="representation"]');
+    if (lien && choix) choix.value = lien.dataset.reservation!;
+  });
+</script>

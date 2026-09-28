@@ -1,18 +1,20 @@
 ---
 // Le corps d'une fiche spectacle, partagé par /spectacle/<slug>/ et
 // /montreal/ : accroche (et sa source), affiche, texte, carrousel, générique,
-// dates. Un champ vide n'est jamais affiché ; les dates passent sous « À
-// venir » tant qu'une représentation reste à jouer (calculé au build, la
-// reconstruction de la nuit fait le reste).
+// dates, réservation. Un champ vide n'est jamais affiché ; les dates passent
+// sous « À venir » tant qu'une représentation reste à jouer (calculé au
+// build, la reconstruction de la nuit fait le reste). Une date à venir venue
+// de Prodysos se réserve : un lien sur sa ligne, le formulaire en dessous.
 import Carrousel from './Carrousel.astro';
 import Generique from './Generique.astro';
 import Photo from './Photo.astro';
+import Reservation from './Reservation.astro';
 import TableauDates from './TableauDates.astro';
 import { contenu } from '../lib/contenu.js';
 import { aujourdhui, formatJourHeure, lieu } from '../lib/dates.js';
 import { affiche, diapo } from '../lib/images.js';
 import { T } from '../lib/textes.js';
-import { tx, typographier } from '../lib/typo.js';
+import { tx, typographier, échapper } from '../lib/typo.js';
 
 interface Props {
   spectacle: any;
@@ -33,6 +35,14 @@ const diapos = await Promise.all(
 const lignes = c.lignesParSpectacle.get(s.slug) ?? [];
 const dates = c.représentationsDe(s.slug);
 const aVenir = dates.some((r) => r.day >= aujourdhui());
+const réservables = dates.filter((r) => r.reservation && r.day >= aujourdhui());
+const réservable = new Set(réservables);
+// Le prix, puis « Réserver » pour une date réservable : le tableau garde ses
+// trois colonnes.
+const dernière = (r: any) =>
+  [tx(r.price ?? ''), réservable.has(r) ? `<a class="resa-lien" href="#reserver" data-reservation="${échapper(r.reservation.id)}">${tx(T.réserver)}</a>` : '']
+    .filter(Boolean)
+    .join(' · ');
 ---
 
 {
@@ -73,7 +83,8 @@ const aVenir = dates.some((r) => r.day >= aujourdhui());
   dates.length > 0 && (
     <div class="section wrap">
       <h2 class="label" set:html={tx(aVenir ? T.àVenir : T.représentations)} />
-      <TableauDates lignes={dates.map((r) => [{ html: tx(formatJourHeure(r.day, r.time)) }, { html: tx(lieu(r)) }, { html: tx(r.price ?? '') }])} />
+      <TableauDates lignes={dates.map((r) => [{ html: tx(formatJourHeure(r.day, r.time)) }, { html: tx(lieu(r)) }, { html: dernière(r) }])} />
     </div>
   )
 }
+<Reservation dates={réservables} email={c.reglages.email} />

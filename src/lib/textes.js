@@ -41,6 +41,25 @@ export const T = {
   représentations: 'Représentations',
   passées: 'Passées',
   tousLesSpectacles: '← Tous les spectacles',
+
+  // La réservation, sur la fiche d'un spectacle : les dates venues de
+  // Prodysos, où la demande arrive. Un refus de Prodysos s'affiche avec son
+  // propre message, écrit pour le public ; les nôtres servent quand il n'en
+  // donne pas.
+  réserver: 'Réserver',
+  réservationNom: 'Nom',
+  réservationPrénom: 'Prénom',
+  réservationEmail: 'E-mail',
+  réservationDate: 'Représentation',
+  réservationPlaces: 'Places',
+  réservationMessage: 'Message (facultatif)',
+  envoyer: 'Envoyer',
+  envoiEnCours: 'Envoi en cours…',
+  réservationEnvoyée: 'Merci, votre demande de réservation est bien arrivée. La compagnie vous répond par e-mail.',
+  réservationRefusée: "Votre demande n'a pas pu être envoyée. Réessayez dans un instant.",
+  réservationHorsLigne: 'Connexion impossible. Vérifiez votre réseau et réessayez.',
+  réservationSansJs: 'Le formulaire demande JavaScript. Pour réserver, écrivez-nous :',
+  réservationDonnées: "Vos coordonnées ne servent qu'à traiter votre réservation.",
   crédit: (nom) => `© ${nom}`,
 
   agenda: 'Agenda',
