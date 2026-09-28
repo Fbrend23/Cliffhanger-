@@ -39,6 +39,9 @@ const spectacles = defineCollection({
       sort: z.number(),
       hero: image(),
       heroTaille: taille,
+      // Le recadrage 9:16 pour les téléphones tenus droits, et l'aperçu flou en data: URI (lib/directus.js).
+      heroPortrait: image(),
+      heroApercu: z.string(),
       focal,
       poster: image().nullable(),
       posterTaille: taille.nullable(),
@@ -55,6 +58,9 @@ const photos = defineCollection({
       spectacle: z.string().nullable(),
       sort: z.number(),
       image: image(),
+      // Seulement pour les fonds de page : voir le loader.
+      portrait: image().nullable(),
+      apercu: z.string(),
       width: z.number().nullable(),
       height: z.number().nullable(),
       focal,

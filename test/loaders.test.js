@@ -86,6 +86,17 @@ test('cadre portrait : 9:16 autour du point focal, sans sortir de l’image', as
   assert.deepEqual(cadrePortrait(900, 1600, { x: 80, y: 80 }), { left: 0, top: 0, width: 900, height: 1600 });
 });
 
+test('spectacles : la grande photo a son recadrage portrait et son aperçu flou', async () => {
+  const { entrées, ctx } = contexte();
+  await L.spectaclesLoader().load(ctx);
+  const d = entrées.get('par-endroits').data;
+  assert.match(d.heroPortrait, /^\.\/[\w-]+\.portrait\.webp$/);
+  assert.match(d.heroApercu, /^data:image\/webp;base64,/);
+  assert.ok(d.heroApercu.length < 2000, 'quelques centaines d’octets dans la page, pas plus');
+  const fichiers = await readdir(path.join(racine, '.cache', 'directus-assets'));
+  assert.ok(fichiers.includes(d.heroPortrait.slice(2)));
+});
+
 test('spectacles : sans affiche ni texte dans le CMS, ceux de la page publique Prodysos', async () => {
   const inédit = faux.base.collections.cliff_spectacles.find((s) => s.slug === 'linedit-de-moliere');
   const { poster, text } = inédit;
@@ -144,6 +155,13 @@ test('photos : légendes, galerie, et purge qui garde les fichiers affichés', a
   const fichiers = await readdir(dossier);
   assert.ok(!fichiers.includes('orphelin.webp'), 'la purge retire ce que rien n’utilise');
   assert.ok(fichiers.length > 10, 'les grandes photos et affiches des spectacles restent');
+  assert.ok(fichiers.some((f) => f.endsWith('.portrait.webp')), 'et leurs recadrages portrait');
+  // Toutes ont un aperçu ; seuls les fonds de page ont un portrait.
+  assert.ok(photos.every((p) => p.apercu.startsWith('data:image/webp;base64,')));
+  const r = faux.base.singletons.cliff_reglages;
+  const fonds = new Set(['fond_accueil', 'fond_spectacles', 'fond_agenda', 'fond_compagnie', 'fond_contact'].map((f) => r[f]?.id).filter((v) => v != null).map(String));
+  for (const [id, e] of entrées) assert.equal(e.data.portrait !== null, fonds.has(id), `photo ${id}`);
+  assert.ok(photos.some((p) => p.portrait !== null));
 });
 
 test('photos : une photo qui ne sert nulle part est laissée de côté', async () => {
