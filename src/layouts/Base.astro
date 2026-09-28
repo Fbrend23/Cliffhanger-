@@ -224,7 +224,9 @@ const entrée =
             vidéo.poster = vidéo.dataset.poster;
             delete vidéo.dataset.poster;
           }
-          if (!mouvementRéduit.matches) vidéo.play().catch(() => {});
+          // La vidéo pèse cinq mégaoctets : avec l'économiseur de données, l'image fixe suffit.
+          const économe = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+          if (!mouvementRéduit.matches && !économe) vidéo.play().catch(() => {});
           m.querySelector('a')?.focus({ preventScroll: true });
         } else {
           setTimeout(() => {
