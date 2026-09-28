@@ -133,8 +133,6 @@
 .back{display:inline-block;margin-top:2rem;opacity:.75}
 .back:hover,.back:focus-visible{opacity:1}
 
-.resa-lien{border-bottom:.0625rem solid rgba(255,255,255,.35);transition:border-color .25s}
-.resa-lien:hover,.resa-lien:focus-visible{border-color:var(--color-front)}
 
 /* ---------- pastilles ---------- */
 .pills{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}

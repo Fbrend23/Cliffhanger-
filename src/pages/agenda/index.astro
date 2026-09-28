@@ -6,7 +6,10 @@
 import Base from '../../layouts/Base.astro';
 import TitrePage from '../../components/TitrePage.astro';
 import Fond from '../../components/Fond.astro';
+import Intitule from '../../components/Intitule.astro';
+import PageListe from '../../components/PageListe.astro';
 import Pied from '../../components/Pied.astro';
+import Section from '../../components/Section.astro';
 import TableauDates from '../../components/TableauDates.astro';
 import { contenu } from '../../lib/contenu.js';
 import { aujourdhui, formatPlage, lieu, séries } from '../../lib/dates.js';
@@ -32,7 +35,7 @@ const réservable = (s: (typeof toutes)[number]) =>
 const lignes = (liste: typeof toutes) =>
   liste.map((s) => {
     const spectacle = belges.get(s.spectacle)!;
-    const réserver = réservable(s) ? `<a class="resa-lien" href="/spectacle/${spectacle.slug}/#reserver">${tx(T.réserver)}</a>` : '';
+    const réserver = réservable(s) ? `<a class="lien-souligne" href="/spectacle/${spectacle.slug}/#reserver">${tx(T.réserver)}</a>` : '';
     return [
       { html: tx(formatPlage(s.de, s.à)) },
       { html: `<a href="/spectacle/${spectacle.slug}/">${tx(spectacle.title)}</a>`, titre: true },
@@ -42,27 +45,27 @@ const lignes = (liste: typeof toutes) =>
 ---
 
 <Base title={T.agenda} precharger={precharger}>
-  <section class="page">
+  <PageListe>
     <Fond fond={fond} ton="sombre" />
-    <div class="wrap wrap--wide">
+    <div class="mx-auto w-full max-w-[96rem] px-gouttiere">
       <TitrePage texte={T.agenda} />
       {
         àVenir.length > 0 && (
-          <div class="section" data-cascade>
-            <h2 class="label" set:html={tx(T.àVenir)} />
+          <Section nu>
+            <Intitule texte={T.àVenir} />
             <TableauDates lignes={lignes(àVenir)} />
-          </div>
+          </Section>
         )
       }
       {
         passées.length > 0 && (
-          <div class="section" data-cascade>
-            {àVenir.length > 0 && <h2 class="label" set:html={tx(T.passées)} />}
+          <Section nu>
+            {àVenir.length > 0 && <Intitule texte={T.passées} />}
             <TableauDates lignes={lignes(passées)} />
-          </div>
+          </Section>
         )
       }
     </div>
     <Pied />
-  </section>
+  </PageListe>
 </Base>
