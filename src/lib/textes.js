@@ -14,6 +14,8 @@ export const T = {
   // Les descriptions des pages (ce que Google montre sous le lien), quand le
   // CMS n'en donne pas : chacune la sienne, un moteur signale les doublons.
   // Moins de 155 caractères, où il coupe.
+  // Ce que le titre de l'accueil ajoute au nom : ce qu'on cherche pour la trouver.
+  titreAccueil: 'Théâtre à Bruxelles',
   descriptionParDéfaut: 'La Compagnie Cliffhanger, compagnie de théâtre bruxelloise : ses spectacles, ses prochaines dates, son équipe.',
   descriptionSpectacles: (titres) => `Les spectacles de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : ${titres}.`,
   // La prochaine série, s'il y en a une : « Hamlet, 17 et 18 avr. 2026, Théâtre L'Improviste, Forest ».

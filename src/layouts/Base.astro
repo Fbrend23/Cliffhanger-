@@ -40,7 +40,10 @@ const { title, description = null, image = null, precharger = null, jsonLd = nul
 const site = (await getEntry('reglages', 'site'))!.data;
 
 // Le titre de l'onglet suit le prototype : « Page · Compagnie Cliffhanger ».
-const titreComplet = tx(title ? `${title} · ${site.site_title}` : site.site_title);
+// L'accueil dit en plus ce qu'est la compagnie, et où : le nom seul ne dit
+// rien à qui cherche du théâtre à Bruxelles.
+const titrePartage = title ?? `${site.site_title} · ${T.titreAccueil}`;
+const titreComplet = tx(title ? `${title} · ${site.site_title}` : titrePartage);
 // La description, typographiée comme le titre (Astro échappe l'attribut).
 const résumé = typographier(description || site.site_description || T.descriptionParDéfaut);
 const canonique = new URL(Astro.url.pathname, Astro.site).toString();
@@ -115,7 +118,7 @@ const entrée =
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_BE" />
     <meta property="og:site_name" content={site.site_title} />
-    <meta property="og:title" content={title ?? site.site_title} />
+    <meta property="og:title" content={typographier(titrePartage)} />
     <meta property="og:description" content={résumé} />
     <meta property="og:url" content={canonique} />
     {ogUrl && <meta property="og:image" content={ogUrl} />}
