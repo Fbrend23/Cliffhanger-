@@ -84,8 +84,28 @@ qu'à forcer le lien quand les titres diffèrent.
 - Un spectacle Prodysos sans spectacle publié du même titre ni qui le réclame est ignoré avec un
   warning, qui donne son titre ; un titre porté par deux spectacles du CMS ne relie rien (warning) ;
   deux spectacles qui réclament le même arrêtent le build, comme une compagnie inconnue de Prodysos.
-- Une date ajoutée dans Prodysos paraît à la reconstruction suivante (la nuit, ou « Mettre en
-  ligne »).
+- Une date ajoutée dans Prodysos paraît à la reconstruction suivante : Prodysos la déclenche
+  lui-même dans les minutes qui suivent (voir plus bas), sinon la nuit, ou « Mettre en ligne ».
+- Seules les dates d'un spectacle dont la **page publique** est publiée dans Prodysos arrivent.
+
+**Affiche et synopsis.** Le CMS fait foi. Un spectacle du CMS sans affiche prend celle de sa page
+publique Prodysos (téléchargée au build dans le cache des originaux, sous
+`prodysos-affiche-<slug>`, comme une affiche du Studio) ; sans texte, il prend son synopsis, du
+texte brut mis en paragraphes.
+
+**Réservation.** Une date à venir venue de Prodysos se réserve depuis la fiche du spectacle : un
+lien « Réserver » sur sa ligne (et sur sa série dans l'agenda) mène au formulaire
+(`src/components/Reservation.astro`), qui appelle `create_public_reservation` **depuis le
+navigateur**, avec la clé publiable. C'est le seul appel du site au moment de la visite. La demande
+arrive dans l'onglet « Page publique » du spectacle dans Prodysos, qui la valide (date à venir, 1 à
+20 places) et envoie ses e-mails ; un refus s'affiche avec le message de Prodysos. Une date saisie
+dans le CMS qui remplace une date de Prodysos reste réservable ; une date du CMS seule ne l'est
+pas. Sans JavaScript, le formulaire est caché et une ligne renvoie vers l'e-mail des réglages.
+
+**Reconstruction déclenchée par Prodysos.** Une date, une affiche ou un synopsis modifiés dans
+Prodysos lancent `deploy.yml` (`workflow_dispatch` sur `main`) par la table `site_deploy_targets`
+de Prodysos (voir `docs/ops/site-rebuild.md` dans le dépôt Prodysos : jeton GitHub, ligne de la
+cible). La reconstruction de la nuit reste le filet : une date jouée ne change rien en base.
 
 Règles de saisie, rappelées dans les notes du Studio :
 
