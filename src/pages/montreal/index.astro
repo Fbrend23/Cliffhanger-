@@ -20,10 +20,10 @@ const img = s ? await heros(s.hero, s.heroTaille) : null;
 <Base title={T.montreal} description={m.lead} image={s?.poster ?? s?.hero ?? null} precharger={img}>
   <article>
     <TeteDePage img={img} alt={s?.title ?? ''} style={cadrage(s?.focal)} titre={T.montreal} sous={m.sub} />
-    {m.lead && <div class="section wrap"><p class="punch" set:html={tx(m.lead)} /></div>}
+    {m.lead && <div class="section wrap" data-cascade><p class="punch" set:html={tx(m.lead)} /></div>}
     {
       m.text && (
-        <div class="section wrap">
+        <div class="section wrap" data-cascade>
           <div class="prose prose--justify" set:html={typographier(m.text)} />
         </div>
       )
@@ -31,8 +31,8 @@ const img = s ? await heros(s.hero, s.heroTaille) : null;
     {
       s && (
         <>
-          <div class="section wrap">
-            <h2 class="title title--xl title--page" translate="no" set:html={tx(s.title)} />
+          <div class="section wrap" data-cascade>
+            <h2 class="titre text-titre opacity-75 [--o:.75]" data-cascade translate="no" set:html={tx(s.title)} />
             {s.year != null && <p class="sub">{s.year}</p>}
           </div>
           <SectionsSpectacle spectacle={s} />

@@ -1,6 +1,7 @@
 ---
 // La galerie : les photos cochées « Dans la galerie », dans l'ordre du Studio.
 import Base from '../../layouts/Base.astro';
+import TitrePage from '../../components/TitrePage.astro';
 import Galerie from '../../components/Galerie.astro';
 import Pied from '../../components/Pied.astro';
 import { contenu } from '../../lib/contenu.js';
@@ -14,7 +15,7 @@ const photos = c.photos.filter((p) => p.galerie);
 <Base title={T.galerie} image={photos[0]?.image ?? null}>
   <section class="page">
     <div class="wrap wrap--wide">
-      <h1 class="title title--xl title--page" set:html={tx(T.galerie)} />
+      <TitrePage texte={T.galerie} />
       <Galerie photos={photos} />
     </div>
     <Pied />

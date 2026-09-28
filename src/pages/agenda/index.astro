@@ -4,6 +4,7 @@
 // au build ; la reconstruction de la nuit fait passer une date jouée. Une
 // série à venir qui compte une date réservable mène au formulaire de la fiche.
 import Base from '../../layouts/Base.astro';
+import TitrePage from '../../components/TitrePage.astro';
 import Fond from '../../components/Fond.astro';
 import Pied from '../../components/Pied.astro';
 import TableauDates from '../../components/TableauDates.astro';
@@ -44,10 +45,10 @@ const lignes = (liste: typeof toutes) =>
   <section class="page">
     <Fond fond={fond} ton="bgs--dark" />
     <div class="wrap wrap--wide">
-      <h1 class="title title--xl title--page" set:html={tx(T.agenda)} />
+      <TitrePage texte={T.agenda} />
       {
         àVenir.length > 0 && (
-          <div class="section">
+          <div class="section" data-cascade>
             <h2 class="label" set:html={tx(T.àVenir)} />
             <TableauDates lignes={lignes(àVenir)} />
           </div>
@@ -55,7 +56,7 @@ const lignes = (liste: typeof toutes) =>
       }
       {
         passées.length > 0 && (
-          <div class="section">
+          <div class="section" data-cascade>
             {àVenir.length > 0 && <h2 class="label" set:html={tx(T.passées)} />}
             <TableauDates lignes={lignes(passées)} />
           </div>

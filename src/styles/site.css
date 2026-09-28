@@ -18,6 +18,27 @@
   --font-sans: "Jost", "Futura", "Century Gothic", "Trebuchet MS", sans-serif;
   --font-display: "Archivo", "Arial Black", "Helvetica Neue", sans-serif;
 
+  /* Les tailles du site, sans l'interligne que Tailwind leur attache : le texte garde le 1,25 du
+     corps, sauf mention contraire (leading-*). */
+  --text-*: initial;
+  --text-xs: .75rem;
+  --text-legende: .8125rem;
+  --text-sm: .875rem;
+  --text-base: 1rem;
+  --text-prose: 1.0625rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-sous-titre: clamp(1rem, 2.5vw, 1.5rem);
+  --text-mail: clamp(1.25rem, 3vw, 2rem);
+  --text-punch: clamp(1.5rem, 3.5vw, 2.5rem);
+  --text-titre: clamp(2rem, 6vw, 3rem);
+
+  --tracking-large: .25em;
+
+  /* Les transitions sans courbe précisée suivent celle du CSS (ease), comme dans le prototype */
+  --default-transition-timing-function: ease;
+
   /* Les points de rupture des maquettes : ceux de Tailwind, redits pour qu'on les trouve ici.
      sm 40rem : tableaux en colonne, texte non justifié ; lg 64rem : « Découvrir » réduit à son trait. */
   --breakpoint-sm: 40rem;
@@ -61,65 +82,42 @@
 @font-face{font-family:"Archivo";font-style:normal;font-weight:800;font-display:swap;src:url(/fonts/archivo-800-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
 
 /* ---------- base ---------- */
-*,*::before,*::after{box-sizing:border-box}
-[hidden]{display:none!important}
-html,body{margin:0;min-height:100%;background:var(--color-back);color:var(--color-front)}
-body{font-family:var(--font-sans);font-weight:300;line-height:1.25;-webkit-font-smoothing:antialiased}
-body.menu-open{overflow:hidden}
-a{color:inherit;text-decoration:none}
-ul{list-style:none;margin:0;padding:0}
-h1,h2,h3,p,blockquote,figure{margin:0}
-button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-img{display:block;max-width:100%}
-:focus-visible{outline:.125rem dotted var(--color-muted);outline-offset:.2rem;border-radius:.25rem}
-.v-h{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-a,button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-@media (pointer:coarse){.pill{min-height:2.75rem}}
-.skip{position:fixed;left:1rem;top:-4rem;z-index:60;padding:.75rem 1rem;background:var(--color-front);color:var(--color-back);font-weight:400;transition:top .2s}
-.skip:focus{top:calc(1rem + var(--safe-top))}
+/* Preflight (Tailwind) remet déjà à zéro marges, listes, liens, boutons et images. Reste ce qui est
+   propre au site. */
+@layer base {
+  html, body { min-height: 100%; background: var(--color-back); color: var(--color-front); }
+  body { font-weight: 300; line-height: 1.25; -webkit-font-smoothing: antialiased; }
+  /* Tailwind 4 rend aux boutons le curseur par défaut ; ici, tout ce qui se clique le montre */
+  button { cursor: pointer; }
+  a, button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: .125rem dotted var(--color-muted); outline-offset: .2rem; border-radius: .25rem; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+}
+
+/* Les titres en Archivo capitales : pages, spectacles, listes */
+@utility titre {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: .1875em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* Le filet sous un lien dans le texte (noms, mail, réservation), qui s'allume au survol */
+@utility lien-souligne {
+  border-bottom: .0625rem solid --alpha(var(--color-front) / 35%);
+  transition: border-color .25s;
+  &:hover, &:focus-visible { border-color: var(--color-front); }
+}
+
+
+/* ================= ANCIEN, à migrer ================= */
 /* le texte blanc reste lisible sur les photos claires : une ombre douce en haut (logo) et en bas (titres) */
 .bgs::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.35),transparent 22%,transparent 50%,rgba(0,0,0,.45));pointer-events:none}
-.phead::before{content:"";position:absolute;inset:0 0 auto 0;z-index:1;height:25%;background:linear-gradient(rgba(0,0,0,.35),transparent);pointer-events:none}
-
 .title{font-family:var(--font-display);font-weight:800;letter-spacing:.1875em;text-transform:uppercase;line-height:1.15;text-wrap:balance}
-.title--xl{font-size:clamp(2rem,6vw,3rem)}
-.title--page{opacity:.75;--o:.75}
-
-/* ---------- en-tête, burger, menu ---------- */
-.mh{position:absolute;top:0;left:0;right:0;z-index:20;padding:calc(1rem + var(--safe-top)) 1rem 1rem var(--spacing-gouttiere);pointer-events:none}
-.mh__logo{pointer-events:auto;display:inline-block;max-width:14rem;font-size:1.5rem;letter-spacing:.25em;text-transform:uppercase;line-height:1.2;opacity:.75;transition:opacity .25s linear}
-.mh__logo:hover,.mh__logo:focus-visible{opacity:1}
-
-.burger{position:fixed;right:.375rem;top:calc(.375rem + var(--safe-top));z-index:40;display:grid;place-items:center;width:2.75rem;height:2.75rem;opacity:.75;transition:opacity .25s linear}
-.burger:hover,.burger:focus-visible{opacity:1}
-.burger svg{display:block;width:1.5rem;height:1.5rem}
-.burger rect{fill:currentColor;transition:transform .3s ease,opacity .1s ease}
-.burger .s1{transform-origin:2px 6px}
-.burger .s3{transform-origin:2px 26px}
-.menu-open .burger .s1{transform:translateX(4px) rotate(45deg)}
-.menu-open .burger .s2{opacity:0}
-.menu-open .burger .s3{transform:translateX(4px) rotate(-45deg)}
-
-.menu{position:fixed;inset:0;z-index:30;isolation:isolate;overscroll-behavior:contain;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;background:var(--color-back);opacity:0;visibility:hidden;transition:opacity .25s linear,visibility .25s linear}
-/* à l'ouverture, visible tout de suite (le fondu reste celui de l'opacité) : pendant la transition
-   depuis hidden, le premier lien n'était pas encore focalisable, et le focus restait sur la page */
-.menu-open .menu{opacity:1;visibility:visible;transition:opacity .25s linear,visibility 0s}
-.menu__bg{position:absolute;inset:0;z-index:-1;width:100%;height:100%;object-fit:cover;filter:brightness(.4);pointer-events:none}
-.menu ul{position:relative;display:grid;gap:.5rem;text-align:center;font-size:1.5rem;font-weight:400}
-.menu li{opacity:0;transform:translateY(-.75rem);transition:opacity .4s ease,transform .5s var(--ease-cliff);transition-delay:0s}
-.menu-open .menu li{opacity:1;transform:none;transition-delay:calc(var(--i,0) * 50ms)}
-.menu a{display:inline-block;padding:.25rem .75rem;opacity:.75;transition:opacity .25s}
-.menu a:hover,.menu a:focus-visible,.menu a[aria-current="page"]{opacity:1}
-.menu__logo{width:clamp(7rem,22vh,12rem);height:auto;margin:0 auto clamp(1.5rem,5vh,3rem)}
-/* Sans JS (html.js absent), pas de burger : le menu devient une ligne de liens en haut de page, pour que
-   chaque page reste atteignable. Le logo et la vidéo, qui ne se chargent qu'à l'ouverture, disparaissent. */
-html:not(.js) .burger,html:not(.js) .menu__bg,html:not(.js) .menu li[aria-hidden]{display:none}
-html:not(.js) .menu{position:relative;inset:auto;z-index:25;display:block;padding:calc(5rem + var(--safe-top)) var(--spacing-gouttiere) 0;background:none;opacity:1;visibility:visible}
-html:not(.js) .menu ul{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:0 .25rem;font-size:1rem;text-align:left}
-html:not(.js) .menu a{padding-left:0}
-html:not(.js) .menu li{opacity:1;transform:none}
-
-/* ---------- listes plein écran (accueil, spectacles) ---------- */
 .index{position:relative;isolation:isolate;min-height:100svh;display:flex;flex-direction:column;padding:0 var(--spacing-gouttiere) 6.75rem}
 .index--home{justify-content:flex-end}
 .index--prod{justify-content:center;align-items:center;text-align:center;padding-top:6rem}
@@ -130,16 +128,16 @@ html:not(.js) .menu li{opacity:1;transform:none}
 .bgs--dark{--bright:.3}
 .bgs .bg{opacity:0;filter:blur(2rem);transition:opacity .5s ease-in,filter 1s ease-in}
 .bgs .bg.is-visible{opacity:1;filter:blur(0);transition-timing-function:ease-out}
-
 .list li{margin:.15rem 0}
 .index--prod .list li{margin:.5rem 0}
 .list a{display:inline-block;font-size:clamp(2rem,6vw,3rem);opacity:.75;transition:opacity .25s linear,filter .25s linear}
 .list a:hover,.list a:focus-visible{opacity:1}
 .list:has(a:hover) a:not(:hover),.list:has(a:focus-visible) a:not(:focus-visible){filter:blur(.125rem)}
 .list small{margin-left:.75rem;font-family:var(--font-sans);font-weight:400;font-size:1rem;letter-spacing:0;vertical-align:.8em;white-space:nowrap}
-
 .foot{padding:2rem var(--spacing-gouttiere);font-size:.75rem;opacity:.6;text-align:center}
 .foot--pinned{position:absolute;left:0;right:0;bottom:0;text-align:left}
+@media (pointer:coarse){.pill{min-height:2.75rem}}
+.phead::before{content:"";position:absolute;inset:0 0 auto 0;z-index:1;height:25%;background:linear-gradient(rgba(0,0,0,.35),transparent);pointer-events:none}
 
 /* ---------- pages article (spectacle, compagnie, Montréal) ---------- */
 .phead{position:relative;height:100svh;overflow:hidden}
@@ -276,8 +274,6 @@ html:not(.js) .resa,html:not(.js) .resa-bloc--sans-repli{display:none}
    page ne bouge pas, la nouvelle monte de 0 à 1 en 0,7 s. */
 @keyframes cliffReste{from{opacity:1}to{opacity:1}}
 @keyframes cliffFondu{from{opacity:0}to{opacity:1}}
-/* chaque bloc glisse en place, l'un après l'autre */
-.rise{animation:rise .8s var(--ease-cliff) both;animation-delay:var(--d,0s)}
+/* chaque bloc glisse en place, l'un après l'autre (animate-rise, posé par Base.astro) */
 @keyframes rise{from{opacity:0;transform:translateY(-1.25rem)}to{opacity:var(--o,1);transform:none}}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}

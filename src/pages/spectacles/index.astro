@@ -16,7 +16,7 @@ const precharger = await herosPhoto(fond);
 
 <Base title={T.spectacles} precharger={precharger}>
   <section class="index index--prod">
-    <h1 class="v-h" set:html={tx(T.spectacles)} />
+    <h1 class="sr-only" set:html={tx(T.spectacles)} />
     <Fond fond={fond} ton="bgs--dim" survol={c.belges} />
     <ListeSpectacles spectacles={c.belges} annee />
     <Pied epingle />

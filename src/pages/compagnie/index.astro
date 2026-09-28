@@ -30,17 +30,17 @@ const équipe = c.personnes
 <Base title={T.laCompagnie} description={r.compagnie_punch} image={fond?.image ?? null} precharger={img}>
   <article>
     <TeteDePage img={img} alt={fond?.caption ?? ''} style={cadrage(fond?.focal)} titre={T.laCompagnie} sous={r.compagnie_sub} />
-    {r.compagnie_punch && <div class="section wrap"><p class="punch" set:html={tx(r.compagnie_punch)} /></div>}
+    {r.compagnie_punch && <div class="section wrap" data-cascade><p class="punch" set:html={tx(r.compagnie_punch)} /></div>}
     {
       r.compagnie_text && (
-        <div class="section wrap">
+        <div class="section wrap" data-cascade>
           <div class="prose prose--justify" set:html={typographier(r.compagnie_text)} />
         </div>
       )
     }
     {
       équipe.length > 0 && (
-        <div class="section wrap">
+        <div class="section wrap" data-cascade>
           <h2 class="label" set:html={tx(T.léquipe)} />
           <TableauDates lignes={équipe} equipe />
         </div>

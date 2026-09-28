@@ -14,7 +14,7 @@ const { spectacles, annee = false } = Astro.props;
 <ul class="list">
   {
     spectacles.map((s) => (
-      <li>
+      <li data-cascade>
         <a class="title" href={`/spectacle/${s.slug}/`} data-bg={s.slug} translate="no">
           <Fragment set:html={tx(s.title)} />
           {annee && s.year != null && <small>{s.year}</small>}

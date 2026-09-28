@@ -47,7 +47,7 @@ const dernière = (r: any) =>
 
 {
   s.punch && (
-    <div class="section wrap">
+    <div class="section wrap" data-cascade>
       <blockquote class="punch">
         <p set:html={tx(s.punch)} />
         {s.cite && <cite set:html={tx(s.cite)} />}
@@ -57,7 +57,7 @@ const dernière = (r: any) =>
 }
 {
   imgAffiche && (
-    <div class="section wrap wrap--wide">
+    <div class="section wrap wrap--wide" data-cascade>
       <figure class="wide">
         <Photo img={imgAffiche} alt={typographier(T.afficheDe(s.title))} />
       </figure>
@@ -66,7 +66,7 @@ const dernière = (r: any) =>
 }
 {
   s.text && (
-    <div class="section wrap">
+    <div class="section wrap" data-cascade>
       <div class="prose prose--justify" set:html={typographier(s.text)} />
     </div>
   )
@@ -74,14 +74,14 @@ const dernière = (r: any) =>
 <Carrousel diapos={diapos} />
 {
   (lignes.length > 0 || s.duration) && (
-    <div class="section wrap">
+    <div class="section wrap" data-cascade>
       <Generique lignes={lignes} personne={c.personne} duree={s.duration} />
     </div>
   )
 }
 {
   dates.length > 0 && (
-    <div class="section wrap">
+    <div class="section wrap" data-cascade>
       <h2 class="label" set:html={tx(aVenir ? T.àVenir : T.représentations)} />
       <TableauDates lignes={dates.map((r) => [{ html: tx(formatJourHeure(r.day, r.time)) }, { html: tx(lieu(r)) }, { html: dernière(r) }])} />
     </div>

@@ -30,7 +30,7 @@ const jsonLd = organisation({
 
 <Base precharger={precharger} jsonLd={jsonLd}>
   <section class="index index--home">
-    <h1 class="v-h" set:html={tx(T.accueilH1)} />
+    <h1 class="sr-only" set:html={tx(T.accueilH1)} />
     <Fond fond={fond} survol={c.belges} />
     <ListeSpectacles spectacles={c.belges} />
     <Pied epingle />

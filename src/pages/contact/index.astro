@@ -2,6 +2,7 @@
 // Contact : l'adresse et les réseaux des réglages, sur un fond assombri. Un
 // champ vide n'est pas rendu : pas d'Instagram, pas de bouton.
 import Base from '../../layouts/Base.astro';
+import TitrePage from '../../components/TitrePage.astro';
 import Fond from '../../components/Fond.astro';
 import Pied from '../../components/Pied.astro';
 import { contenu } from '../../lib/contenu.js';
@@ -23,16 +24,16 @@ const réseaux = [
   <section class="contact">
     <Fond fond={fond} ton="bgs--dim" />
     <div class="contact__inner">
-      <h1 class="title title--xl title--page" set:html={tx(T.contact)} />
-      <p class="contact__lead" set:html={tx(T.contactLead)} />
-      {r.email && <p class="contact__mail"><a href={`mailto:${r.email}`}>{r.email}</a></p>}
+      <TitrePage texte={T.contact} />
+      <p class="contact__lead" data-cascade set:html={tx(T.contactLead)} />
+      {r.email && <p class="contact__mail" data-cascade><a href={`mailto:${r.email}`}>{r.email}</a></p>}
       {
         réseaux.length > 0 && (
-          <div class="pills">
+          <div class="pills" data-cascade>
             {réseaux.map((l) => (
               <a class="pill ext" href={l.href} target="_blank" rel="noopener">
                 {l.label}
-                <span class="v-h">{T.nouvelOnglet}</span>
+                <span class="sr-only">{T.nouvelOnglet}</span>
               </a>
             ))}
           </div>

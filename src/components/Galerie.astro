@@ -29,7 +29,7 @@ const tuiles = await Promise.all(
 <div class="gallery">
   {
     tuiles.map((t, i) => (
-      <figure>
+      <figure data-cascade>
         <button
           type="button"
           data-i={i}

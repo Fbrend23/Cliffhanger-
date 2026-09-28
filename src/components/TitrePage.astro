@@ -1,0 +1,14 @@
+---
+// Le titre d'une page sans grande photo (agenda, galerie, contact, fiche
+// personne, 404) : en capitales, un peu éteint, et il entre dans la cascade
+// en gardant son opacité (--o).
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  texte: string;
+}
+
+const { texte } = Astro.props;
+---
+
+<h1 class="titre text-titre opacity-75 [--o:.75]" data-cascade set:html={tx(texte)} />

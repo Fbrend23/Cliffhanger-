@@ -14,7 +14,7 @@ const { diapos } = Astro.props;
 
 {
   diapos.length > 0 && (
-    <div class="section slider">
+    <div class="section slider" data-cascade>
       <div class="slider__items js-track">
         {diapos.map((d) => (
           <figure class="slide">

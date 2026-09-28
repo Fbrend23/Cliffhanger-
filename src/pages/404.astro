@@ -2,6 +2,7 @@
 // La page introuvable, servie par Apache (ErrorDocument dans .htaccess) :
 // sobre, sur le fond de l'accueil, avec le chemin du retour.
 import Base from '../layouts/Base.astro';
+import TitrePage from '../components/TitrePage.astro';
 import Fond from '../components/Fond.astro';
 import Pied from '../components/Pied.astro';
 import { contenu } from '../lib/contenu.js';
@@ -16,9 +17,9 @@ const fond = c.photo(c.reglages.fonds.accueil);
   <section class="contact">
     <Fond fond={fond} ton="bgs--dim" />
     <div class="contact__inner">
-      <h1 class="title title--xl title--page" set:html={tx(T.introuvable)} />
-      <p class="contact__lead" set:html={tx(T.introuvableTexte)} />
-      <div class="pills"><a class="pill" href="/" set:html={tx(T.retourAccueil)} /></div>
+      <TitrePage texte={T.introuvable} />
+      <p class="contact__lead" data-cascade set:html={tx(T.introuvableTexte)} />
+      <div class="pills" data-cascade><a class="pill" href="/" set:html={tx(T.retourAccueil)} /></div>
     </div>
     <Pied epingle />
   </section>

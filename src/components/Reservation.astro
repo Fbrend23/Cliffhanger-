@@ -78,7 +78,7 @@ const options = dates.flatMap((r) => (r.reservation ? [{ ...r, reservation: r.re
           <textarea name="message" rows="3" maxlength="2000" />
         </label>
         {/* Piège à robots : un humain ne voit ni ne coche jamais cette case. */}
-        <input class="v-h" type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <input class="sr-only" type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <div class="resa__pied">
           <button class="pill" type="submit" set:html={tx(T.envoyer)} />
           <p class="resa__statut" role="status" aria-live="polite" hidden />

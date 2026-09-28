@@ -73,6 +73,12 @@ const fondu = {
   new: { name: 'cliffFondu', duration: '0.7s', easing: 'ease', fillMode: 'both' },
 };
 const animation = { forwards: fondu, backwards: fondu };
+
+// Les trois traits du burger, qui deviennent une croix.
+const trait = 'fill-current [transition:translate_.3s_ease,rotate_.3s_ease,opacity_.1s_ease]';
+// Les entrées du menu descendent en place l'une après l'autre (--i), et repartent ensemble.
+const entrée =
+  '-translate-y-3 opacity-0 [transition:opacity_.4s_ease,translate_.5s_var(--ease-cliff)] menu-ouvert:translate-y-0 menu-ouvert:opacity-100 menu-ouvert:delay-[calc(var(--i,0)*50ms)] sans-js:translate-y-0 sans-js:opacity-100';
 ---
 
 <!doctype html>
@@ -112,24 +118,74 @@ const animation = { forwards: fondu, backwards: fondu };
     </script>
     <ClientRouter fallback="swap" />
   </head>
-  <body>
-    <a class="skip" href="#contenu">{T.allerAuContenu}</a>
-    <header class="mh">
-      <a href="/" class="mh__logo" translate="no" set:html={tx(site.site_title)} />
+  <body class="menu-ouvert:overflow-hidden">
+    <a class="fixed -top-16 left-4 z-60 bg-front px-4 py-3 font-normal text-back transition-[top] duration-200 focus:top-[calc(1rem+var(--safe-top))]" href="#contenu">{T.allerAuContenu}</a>
+    <header class="pointer-events-none absolute inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere">
+      <a
+        href="/"
+        class="pointer-events-auto inline-block max-w-56 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
+        translate="no"
+        set:html={tx(site.site_title)}
+      />
     </header>
-    <button class="burger" id="burger" aria-label={T.menuOuvrir} aria-expanded="false" aria-controls="menu" data-ouvrir={T.menuOuvrir} data-fermer={T.menuFermer} transition:persist="burger">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect class="s1" y="4" width="32" height="4"></rect><rect class="s2" y="14" width="32" height="4"></rect><rect class="s3" y="24" width="32" height="4"></rect></svg>
+    <button
+      class="fixed top-[calc(.375rem+var(--safe-top))] right-1.5 z-40 grid size-11 place-items-center opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 sans-js:hidden"
+      id="burger"
+      aria-label={T.menuOuvrir}
+      aria-expanded="false"
+      aria-controls="menu"
+      data-ouvrir={T.menuOuvrir}
+      data-fermer={T.menuFermer}
+      transition:persist="burger"
+    >
+      {/* Les traits pivotent autour de leur bout gauche : le haut et le bas se croisent en X, celui du milieu s'efface. */}
+      <svg class="block size-6" viewBox="0 0 32 32" aria-hidden="true">
+        <rect class={`${trait} origin-[2px_6px] menu-ouvert:translate-x-[4px] menu-ouvert:rotate-45`} y="4" width="32" height="4"></rect>
+        <rect class={`${trait} menu-ouvert:opacity-0`} y="14" width="32" height="4"></rect>
+        <rect class={`${trait} origin-[2px_26px] menu-ouvert:translate-x-[4px] menu-ouvert:-rotate-45`} y="24" width="32" height="4"></rect>
+      </svg>
     </button>
-    <nav class="menu" id="menu" aria-label={T.menuPrincipal} transition:persist="menu">
-      <video class="menu__bg" id="menuVideo" muted loop playsinline preload="none" data-poster="/menu-poster.webp" aria-hidden="true">
+    <nav
+      class:list={[
+        'fixed inset-0 z-30 isolate flex items-center justify-center overscroll-contain bg-back px-4 py-8',
+        'invisible opacity-0 [transition:opacity_.25s_linear,visibility_.25s_linear]',
+        // À l'ouverture, visible tout de suite (le fondu reste celui de l'opacité) : pendant la
+        // transition depuis hidden, le premier lien n'était pas encore focalisable.
+        'menu-ouvert:visible menu-ouvert:opacity-100 menu-ouvert:[transition:opacity_.25s_linear,visibility_0s]',
+        // Sans JS, pas de burger : le menu devient une ligne de liens sous le logo, pour que chaque
+        // page reste atteignable.
+        'sans-js:visible sans-js:relative sans-js:inset-auto sans-js:z-25 sans-js:block sans-js:bg-transparent sans-js:px-gouttiere sans-js:pt-[calc(5rem+var(--safe-top))] sans-js:pb-0 sans-js:opacity-100',
+      ]}
+      id="menu"
+      aria-label={T.menuPrincipal}
+      transition:persist="menu"
+    >
+      <video
+        class="pointer-events-none absolute inset-0 -z-1 size-full object-cover brightness-40 sans-js:hidden"
+        id="menuVideo"
+        muted
+        loop
+        playsinline
+        preload="none"
+        data-poster="/menu-poster.webp"
+        aria-hidden="true"
+      >
         <source src="/menu.mp4" type="video/mp4" />
       </video>
-      <ul>
-        <li style="--i:0" aria-hidden="true"><img class="menu__logo" data-src={logoMenu.src} alt="" width="384" height="384" /></li>
+      <ul class="relative grid gap-2 text-center text-2xl font-normal sans-js:flex sans-js:flex-wrap sans-js:justify-start sans-js:gap-x-1 sans-js:gap-y-0 sans-js:text-left sans-js:text-base">
+        {/* Le logo ne se charge qu'à la première ouverture : sans JS, il n'a pas lieu d'être. */}
+        <li class={`${entrée} sans-js:hidden`} style="--i:0" aria-hidden="true">
+          <img class="mx-auto mb-[clamp(1.5rem,5vh,3rem)] h-auto w-[clamp(7rem,22vh,12rem)]" data-src={logoMenu.src} alt="" width="384" height="384" />
+        </li>
         {
           T.menu.map((l, i) => (
-            <li style={`--i:${i + 1}`}>
-              <a href={l.href} aria-current={l.href === rubrique ? 'page' : undefined} set:html={tx(l.label)} />
+            <li class={entrée} style={`--i:${i + 1}`}>
+              <a
+                class="inline-block px-3 py-1 opacity-75 transition-opacity duration-250 hover:opacity-100 focus-visible:opacity-100 aria-[current=page]:opacity-100 sans-js:pl-0"
+                href={l.href}
+                aria-current={l.href === rubrique ? 'page' : undefined}
+                set:html={tx(l.label)}
+              />
             </li>
           ))
         }
@@ -224,13 +280,14 @@ const animation = { forwards: fondu, backwards: fondu };
       });
 
       // --- Apparition en cascade ------------------------------------------------
-      // Chaque bloc glisse en place, l'un après l'autre, à chaque page.
-      const CASCADE = '.list li, .phead hgroup > *, .title--page, .pills, .section, .gallery figure, .contact__inner > *';
+      // Chaque bloc glisse en place, l'un après l'autre, à chaque page. Les
+      // blocs portent data-cascade : titres, lignes des listes, sections,
+      // pastilles, vignettes de la galerie.
       document.addEventListener('astro:page-load', () => {
         if (mouvementRéduit.matches) return;
-        document.querySelectorAll<HTMLElement>(`main ${CASCADE.split(', ').join(', main ')}`).forEach((el, i) => {
+        document.querySelectorAll<HTMLElement>('main [data-cascade]').forEach((el, i) => {
           el.style.setProperty('--d', `${Math.min(0.1 + i * 0.07, 0.9)}s`);
-          el.classList.add('rise');
+          el.classList.add('animate-rise');
         });
       });
 

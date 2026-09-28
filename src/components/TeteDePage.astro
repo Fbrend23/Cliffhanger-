@@ -28,8 +28,8 @@ const { img, alt, style, titre, sous = null, credit = null, sansTraduction = fal
   {img && <figure><Photo img={img} alt={alt} eager class="js-hero" style={style} /></figure>}
   <button class="hint js-hint" type="button" aria-label={T.voirLaSuite}><span>{T.découvrir}</span><span class="hint__line" aria-hidden="true"></span></button>
   <hgroup>
-    <h1 class="title title--xl" translate={sansTraduction ? 'no' : undefined} set:html={tx(titre)} />
-    {sous != null && sous !== '' && <p set:html={tx(sous)} />}
+    <h1 class="titre text-titre" data-cascade translate={sansTraduction ? 'no' : undefined} set:html={tx(titre)} />
+    {sous != null && sous !== '' && <p data-cascade set:html={tx(sous)} />}
   </hgroup>
   {credit && <figcaption set:html={tx(T.crédit(credit))} />}
 </header>
