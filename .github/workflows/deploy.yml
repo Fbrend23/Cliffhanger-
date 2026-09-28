@@ -172,21 +172,31 @@ jobs:
           PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
         run: npm run build
 
-      # 3 · Publication, en deux passes.
+      # 3 · Publication : quatre passes dans une seule connexion, dans un
+      #     ordre où le site en ligne n'est jamais cassé.
       #
-      #     /_astro/ d'abord : ses fichiers portent une empreinte de leur
-      #     contenu dans leur nom, donc un fichier qui existe déjà sur le
-      #     serveur est identique. --only-missing n'envoie que les nouveaux,
-      #     --delete retire ceux qu'aucune page n'utilise plus. Sans cela,
-      #     mirror comparait les dates, que le FTP ne conserve pas à l'envoi,
-      #     et renvoyait toutes les images à chaque run (vu sur le portfolio).
+      #     a. /_astro/ : ses fichiers portent une empreinte de leur contenu
+      #        dans leur nom, donc un fichier qui existe déjà sur le serveur
+      #        est identique. --only-missing n'envoie que les nouveaux. Rien
+      #        n'est effacé : les pages en ligne s'en servent encore.
+      #     b. Les fichiers lourds de public/ (vidéo, images, polices,
+      #        icônes), comparés par leur taille (--ignore-time) : le FTP ne
+      #        garde pas les dates, et mirror renvoyait sinon à chaque run
+      #        les cinq mégaoctets de la vidéo du menu.
+      #     c. Les pages, le sitemap, robots.txt et l'.htaccess, toujours :
+      #        une page change sans changer de taille (le 17 devient le 18).
+      #        --delete retire les pages qui n'existent plus.
+      #     d. Seulement maintenant, ce qu'aucune page n'utilise plus :
+      #        /_astro/ et les fichiers lourds retirés (aucun envoi, les
+      #        passes a et b ont tout mis en place).
       #
-      #     Le reste ensuite, en comparaison normale : index.html change de
-      #     contenu sans changer de nom, il doit toujours repartir.
+      #     --overwrite partout : sans lui, mirror efface un fichier avant de
+      #     renvoyer le nouveau, et index.html, ou l'.htaccess avec ses
+      #     redirections, manquaient pendant l'envoi.
       #
-      #     Le marqueur est exclu du --delete : il ne vient pas de dist/, donc
-      #     le mirror l'effacerait, et le déploiement SUIVANT échouerait faute
-      #     de le trouver.
+      #     Le marqueur est exclu des --delete : il ne vient pas de dist/,
+      #     donc le mirror l'effacerait, et le déploiement SUIVANT échouerait
+      #     faute de le trouver. De même pour les fichiers de l'hébergeur.
       - name: Déployer
         env:
           DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
@@ -201,8 +211,19 @@ jobs:
               -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit yes; $1; quit" \
               "$FTP_HOST" 2>&1 | sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g'
           }
-          publier "mirror -R --delete --only-missing --parallel=8 --verbose $DRY_RUN dist/_astro/ ./_astro/"
-          publier "mirror -R --delete --parallel=4 --verbose $DRY_RUN --exclude-glob $DEPLOY_MARKER --exclude-glob .user.ini --exclude-glob .infomaniak-maintenance.html --exclude ^_astro/ dist/ ./"
+          # Les motifs sont relus par lftp : entre apostrophes, il les garde tels quels.
+          garder="--exclude-glob $DEPLOY_MARKER --exclude-glob .user.ini --exclude-glob .infomaniak-maintenance.html --exclude ^_astro/"
+          sansTextes="--exclude '\.(html|xml|txt)\$' --exclude '^\.htaccess\$'"
+          sansLourds="--exclude '\.(mp4|webm|webp|avif|png|jpe?g|gif|svg|ico|pdf|woff2?)\$'"
+          commun="--overwrite --verbose $DRY_RUN"
+          passes=(
+            "mirror -R $commun --only-missing --parallel=8 dist/_astro/ ./_astro/"
+            "mirror -R $commun --ignore-time --parallel=4 $garder $sansTextes dist/ ./"
+            "mirror -R $commun --transfer-all --delete --parallel=4 $garder $sansLourds dist/ ./"
+            "mirror -R $commun --delete --only-missing dist/_astro/ ./_astro/"
+            "mirror -R $commun --delete --ignore-time $garder $sansTextes dist/ ./"
+          )
+          publier "$(IFS=';'; echo "${passes[*]}")"
 
       # 4 · Dater la publication dans le CMS, une fois le site vraiment en
       #     ligne. Un échec ici ne casse pas le run : le site EST publié, et
