@@ -125,13 +125,10 @@
 .prose{display:grid;gap:1rem;font-size:1.0625rem;line-height:1.5}
 .prose p{text-wrap:pretty}
 @media (min-width:40em){.prose--justify{text-align:justify;hyphens:auto}}
-.label{margin-bottom:.5rem;font-size:1.25rem;font-weight:400;text-transform:uppercase}
 .prose a{border-bottom:.0625rem solid rgba(255,255,255,.35);transition:border-color .25s}
 .prose a:hover,.prose a:focus-visible{border-color:var(--color-front)}
 /* les liens des textes riches du CMS ont le style des noms : le Studio peut retirer les classes, pas les balises */
 .sub{margin-top:.5rem;font-size:1.25rem;font-weight:400;opacity:.75}
-.back{display:inline-block;margin-top:2rem;opacity:.75}
-.back:hover,.back:focus-visible{opacity:1}
 
 
 /* ---------- pastilles ---------- */

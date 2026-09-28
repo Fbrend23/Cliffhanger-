@@ -3,13 +3,18 @@
 // compris, les plus récents d'abord, avec ses rôles), puis sa biographie si
 // elle existe. Toutes les personnes ont une fiche, invitées comprises.
 import Base from '../../layouts/Base.astro';
-import TitrePage from '../../components/TitrePage.astro';
+import Intitule from '../../components/Intitule.astro';
+import LienRetour from '../../components/LienRetour.astro';
+import PageListe from '../../components/PageListe.astro';
 import Pied from '../../components/Pied.astro';
+import Section from '../../components/Section.astro';
 import TableauDates from '../../components/TableauDates.astro';
+import TexteRiche from '../../components/TexteRiche.astro';
+import TitrePage from '../../components/TitrePage.astro';
 import { adresseSpectacle, contenu } from '../../lib/contenu.js';
 import { projetsDe } from '../../lib/generique.js';
 import { T } from '../../lib/textes.js';
-import { tx, typographier } from '../../lib/typo.js';
+import { tx } from '../../lib/typo.js';
 
 export async function getStaticPaths() {
   const c = await contenu();
@@ -26,27 +31,27 @@ const projets = projetsDe(p.slug, c.spectacles, c.lignesParSpectacle).map((x) =>
 ---
 
 <Base title={p.name}>
-  <section class="page">
-    <div class="wrap">
+  <PageListe>
+    <div class="mx-auto w-full max-w-4xl px-gouttiere">
       <TitrePage texte={p.name} />
       {
         projets.length > 0 && (
-          <div class="section" data-cascade>
-            <h2 class="label" set:html={tx(T.projets)} />
+          <Section nu>
+            <Intitule texte={T.projets} />
             <TableauDates lignes={projets} />
-          </div>
+          </Section>
         )
       }
       {
         p.bio && (
-          <div class="section" data-cascade>
-            <h2 class="label" set:html={tx(T.biographie)} />
-            <div class="prose prose--justify" set:html={typographier(p.bio)} />
-          </div>
+          <Section nu>
+            <Intitule texte={T.biographie} />
+            <TexteRiche html={p.bio} justifie />
+          </Section>
         )
       }
-      <a class="back" href="/compagnie/" set:html={tx(T.retourCompagnie)} />
+      <LienRetour href="/compagnie/" texte={T.retourCompagnie} />
     </div>
     <Pied />
-  </section>
+  </PageListe>
 </Base>

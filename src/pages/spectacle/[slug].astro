@@ -2,6 +2,7 @@
 // La fiche d'un spectacle belge. Un spectacle de la troupe de Montréal n'a
 // pas de page à lui : il vit sur /montreal/.
 import Base from '../../layouts/Base.astro';
+import LienRetour from '../../components/LienRetour.astro';
 import Pied from '../../components/Pied.astro';
 import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
@@ -9,7 +10,6 @@ import { contenu } from '../../lib/contenu.js';
 import { cadrage, heros, og } from '../../lib/images.js';
 import { theaterEvent } from '../../lib/seo.js';
 import { T } from '../../lib/textes.js';
-import { tx } from '../../lib/typo.js';
 
 export async function getStaticPaths() {
   const c = await contenu();
@@ -32,9 +32,7 @@ const jsonLd = c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url,
   <article>
     <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
     <SectionsSpectacle spectacle={s} />
-    <div class="mx-auto w-full max-w-4xl px-gouttiere">
-      <a class="mt-8 inline-block opacity-75 hover:opacity-100 focus-visible:opacity-100" href="/spectacles/" set:html={tx(T.tousLesSpectacles)} />
-    </div>
+    <div class="mx-auto w-full max-w-4xl px-gouttiere"><LienRetour href="/spectacles/" texte={T.tousLesSpectacles} /></div>
     <Pied />
   </article>
 </Base>
