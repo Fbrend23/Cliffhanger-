@@ -1,11 +1,25 @@
 // Le connecteur Prodysos : l'heure de Bruxelles, la commune tirée de
 // l'adresse, le lien par le titre ou prodysos_slug, la fusion avec les
-// dates du CMS, et ce que le build fait d'une réponse vide ou d'une
-// configuration partielle.
+// dates du CMS et ce qu'elle garde de la réservation, le synopsis en HTML,
+// la demande de réservation, et ce que le build fait d'une réponse vide ou
+// d'une configuration partielle.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { commune, fusionner, jourEtHeure, lignesProdysos, lireSpectaclesProdysos, prodysosConfiguré, relier, titreNormalisé } from '../src/lib/prodysos.js';
+import {
+  commune,
+  fusionner,
+  idAfficheProdysos,
+  jourEtHeure,
+  lignesProdysos,
+  lireSpectaclesProdysos,
+  parSpectacleCms,
+  prodysosConfiguré,
+  relier,
+  réserver,
+  synopsisEnHtml,
+  titreNormalisé,
+} from '../src/lib/prodysos.js';
 import { démarrer } from './faux-directus/serveur.mjs';
 
 test('une date Prodysos devient le jour et l’heure de Bruxelles', () => {
@@ -36,7 +50,16 @@ test('seuls les spectacles réclamés par le CMS donnent des dates, au prix du s
     (m) => avertissements.push(m)
   );
   assert.deepEqual(lignes, [
-    { id: 'prodysos-a', spectacle: 'par-endroits', day: '2027-03-12', time: '20:00', venue: 'Théâtre de la Vie', city: 'Saint-Josse', price: '12 €' },
+    {
+      id: 'prodysos-a',
+      spectacle: 'par-endroits',
+      day: '2027-03-12',
+      time: '20:00',
+      venue: 'Théâtre de la Vie',
+      city: 'Saint-Josse',
+      price: '12 €',
+      reservation: { slug: 'pe', id: 'a' },
+    },
   ]);
   // L'orphelin est dit ; un spectacle sans date n'a rien à dire.
   assert.equal(avertissements.length, 1);
@@ -133,6 +156,85 @@ test('la date saisie dans le CMS l’emporte sur la même de Prodysos', () => {
   const { lignes, écartées } = fusionner(cms, prodysos);
   assert.equal(écartées, 2);
   assert.deepEqual(lignes.slice(2), [prodysos[1], prodysos[3]]);
+});
+
+test('la date du CMS qui en remplace une de Prodysos reste réservable', () => {
+  const r = (id) => ({ slug: 'pe-prodysos', id });
+  const cms = [
+    { spectacle: 'pe', day: '2027-03-12', time: '20:00', reservation: null },
+    { spectacle: 'pe', day: '2027-03-14', time: null, reservation: null },
+    { spectacle: 'pe', day: '2027-03-15', time: null, reservation: null },
+    { spectacle: 'pe', day: '2027-03-16', time: '20:00', reservation: null },
+  ];
+  const prodysos = [
+    { spectacle: 'pe', day: '2027-03-12', time: '20:00', reservation: r('a') },
+    { spectacle: 'pe', day: '2027-03-12', time: '15:00', reservation: r('b') },
+    { spectacle: 'pe', day: '2027-03-14', time: '20:00', reservation: r('c') },
+    { spectacle: 'pe', day: '2027-03-15', time: '15:00', reservation: r('d') },
+    { spectacle: 'pe', day: '2027-03-15', time: '20:00', reservation: r('e') },
+  ];
+  const { lignes } = fusionner(cms, prodysos);
+  // Même heure : la sienne. Jour entier, une date : celle-là.
+  assert.deepEqual(lignes[0].reservation, r('a'));
+  assert.deepEqual(lignes[1].reservation, r('c'));
+  // Jour entier, deux dates : laquelle réserver ? Aucune.
+  assert.equal(lignes[2].reservation, null);
+  // Rien à remplacer : rien à réserver.
+  assert.equal(lignes[3].reservation, null);
+  // La matinée du 12, gardée, se réserve elle-même.
+  assert.deepEqual(lignes.find((l) => l.time === '15:00' && l.day === '2027-03-12').reservation, r('b'));
+});
+
+test('à chaque spectacle du CMS, le premier spectacle Prodysos relié', () => {
+  const shows = [{ slug: 'pe-2027' }, { slug: 'pe-2024' }, { slug: 'orphelin' }];
+  const liens = new Map([
+    ['pe-2027', { slug: 'par-endroits' }],
+    ['pe-2024', { slug: 'par-endroits' }],
+  ]);
+  const par = parSpectacleCms(shows, liens);
+  assert.equal(par.size, 1);
+  assert.equal(par.get('par-endroits').slug, 'pe-2027');
+  assert.equal(idAfficheProdysos('pe.2027'), 'prodysos-affiche-pe-2027');
+});
+
+test('le synopsis de Prodysos devient du HTML échappé, par paragraphes', () => {
+  assert.equal(synopsisEnHtml('Un <b> & "deux"\r\nsuite\r\n\r\n  Trois \n \nQuatre'), '<p>Un &lt;b&gt; &amp; &quot;deux&quot;<br>suite</p><p>Trois</p><p>Quatre</p>');
+  assert.equal(synopsisEnHtml('  '), null);
+  assert.equal(synopsisEnHtml(null), null);
+});
+
+test('réserver : la demande que Prodysos attend, et son refus repris tel quel', async () => {
+  const fetchOriginal = globalThis.fetch;
+  const envois = [];
+  const réponses = [
+    new Response(JSON.stringify('r1'), { status: 200 }),
+    new Response(JSON.stringify({ code: 'P0001', message: 'Représentation invalide ou déjà passée' }), { status: 400 }),
+    new Response('<html>', { status: 502 }),
+  ];
+  globalThis.fetch = async (url, init) => {
+    envois.push({ url, init });
+    return réponses.shift();
+  };
+  try {
+    const prodysos = { url: 'https://p.test', clé: 'cle' };
+    const demande = { slug: 'pe', id: 'a', nom: 'Ada Lovelace', email: 'ada@exemple.test', places: 2, message: null };
+    assert.deepEqual(await réserver(prodysos, demande), { ok: true });
+    assert.equal(envois[0].url, 'https://p.test/rest/v1/rpc/create_public_reservation');
+    assert.equal(envois[0].init.headers.apikey, 'cle');
+    assert.deepEqual(JSON.parse(envois[0].init.body), {
+      p_slug: 'pe',
+      p_name: 'Ada Lovelace',
+      p_email: 'ada@exemple.test',
+      p_party_size: 2,
+      p_rehearsal_id: 'a',
+      p_message: null,
+      p_locale: 'fr',
+    });
+    assert.deepEqual(await réserver(prodysos, demande), { ok: false, message: 'Représentation invalide ou déjà passée' });
+    assert.deepEqual(await réserver(prodysos, demande), { ok: false, message: null });
+  } finally {
+    globalThis.fetch = fetchOriginal;
+  }
 });
 
 test('toutes les variables ou aucune', () => {

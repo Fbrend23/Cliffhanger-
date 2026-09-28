@@ -31,7 +31,8 @@ const uuid = (nom) => {
 /**
  * Ce que `get_public_company_shows` rend pour la compagnie : une date déjà
  * saisie dans le CMS (écartée à la fusion), deux à venir, et un spectacle
- * qu'aucun spectacle du CMS ne réclame (ses dates sont ignorées).
+ * qu'aucun spectacle du CMS ne réclame (ses dates sont ignorées). L'affiche
+ * est un chemin : le faux serveur la sert, et la rend sous sa propre adresse.
  */
 export const PRODYSOS = {
   company: { name: 'Compagnie Cliffhanger', slug: 'cliffhanger' },
@@ -49,6 +50,8 @@ export const PRODYSOS = {
     {
       slug: 'hamlet',
       title: 'L’inédit de moliere',
+      poster_url: '/storage/v1/object/public/posters/hamlet/poster.webp?v=1',
+      synopsis: 'Molière, inédit.\nUne pièce <retrouvée>.\n\nDeuxième paragraphe.',
       representations: [{ id: 'p5', date: '2027-02-05T20:30:00+01:00', location_name: 'Théâtre L’Improviste', location_address: 'Rue de Fierlant 120, 1190 Forest' }],
     },
     {
@@ -143,6 +146,8 @@ export async function construireBase() {
     },
     singletons: { cliff_montreal: modèle.montreal, cliff_reglages: reglages },
     prodysos: PRODYSOS,
+    // Les demandes reçues par create_public_reservation.
+    réservations: [],
     fichiers: new Map([...fichiers.values()].map((f) => [f.id, f])),
   };
 }

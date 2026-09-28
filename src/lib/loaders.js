@@ -15,6 +15,7 @@
 import {
   MANIFEST_REL,
   assurerFichier,
+  assurerFichierExterne,
   champsFichier,
   mapLimit,
   ouvrirCache,
@@ -24,7 +25,16 @@ import {
   requestAll,
 } from './directus.js';
 import { T } from './textes.js';
-import { fusionner, lignesProdysos, lireSpectaclesProdysos, prodysosConfiguré, relier } from './prodysos.js';
+import {
+  fusionner,
+  idAfficheProdysos,
+  lignesProdysos,
+  lireSpectaclesProdysos,
+  parSpectacleCms,
+  prodysosConfiguré,
+  relier,
+  synopsisEnHtml,
+} from './prodysos.js';
 import { PRODYSOS_COMPANY, PRODYSOS_KEY, PRODYSOS_URL } from 'astro:env/server';
 
 /** Les variables de Prodysos, toutes optionnelles : voir prodysosConfiguré. */
@@ -62,11 +72,44 @@ function signalerTirets(logger, où, valeurs) {
   }
 }
 
+/**
+ * Prodysos, lu une fois pour les trois loaders qui s'en servent : ses
+ * spectacles publiés, les spectacles du CMS qu'ils rejoignent (relier), et
+ * ces spectacles du CMS eux-mêmes. Les représentations y prennent leurs
+ * dates, les spectacles l'affiche et le synopsis qui leur manquent, les
+ * photos de quoi ne pas purger ces affiches.
+ *
+ * Astro lance les loaders ensemble : ils partagent la lecture en cours. Elle
+ * est oubliée une fois finie, pour qu'`astro dev` relise à neuf. Prodysos non
+ * configuré : `shows` est null.
+ *
+ * @param {{ info(m: string): void, warn(m: string): void }} logger
+ * @returns {Promise<{ spectaclesCms: any[], shows: any[]|null, liens: Map<string, { slug: string, price: string|null }> }>}
+ */
+function prodysosDuBuild(logger) {
+  lectureProdysos ??= (async () => {
+    const spectaclesCms = await requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=slug,title,prodysos_slug,price`);
+    if (!prodysosConfiguré(ENV_PRODYSOS)) return { spectaclesCms, shows: null, liens: new Map() };
+    const shows = await lireSpectaclesProdysos(ENV_PRODYSOS);
+    const liens = relier(shows, spectaclesCms, { avertir: (m) => logger.warn(m), informer: (m) => logger.info(m) });
+    return { spectaclesCms, shows, liens };
+  })().finally(() => {
+    lectureProdysos = null;
+  });
+  return lectureProdysos;
+}
+
+/** @type {ReturnType<typeof prodysosDuBuild> | null} */
+let lectureProdysos = null;
+
 /** Les dimensions d'un fichier, lues ici pour ne jamais les lire sur une ImageMetadata (ce qui émettrait l'original dans dist/). */
 const dimensions = (f) => ({ width: f?.width ?? null, height: f?.height ?? null });
 
 /**
  * Les spectacles publiés, dans l'ordre du Studio, puis du plus récent.
+ *
+ * L'affiche et le texte du CMS font foi. Un spectacle qui n'en a pas prend
+ * ceux de sa page publique Prodysos, s'il y est relié (prodysosDuBuild).
  *
  * ZÉRO SPECTACLE N'EST PAS UN SITE VIDE, c'est une chaîne cassée : on refuse
  * de construire plutôt que d'écraser le site en ligne par un accueil sans
@@ -78,12 +121,16 @@ export function spectaclesLoader() {
     name: 'directus-spectacles',
     async load({ store, parseData, logger, config }) {
       const cache = await ouvrirCache(config.root);
-      const lignes = await requestAll(
-        `/items/${SPECTACLES}?${PUBLIÉ}&sort=sort,-year` +
-          `&fields=id,sort,slug,title,year,troupe,punch,cite,text,credit,duration,` +
-          `${champsFichier('hero')},${champsFichier('poster')},slides.${PHOTOS}_id` +
-          `&deep[slides][_sort]=sort`
-      );
+      const [lignes, prodysos] = await Promise.all([
+        requestAll(
+          `/items/${SPECTACLES}?${PUBLIÉ}&sort=sort,-year` +
+            `&fields=id,sort,slug,title,year,troupe,punch,cite,text,credit,duration,` +
+            `${champsFichier('hero')},${champsFichier('poster')},slides.${PHOTOS}_id` +
+            `&deep[slides][_sort]=sort`
+        ),
+        prodysosDuBuild(logger),
+      ]);
+      const deProdysos = prodysos.shows ? parSpectacleCms(prodysos.shows, prodysos.liens) : new Map();
 
       // Les téléchargements se font en parallèle, mais les entrées sont
       // rangées ensuite dans l'ordre reçu du CMS : rangées au fil des
@@ -100,9 +147,20 @@ export function spectaclesLoader() {
           logger.warn(`spectacle « ${title} » sans grande photo : ignoré`);
           return null;
         }
-        signalerTirets(logger, `spectacle « ${title} »`, [s.title, s.punch, s.cite, s.text, s.credit, s.duration]);
+        const show = deProdysos.get(slug);
+        const text = texte(s.text) ?? synopsisEnHtml(show?.synopsis);
+        signalerTirets(logger, `spectacle « ${title} »`, [s.title, s.punch, s.cite, text, s.credit, s.duration]);
         const hero = await assurerFichier(s.hero, cache, logger);
-        const poster = s.poster?.id ? await assurerFichier(s.poster, cache, logger) : null;
+        let poster = null;
+        let posterTaille = null;
+        if (s.poster?.id) {
+          poster = await assurerFichier(s.poster, cache, logger);
+          posterTaille = dimensions(s.poster);
+        } else if (texte(show?.poster_url)) {
+          const a = await assurerFichierExterne(show.poster_url.trim(), idAfficheProdysos(show.slug), cache, logger);
+          poster = a.chemin;
+          posterTaille = { width: a.width, height: a.height };
+        }
         const data = await parseData({
           id: slug,
           filePath: MANIFEST_REL,
@@ -113,7 +171,7 @@ export function spectaclesLoader() {
             troupe: s.troupe === 'montreal' ? 'montreal' : 'bruxelles',
             punch: texte(s.punch),
             cite: texte(s.cite),
-            text: texte(s.text),
+            text,
             credit: texte(s.credit),
             duration: texte(s.duration),
             sort: s.sort ?? 0,
@@ -121,7 +179,7 @@ export function spectaclesLoader() {
             heroTaille: dimensions(s.hero),
             focal: pointFocal(s.hero),
             poster,
-            posterTaille: poster ? dimensions(s.poster) : null,
+            posterTaille,
             slides: (s.slides ?? []).map((l) => l?.[`${PHOTOS}_id`]).filter((id) => id != null).map(String),
           },
         });
@@ -130,8 +188,9 @@ export function spectaclesLoader() {
           data,
           filePath: MANIFEST_REL,
           // Tout ce qui se rend : le point focal se déplace sans que le
-          // fichier change, il doit invalider l'entrée lui aussi.
-          digest: JSON.stringify([s, s.hero?.modified_on, s.poster?.modified_on]),
+          // fichier change, il doit invalider l'entrée lui aussi ; l'affiche
+          // et le synopsis de Prodysos aussi.
+          digest: JSON.stringify([s, s.hero?.modified_on, s.poster?.modified_on, show?.poster_url ?? null, show?.synopsis ?? null]),
         };
       });
       await cache.enregistrer();
@@ -164,17 +223,19 @@ export function spectaclesLoader() {
  * requêtes, les carrousels des spectacles et les fonds des réglages.
  *
  * C'est aussi ici que le cache est purgé, avec les autres fichiers que le
- * site affiche (grandes photos et affiches des spectacles, image de partage
- * des réglages), pour ne jeter que ce que plus rien n'utilise.
+ * site affiche (grandes photos et affiches des spectacles, celles venues de
+ * Prodysos comprises, image de partage des réglages), pour ne jeter que ce
+ * que plus rien n'utilise.
  */
 export function photosLoader() {
   return {
     name: 'directus-photos',
     async load({ store, parseData, logger, config }) {
       const cache = await ouvrirCache(config.root);
-      const photos = await requestAll(
-        `/items/${PHOTOS}?${PUBLIÉ}&sort=sort,id&fields=id,sort,caption,galerie,spectacle.slug,spectacle.title,${champsFichier('image')}`
-      );
+      const [photos, prodysos] = await Promise.all([
+        requestAll(`/items/${PHOTOS}?${PUBLIÉ}&sort=sort,id&fields=id,sort,caption,galerie,spectacle.slug,spectacle.title,${champsFichier('image')}`),
+        prodysosDuBuild(logger),
+      ]);
 
       const autres = await requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=hero,poster,slides.${PHOTOS}_id`);
       const réglages = await request(`/items/${REGLAGES}?fields=og_image,${FONDS.join(',')}`);
@@ -225,6 +286,9 @@ export function photosLoader() {
       const garder = new Set(photos.filter((p) => p.galerie || servies.has(String(p.id))).map((p) => p.image?.id).filter(Boolean));
       for (const s of autres) for (const f of [s.hero, s.poster]) if (f) garder.add(String(f));
       if (réglages?.og_image) garder.add(String(réglages.og_image));
+      // Toutes les affiches de Prodysos : seules celles qui manquent au CMS
+      // sont téléchargées, garder les autres ne coûte rien.
+      for (const show of prodysos.shows ?? []) if (texte(show?.poster_url)) garder.add(idAfficheProdysos(show.slug));
       const retirés = await purgerCache(cache, garder);
       if (retirés) logger.info(`cache : ${retirés} fichier(s) retiré(s)`);
 
@@ -328,17 +392,18 @@ export function generiqueLoader() {
  * Les représentations : celles du CMS, puis celles de Prodysos (lib/prodysos.js)
  * pour les spectacles qui y sont reliés. Une date saisie dans le CMS l'emporte
  * sur la même date venue de Prodysos. Le prix manquant d'une ligne est celui de
- * son spectacle.
+ * son spectacle. Une date de Prodysos est réservable (`reservation`) ; une
+ * date du CMS l'est si elle remplace une date de Prodysos.
  */
 export function representationsLoader() {
   return {
     name: 'directus-representations',
     async load({ store, parseData, logger }) {
-      const [lignes, spectacles] = await Promise.all([
+      const [lignes, prodysos] = await Promise.all([
         requestAll(`/items/${REPRESENTATIONS}?${PUBLIÉ}&sort=day,time,id&fields=id,spectacle.slug,day,time,venue,city,price`),
-        requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=slug,title,prodysos_slug,price`),
+        prodysosDuBuild(logger),
       ]);
-      const prixDe = new Map(spectacles.map((s) => [s.slug, texte(s.price)]));
+      const prixDe = new Map(prodysos.spectaclesCms.map((s) => [s.slug, texte(s.price)]));
 
       const duCms = [];
       for (const r of lignes) {
@@ -358,15 +423,13 @@ export function representationsLoader() {
           venue: texte(r.venue),
           city: texte(r.city),
           price: texte(r.price) ?? prixDe.get(spectacle) ?? null,
+          reservation: null,
         });
       }
 
       let deProdysos = [];
-      if (prodysosConfiguré(ENV_PRODYSOS)) {
-        const spectaclesProdysos = await lireSpectaclesProdysos(ENV_PRODYSOS);
-        const avertir = (m) => logger.warn(m);
-        const liens = relier(spectaclesProdysos, spectacles, { avertir, informer: (m) => logger.info(m) });
-        deProdysos = lignesProdysos(spectaclesProdysos, liens, avertir);
+      if (prodysos.shows) {
+        deProdysos = lignesProdysos(prodysos.shows, prodysos.liens, (m) => logger.warn(m));
         signalerTirets(logger, 'Prodysos', deProdysos.flatMap((l) => [l.venue, l.city]));
       } else {
         logger.warn('Prodysos non configuré (PRODYSOS_URL, PRODYSOS_KEY, PRODYSOS_COMPANY) : dates du CMS seules');

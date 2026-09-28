@@ -74,6 +74,30 @@ test('spectacles : slugs, troupe, carrousel ordonné, point focal en %', async (
   assert.equal(entrées.get('les-femmes-se-vantent').data.cite, 'Karoo, novembre 2019');
 });
 
+test('spectacles : sans affiche ni texte dans le CMS, ceux de la page publique Prodysos', async () => {
+  const inédit = faux.base.collections.cliff_spectacles.find((s) => s.slug === 'linedit-de-moliere');
+  const { poster, text } = inédit;
+  Object.assign(inédit, { poster: null, text: null });
+  try {
+    const { entrées, ctx } = contexte();
+    await L.spectaclesLoader().load(ctx);
+    const d = entrées.get('linedit-de-moliere').data;
+    assert.equal(d.poster, './prodysos-affiche-hamlet.webp');
+    assert.ok(d.posterTaille.width > 0 && d.posterTaille.height > 0, 'les dimensions sont lues sur le fichier');
+    assert.equal(d.text, '<p>Molière, inédit.<br>Une pièce &lt;retrouvée&gt;.</p><p>Deuxième paragraphe.</p>');
+    // Le CMS fait foi : un spectacle qui a les siens les garde.
+    assert.match(entrées.get('par-endroits').data.poster, /^\.\/[\w-]+\.webp$/);
+    assert.doesNotMatch(entrées.get('par-endroits').data.poster, /prodysos/);
+
+    // La purge garde l'affiche venue de Prodysos.
+    const p = contexte();
+    await L.photosLoader().load(p.ctx);
+    assert.ok((await readdir(path.join(racine, '.cache', 'directus-assets'))).includes('prodysos-affiche-hamlet.webp'));
+  } finally {
+    Object.assign(inédit, { poster, text });
+  }
+});
+
 test('spectacles : rangés dans l’ordre du CMS, quelle que soit la fin des téléchargements', async () => {
   const { entrées, ctx } = contexte();
   await L.spectaclesLoader().load(ctx);
@@ -171,9 +195,21 @@ test('représentations : les dates de Prodysos rejoignent celles du CMS', async 
   // Trois dates du CMS, deux de Prodysos ; la troisième de Prodysos est déjà dans le CMS.
   assert.equal(pe.length, 5);
   const venue = entrées.get('prodysos-p2').data;
-  assert.deepEqual(venue, { spectacle: 'par-endroits', day: '2027-03-12', time: '20:00', venue: 'Théâtre de la Vie', city: 'Saint-Josse-ten-Noode', price: '12 €' });
-  // La date du CMS garde son prix à elle.
-  assert.equal(pe.find(([, e]) => e.data.day === '2024-05-24')[1].data.price, '10 €');
+  assert.deepEqual(venue, {
+    spectacle: 'par-endroits',
+    day: '2027-03-12',
+    time: '20:00',
+    venue: 'Théâtre de la Vie',
+    city: 'Saint-Josse-ten-Noode',
+    price: '12 €',
+    reservation: { slug: 'par-endroits-cliffhanger', id: 'p2' },
+  });
+  // La date du CMS garde son prix à elle, et la réservation de celle qu'elle remplace.
+  const duCms = pe.find(([, e]) => e.data.day === '2024-05-24')[1].data;
+  assert.equal(duCms.price, '10 €');
+  assert.deepEqual(duCms.reservation, { slug: 'par-endroits-cliffhanger', id: 'p1' });
+  // Une date du CMS seule ne se réserve pas.
+  assert.ok([...entrées.values()].some((e) => !e.id.startsWith('prodysos-') && e.data.reservation === null));
   assert.ok(!entrées.has('prodysos-p1'));
   // Le spectacle Prodysos qu'aucun spectacle du CMS ne réclame est signalé.
   assert.ok(avertissements.some((m) => /une-autre-creation/.test(m)));
@@ -185,6 +221,7 @@ test('représentations : les dates de Prodysos rejoignent celles du CMS', async 
     venue: 'Théâtre L’Improviste',
     city: 'Forest',
     price: null,
+    reservation: { slug: 'hamlet', id: 'p5' },
   });
 });
 

@@ -103,6 +103,9 @@ const representations = defineCollection({
     venue: z.string().nullable(),
     city: z.string().nullable(),
     price: z.string().nullable(),
+    // De quoi la réserver dans Prodysos : le spectacle (sa page publique) et
+    // la représentation. Null pour une date qui n'existe que dans le CMS.
+    reservation: z.object({ slug: z.string(), id: z.string() }).nullable(),
   }),
 });
 

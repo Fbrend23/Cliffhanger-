@@ -22,6 +22,7 @@ import { DIRECTUS_URL, DIRECTUS_TOKEN } from 'astro:env/server';
 import { access, mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 /**
  * Le dossier du cache, RELATIF à la racine du projet et en séparateurs posix :
@@ -201,9 +202,6 @@ export async function purgerCache(cache, garder) {
  * S'assure que l'original d'un fichier Directus est dans le cache, et rend le
  * chemin RELATIF AU MANIFESTE (`./<id>.webp`) que le schéma `image()` attend.
  *
- * L'écriture passe par un `.part` renommé à la fin : un build interrompu ne
- * laisse jamais un fichier à moitié écrit que le suivant croirait complet.
- *
  * @param {{id:string, filename_download?:string, type?:string, modified_on?:string}} fichier
  * @param {Cache} cache
  * @param {{ info(msg:string):void }} logger
@@ -215,36 +213,85 @@ export async function assurerFichier(fichier, cache, logger) {
     'jpg'
   ).toLowerCase();
   const nom = `${fichier.id}.${ext}`;
-  const cible = path.join(cache.dossier, nom);
+  await ranger(cache, fichier.id, nom, fichier.modified_on ?? '', logger, fichier.filename_download ?? fichier.id, () =>
+    appeler(`${DIRECTUS_URL}/assets/${fichier.id}`)
+  );
+  return `./${nom}`;
+}
 
-  const connu = cache.manifest[fichier.id];
-  if (connu?.modified_on === fichier.modified_on && connu.fichier === nom && (await existe(cible))) {
-    return `./${nom}`;
-  }
+/**
+ * Le même cache pour une image qui ne vient pas de Directus : l'affiche de
+ * la page publique Prodysos d'un spectacle (lib/prodysos.js). L'URL tient
+ * lieu de date de modification : Prodysos la change (`?v=`) quand l'affiche
+ * change. Rend le chemin et les dimensions, lues sur le fichier : Prodysos ne
+ * les donne pas, et une ImageMetadata ne doit jamais être lue pour ça.
+ *
+ * @param {string} url
+ * @param {string} id  sans point (voir purgerCache)
+ * @param {Cache} cache
+ * @param {{ info(msg:string):void }} logger
+ * @returns {Promise<{ chemin: string, width: number|null, height: number|null }>}
+ */
+export async function assurerFichierExterne(url, id, cache, logger) {
+  const ext = (path.extname(new URL(url).pathname).slice(1) || 'jpg').toLowerCase();
+  const nom = `${id}.${ext}`;
+  await ranger(cache, id, nom, url, logger, url, async () => {
+    let res;
+    try {
+      res = await fetch(url);
+    } catch (e) {
+      throw new Error(`Image injoignable (${url}) : ${e.message}`);
+    }
+    if (!res.ok) throw new Error(`Image ${url} : HTTP ${res.status}`);
+    return res;
+  });
+  // Lu depuis un tampon : sharp, sur un chemin, garde le fichier ouvert, et
+  // Windows refuse alors de le purger ou de le remplacer.
+  const { width = null, height = null } = await sharp(await readFile(path.join(cache.dossier, nom))).metadata();
+  return { chemin: `./${nom}`, width, height };
+}
+
+/**
+ * Range un original dans le cache, sauf s'il y est déjà dans sa version.
+ *
+ * L'écriture passe par un `.part` renommé à la fin : un build interrompu ne
+ * laisse jamais un fichier à moitié écrit que le suivant croirait complet.
+ *
+ * @param {Cache} cache
+ * @param {string} id  la clé du manifeste, et le début du nom
+ * @param {string} nom  `<id>.<ext>`
+ * @param {string} version  ce qui change quand le fichier change
+ * @param {{ info(msg:string):void }} logger
+ * @param {string} libellé  pour le log
+ * @param {() => Promise<Response>} charger
+ */
+async function ranger(cache, id, nom, version, logger, libellé, charger) {
+  const cible = path.join(cache.dossier, nom);
+  const connu = cache.manifest[id];
+  if (connu?.modified_on === version && connu.fichier === nom && (await existe(cible))) return;
 
   // Un même fichier sert à plusieurs loaders (la photo du groupe est dans la
   // galerie ET l'image de partage des réglages) : lancés en parallèle, ils le
   // téléchargeaient deux fois dans le même `.part`, et le second renommage
   // échouait sur un fichier déjà déplacé. Le premier télécharge, les autres
   // attendent sa promesse.
-  const clé = `${fichier.id}|${fichier.modified_on ?? ''}`;
+  const clé = `${id}|${version}`;
   let promesse = enCours.get(clé);
   if (!promesse) {
     promesse = (async () => {
-      logger.info(`téléchargement de ${fichier.filename_download ?? fichier.id}`);
-      const res = await appeler(`${DIRECTUS_URL}/assets/${fichier.id}`);
+      logger.info(`téléchargement de ${libellé}`);
+      const res = await charger();
       const tmp = `${cible}.part`;
       await writeFile(tmp, Buffer.from(await res.arrayBuffer()));
       await rename(tmp, cible);
-      cache.manifest[fichier.id] = { modified_on: fichier.modified_on ?? '', fichier: nom };
+      cache.manifest[id] = { modified_on: version, fichier: nom };
     })().finally(() => enCours.delete(clé));
     enCours.set(clé, promesse);
   }
   await promesse;
-  return `./${nom}`;
 }
 
-/** Les téléchargements en cours, partagés entre loaders (voir `assurerFichier`). */
+/** Les téléchargements en cours, partagés entre loaders (voir `ranger`). */
 const enCours = new Map();
 
 /**

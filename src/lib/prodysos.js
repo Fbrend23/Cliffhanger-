@@ -1,6 +1,7 @@
 // Prodysos, le back-office de la compagnie : la source des dates qu'on y
-// programme. Le site ne lui prend QUE les représentations ; le spectacle
-// lui-même (textes, photos, générique) reste dans le CMS.
+// programme, et le guichet des réservations. Le spectacle lui-même (textes,
+// photos, générique) reste dans le CMS ; l'affiche et le synopsis de sa page
+// publique Prodysos ne servent que quand le CMS n'en a pas.
 //
 // Prodysos n'ouvre au rôle anonyme que des fonctions, aucune table. On appelle
 // `get_public_company_shows` en désignant la COMPAGNIE, jamais un spectacle :
@@ -10,7 +11,11 @@
 // celui qui le réclame par son champ `prodysos_slug` (voir relier).
 //
 // Lu au build seulement : Prodysos en panne fait échouer le build, et le site
-// en ligne reste intact. Même connecteur que Maisallezfieu.
+// en ligne reste intact. Écrit depuis le navigateur, par le formulaire de
+// réservation (voir réserver) : ce module n'importe donc rien de Node. Même
+// connecteur que Maisallezfieu.
+
+import { échapper } from './typo.js';
 
 /**
  * Les trois variables vont ensemble. Aucune : le site vit sur les dates du
@@ -216,7 +221,10 @@ export function lignesProdysos(spectaclesProdysos, parSlugProdysos, avertir) {
       const venue = texteOuNull(r.location_name);
       const city = commune(r.location_address);
       if (r.location_address && !city) avertir(`Prodysos « ${show.slug} » : commune introuvable dans « ${r.location_address} », la salle s’affiche seule`);
-      lignes.push({ id: `prodysos-${r.id}`, spectacle: cible.slug, ...quand, venue, city, price: cible.price });
+      // De quoi réserver cette date : le spectacle Prodysos (sa page publique)
+      // et la représentation, ce qu'attend create_public_reservation.
+      const reservation = { slug: show.slug, id: String(r.id) };
+      lignes.push({ id: `prodysos-${r.id}`, spectacle: cible.slug, ...quand, venue, city, price: cible.price, reservation });
     }
   }
   return lignes;
@@ -230,14 +238,99 @@ const texteOuNull = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null)
  * heure ; une ligne du CMS sans heure couvre tout le jour) : c'est la
  * correction voulue par quelqu'un, avec sa salle, sa ville, son prix.
  *
- * @template {{ spectacle: string, day: string, time: string|null }} L
+ * Elle reste réservable : elle reprend la réservation de la date Prodysos
+ * qu'elle remplace. Une ligne sans heure qui en couvre plusieurs ne dit pas
+ * laquelle on réserve : elle n'en prend aucune plutôt que d'en choisir une.
+ *
+ * @template {{ spectacle: string, day: string, time: string|null, reservation?: any }} L
  * @param {L[]} duCms
  * @param {L[]} deProdysos
  * @returns {{ lignes: L[], écartées: number }}
  */
 export function fusionner(duCms, deProdysos) {
-  const jourEntier = new Set(duCms.filter((l) => !l.time).map((l) => `${l.spectacle}|${l.day}`));
-  const exactes = new Set(duCms.map((l) => `${l.spectacle}|${l.day}|${l.time ?? ''}`));
-  const gardées = deProdysos.filter((l) => !jourEntier.has(`${l.spectacle}|${l.day}`) && !exactes.has(`${l.spectacle}|${l.day}|${l.time ?? ''}`));
-  return { lignes: [...duCms, ...gardées], écartées: deProdysos.length - gardées.length };
+  const jour = (l) => `${l.spectacle}|${l.day}`;
+  const exacte = (l) => `${jour(l)}|${l.time ?? ''}`;
+  const jourEntier = new Set(duCms.filter((l) => !l.time).map(jour));
+  const exactes = new Set(duCms.map(exacte));
+  const gardées = [];
+  const écartées = [];
+  for (const l of deProdysos) (jourEntier.has(jour(l)) || exactes.has(exacte(l)) ? écartées : gardées).push(l);
+
+  const corrigées = duCms.map((l) => {
+    if (l.reservation) return l;
+    const remplacées = écartées.filter((p) => (l.time ? exacte(p) === exacte(l) : jour(p) === jour(l)));
+    return remplacées.length === 1 && remplacées[0].reservation ? { ...l, reservation: remplacées[0].reservation } : l;
+  });
+  return { lignes: [...corrigées, ...gardées], écartées: écartées.length };
+}
+
+/**
+ * Le spectacle Prodysos relié à chaque spectacle du CMS, pour son affiche et
+ * son synopsis. Deux spectacles Prodysos du même titre peuvent rejoindre le
+ * même spectacle du CMS (une reprise) : le premier, celui que Prodysos met en
+ * tête (à l'affiche d'abord), l'emporte.
+ *
+ * @param {any[]} spectaclesProdysos
+ * @param {Map<string, { slug: string }>} liens  voir relier
+ * @returns {Map<string, any>}  slug du CMS → spectacle Prodysos
+ */
+export function parSpectacleCms(spectaclesProdysos, liens) {
+  const par = new Map();
+  for (const show of spectaclesProdysos) {
+    const cible = liens.get(show?.slug);
+    if (cible && !par.has(cible.slug)) par.set(cible.slug, show);
+  }
+  return par;
+}
+
+/**
+ * Le nom de l'affiche d'un spectacle Prodysos dans le cache des originaux.
+ * Sans point : la purge du cache lit l'id jusqu'au premier.
+ */
+export const idAfficheProdysos = (slug) => `prodysos-affiche-${String(slug).replace(/[^\w-]/g, '-')}`;
+
+/**
+ * Le synopsis d'une page publique Prodysos, du texte brut, en HTML de la
+ * forme du texte du CMS : une ligne vide sépare deux paragraphes, un retour
+ * simple reste un retour. Vide : null.
+ */
+export function synopsisEnHtml(synopsis) {
+  if (typeof synopsis !== 'string' || !synopsis.trim()) return null;
+  return synopsis
+    .replace(/\r\n?/g, '\n')
+    .trim()
+    .split(/\n[ \t]*\n\s*/)
+    .map((p) => `<p>${p.split('\n').map((l) => échapper(l.trim())).join('<br>')}</p>`)
+    .join('');
+}
+
+/**
+ * Envoie une demande de réservation, depuis le navigateur. Prodysos revalide
+ * tout de son côté (page publiée, représentation du bon spectacle et pas
+ * encore jouée, nombre de places, adresse) et répond, en cas de refus, un
+ * message écrit pour le public (« Représentation invalide ou déjà passée »).
+ * On le rend tel quel ; sans message, null, et la page dit le sien.
+ * Une erreur réseau lève.
+ *
+ * @param {{ url: string, clé: string }} prodysos
+ * @param {{ slug: string, id: string, nom: string, email: string, places: number, message: string|null }} demande
+ * @returns {Promise<{ ok: true } | { ok: false, message: string|null }>}
+ */
+export async function réserver(prodysos, demande) {
+  const res = await fetch(`${prodysos.url}/rest/v1/rpc/create_public_reservation`, {
+    method: 'POST',
+    headers: { apikey: prodysos.clé, Authorization: `Bearer ${prodysos.clé}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      p_slug: demande.slug,
+      p_name: demande.nom,
+      p_email: demande.email,
+      p_party_size: demande.places,
+      p_rehearsal_id: demande.id,
+      p_message: demande.message,
+      p_locale: 'fr',
+    }),
+  });
+  if (res.ok) return { ok: true };
+  const corps = await res.json().catch(() => null);
+  return { ok: false, message: typeof corps?.message === 'string' && corps.message.trim() ? corps.message.trim() : null };
 }

@@ -2,9 +2,11 @@
 //
 // Il sert le contenu du prototype avec la forme de l'API que les loaders
 // interrogent : `/items/cliff_*` (fields, filter sur status, sort, deep,
-// limit, page) et `/assets/<id>`, plus la fonction de Prodysos que le site
-// appelle (`/rest/v1/rpc/get_public_company_shows`). Il ne vit que dans test/ : le site, lui,
-// n'a aucun contenu de repli, et ne connaît que le vrai CMS.
+// limit, page) et `/assets/<id>`, plus ce que le site demande à Prodysos : la
+// fonction `/rest/v1/rpc/get_public_company_shows`, les affiches du stockage,
+// et `/rest/v1/rpc/create_public_reservation` (une adresse e-mail qui contient
+// « refus » est refusée, avec le message de Prodysos). Il ne vit que dans
+// test/ : le site, lui, n'a aucun contenu de repli, et ne connaît que le vrai CMS.
 //
 //   node test/faux-directus/serveur.mjs [port]      (8055 par défaut)
 //   DIRECTUS_URL=http://localhost:8055 DIRECTUS_TOKEN=faux npm run build
@@ -101,7 +103,38 @@ export async function démarrer(port = 8055) {
       req.on('data', (b) => (corps += b));
       req.on('end', () => {
         const { p_company_slug } = JSON.parse(corps || '{}');
-        répondre(200, p_company_slug === base.prodysos.company.slug ? base.prodysos : null);
+        if (p_company_slug !== base.prodysos.company.slug) return répondre(200, null);
+        // Les affiches, sous l'adresse de ce serveur, comme le vrai stockage.
+        const origine = `http://${req.headers.host}`;
+        const shows = base.prodysos.shows.map((s) => (s.poster_url?.startsWith('/') ? { ...s, poster_url: origine + s.poster_url } : s));
+        répondre(200, { ...base.prodysos, shows });
+      });
+      return;
+    }
+
+    // Le stockage public des affiches : n'importe quelle image du prototype.
+    if (url.pathname.startsWith('/storage/v1/object/public/posters/')) {
+      const [f] = base.fichiers.values();
+      res.writeHead(200, { 'content-type': 'image/webp', 'access-control-allow-origin': '*' });
+      return createReadStream(f.chemin).pipe(res);
+    }
+
+    // La réservation, appelée depuis le navigateur : CORS compris.
+    if (url.pathname === '/rest/v1/rpc/create_public_reservation') {
+      res.setHeader('access-control-allow-origin', '*');
+      res.setHeader('access-control-allow-headers', 'apikey, authorization, content-type');
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        return res.end();
+      }
+      if (!req.headers.apikey) return répondre(401, { message: 'clé absente' });
+      let corps = '';
+      req.on('data', (b) => (corps += b));
+      req.on('end', () => {
+        const demande = JSON.parse(corps || '{}');
+        base.réservations.push(demande);
+        if (/refus/.test(demande.p_email ?? '')) return répondre(400, { code: 'P0001', message: 'Représentation invalide ou déjà passée' });
+        répondre(200, `r${base.réservations.length}`);
       });
       return;
     }
