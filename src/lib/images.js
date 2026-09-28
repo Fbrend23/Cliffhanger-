@@ -16,8 +16,8 @@ import { getImage } from 'astro:assets';
 /** @typedef {{ srcset: string, avif: string|null, sizes: string }} Portrait */
 /**
  * Ce que Photo.astro rend : le WebP (`src`, `srcset`), et selon la taille
- * l'AVIF et le recadrage portrait.
- * @typedef {{ src: string, srcset: string, sizes: string, width: number, height: number, avif: string|null, portrait: Portrait|null }} Réactive
+ * l'AVIF, le recadrage portrait et l'aperçu flou.
+ * @typedef {{ src: string, srcset: string, sizes: string, width: number, height: number, avif: string|null, portrait: Portrait|null, apercu: string|null }} Réactive
  */
 
 /**
@@ -41,7 +41,7 @@ async function réactive(image, taille, largeurs, sizes, { qualité = 78, avif =
   const img = await getImage({ ...options, format: 'webp', quality: qualité });
   const enAvif = avif ? await getImage({ ...options, format: 'avif', quality: QUALITÉ_AVIF }) : null;
   const height = taille?.width && taille?.height ? Math.round((taille.height / taille.width) * width) : Number(img.attributes.height) || width;
-  return { src: img.src, srcset: img.srcSet.attribute, sizes, width, height, avif: enAvif?.srcSet.attribute ?? null, portrait: null };
+  return { src: img.src, srcset: img.srcSet.attribute, sizes, width, height, avif: enAvif?.srcSet.attribute ?? null, portrait: null, apercu: null };
 }
 
 /**
@@ -102,14 +102,14 @@ function taillePortrait({ width, height }) {
  * La grande photo du haut d'une page, et les fonds plein écran : 960 px pour
  * un téléphone, 1440 pour un portable en 1×, 2048 à 3200 pour les écrans 2×,
  * en AVIF et en WebP. Avec son recadrage portrait, les écrans tenus droits
- * reçoivent celui-ci.
+ * reçoivent celui-ci ; avec son aperçu, il est posé dessous.
  *
  * @param {import('astro').ImageMetadata} image
  * @param {Taille|null|undefined} taille
- * @param {{ portrait?: import('astro').ImageMetadata|null }} [extras]
+ * @param {{ portrait?: import('astro').ImageMetadata|null, apercu?: string|null }} [extras]
  * @returns {Promise<Réactive>}
  */
-export async function heros(image, taille, { portrait = null } = {}) {
+export async function heros(image, taille, { portrait = null, apercu = null } = {}) {
   const options = { qualité: QUALITÉ_PLEIN_ÉCRAN, avif: true };
   const r = await réactive(image, taille, PLEIN_ÉCRAN, couvre(taille), options);
   if (portrait && taille?.width && taille?.height) {
@@ -117,21 +117,23 @@ export async function heros(image, taille, { portrait = null } = {}) {
     const p = await réactive(portrait, tp, PORTRAIT_LARGEURS, couvre(PORTRAIT), options);
     r.portrait = { srcset: p.srcset, avif: p.avif, sizes: p.sizes };
   }
+  r.apercu = apercu;
   return r;
 }
 
 /**
- * La grande photo d'un spectacle, avec son portrait.
- * @param {{ hero: import('astro').ImageMetadata, heroTaille: Taille, heroPortrait: import('astro').ImageMetadata }} s
+ * La grande photo d'un spectacle, avec son portrait et son aperçu.
+ * @param {{ hero: import('astro').ImageMetadata, heroTaille: Taille, heroPortrait: import('astro').ImageMetadata, heroApercu: string }} s
  */
-export const herosSpectacle = (s) => heros(s.hero, s.heroTaille, { portrait: s.heroPortrait });
+export const herosSpectacle = (s) => heros(s.hero, s.heroTaille, { portrait: s.heroPortrait, apercu: s.heroApercu });
 
 /**
  * La même taille pour une photo de la photothèque (fond de page, photo de La
  * compagnie), qui porte ses dimensions à plat. Sans photo, rien.
- * @param {{ image: import('astro').ImageMetadata, width: number|null, height: number|null, portrait?: import('astro').ImageMetadata|null } | null | undefined} photo
+ * @param {{ image: import('astro').ImageMetadata, width: number|null, height: number|null, portrait?: import('astro').ImageMetadata|null, apercu?: string|null } | null | undefined} photo
  */
-export const herosPhoto = (photo) => (photo ? heros(photo.image, { width: photo.width, height: photo.height }, { portrait: photo.portrait }) : Promise.resolve(null));
+export const herosPhoto = (photo) =>
+  photo ? heros(photo.image, { width: photo.width, height: photo.height }, { portrait: photo.portrait, apercu: photo.apercu }) : Promise.resolve(null);
 
 /** L'affiche, à ses proportions, 40rem de large au plus. */
 export const affiche = (image, taille) => réactive(image, taille, [400, 800, 1200], '(max-width: 40em) 100vw, 40rem');
@@ -142,9 +144,18 @@ export const affiche = (image, taille) => réactive(image, taille, [400, 800, 12
  */
 export const diapo = (image, taille) => réactive(image, taille, [700, 1100, 1600], '(max-width: 40em) 90vw, 45vw');
 
-/** La vignette de la galerie : une, deux ou trois colonnes. */
-export const vignetteGalerie = (image, taille) =>
-  réactive(image, taille, [480, 800, 1200], '(max-width: 40em) 100vw, (max-width: 64em) 50vw, 33vw');
+/**
+ * La vignette de la galerie : une, deux ou trois colonnes. Avec son aperçu
+ * flou dessous.
+ * @param {import('astro').ImageMetadata} image
+ * @param {Taille} taille
+ * @param {string|null} [apercu]
+ */
+export async function vignetteGalerie(image, taille, apercu = null) {
+  const r = await réactive(image, taille, [480, 800, 1200], '(max-width: 40em) 100vw, (max-width: 64em) 50vw, 33vw');
+  r.apercu = apercu;
+  return r;
+}
 
 /** La photo agrandie de la visionneuse : l'écran entier, mêmes exigences que le héros. */
 export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2560, 3200], '100vw', { qualité: QUALITÉ_PLEIN_ÉCRAN });
@@ -157,5 +168,8 @@ export async function og(image) {
   return (await getImage({ src: image, width: 1200, format: 'jpeg', quality: 80 })).src;
 }
 
-/** Le cadrage d'une photo, d'après son point focal (en %). Sans lui, le centre. */
-export const cadrage = (focal) => (focal ? `object-position:${focal.x}% ${focal.y}%` : undefined);
+/**
+ * Le cadrage d'une photo, d'après son point focal (en %). Sans lui, le
+ * centre. Le fond suit le même point : c'est là que Photo.astro pose l'aperçu.
+ */
+export const cadrage = (focal) => (focal ? `object-position:${focal.x}% ${focal.y}%;background-position:${focal.x}% ${focal.y}%` : undefined);

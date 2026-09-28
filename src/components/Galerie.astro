@@ -14,7 +14,7 @@ import { T } from '../lib/textes.js';
 import { tx, typographier } from '../lib/typo.js';
 
 interface Props {
-  photos: { id: string; caption: string; image: any; width: number | null; height: number | null }[];
+  photos: { id: string; caption: string; image: any; width: number | null; height: number | null; apercu: string }[];
 }
 
 const { photos } = Astro.props;
@@ -23,7 +23,7 @@ const flèche = 'absolute top-1/2 min-h-11 min-w-11 -translate-y-1/2 p-4 text-[3
 const tuiles = await Promise.all(
   photos.map(async (p) => {
     const taille = { width: p.width, height: p.height };
-    return { caption: p.caption, vignette: await vignetteGalerie(p.image, taille), grande: await grande(p.image, taille) };
+    return { caption: p.caption, vignette: await vignetteGalerie(p.image, taille, p.apercu), grande: await grande(p.image, taille) };
   })
 );
 ---

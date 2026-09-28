@@ -13,10 +13,10 @@ import { cadrage, herosPhoto, herosSpectacle } from '../lib/images.js';
 
 type Focal = { x: number; y: number } | null;
 interface Props {
-  fond: { image: any; width: number | null; height: number | null; portrait: any; focal: Focal } | null;
+  fond: { image: any; width: number | null; height: number | null; portrait: any; apercu: string; focal: Focal } | null;
   // La photo plus ou moins éteinte sous le texte : pleine (accueil), voilée (listes, contact), sombre (agenda).
   ton?: 'plein' | 'voile' | 'sombre';
-  survol?: { slug: string; hero: any; heroTaille: { width: number | null; height: number | null }; heroPortrait: any; focal: Focal }[];
+  survol?: { slug: string; hero: any; heroTaille: { width: number | null; height: number | null }; heroPortrait: any; heroApercu: string; focal: Focal }[];
 }
 
 const { fond, ton = 'plein', survol = [] } = Astro.props;
