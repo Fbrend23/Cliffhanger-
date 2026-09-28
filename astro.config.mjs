@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig, envField } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import tailwindcss from '@tailwindcss/vite';
 import { loadEnv } from 'vite';
 
 // Astro ne charge le .env qu'après avoir lu cette configuration : sans
@@ -27,6 +28,10 @@ export default defineConfig({
   build: { format: 'directory' },
 
   integrations: [sitemap()],
+
+  // Tailwind 4 passe par Vite, sans intégration Astro ni fichier de configuration : les jetons,
+  // les points de rupture et les variantes du site sont déclarés dans src/styles/site.css.
+  vite: { plugins: [tailwindcss()] },
 
   // Les deux variables ne sont PAS optionnelles : le site n'a aucun contenu
   // local sur lequel retomber, et c'est voulu. Sans source, le build doit
