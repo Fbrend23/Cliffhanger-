@@ -53,8 +53,10 @@
   --spacing-respiration: 1rem;
 
   --ease-cliff: cubic-bezier(.2, .7, .2, 1);
-  /* --d : le décalage de la cascade, posé par Base.astro ; --o : l'opacité d'arrivée */
-  --animate-rise: rise .8s var(--ease-cliff) var(--d, 0s) both;
+  /* Le décalage de chaque bloc n'est pas ici : une variable de @theme se résout sur :root, où un
+     var(--d) vaudrait 0 pour tous. Base.astro le pose sur le bloc (animation-delay). --o, lu par
+     les keyframes, se résout bien sur le bloc : c'est son opacité d'arrivée. */
+  --animate-rise: rise .8s var(--ease-cliff) both;
   --animate-drip: drip 2s var(--ease-cliff) infinite;
 }
 
