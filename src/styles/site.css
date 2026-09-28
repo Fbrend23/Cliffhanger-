@@ -1,6 +1,7 @@
-/* La feuille unique du site, portée du prototype : mêmes jetons, mêmes points de rupture (40, 48, 64,
-   80em), mêmes classes. Ce qui a changé est dit en commentaire : les transitions de page (View
-   Transitions d'Astro au lieu de deux vues superposées), le menu sans JS, la visionneuse en <dialog>. */
+/* La feuille du site. Les gabarits s'écrivent en utilitaires Tailwind ; ici ne restent que ce qu'ils
+   partagent : les jetons du Guide dev (@theme), les variantes d'état posées par un script, deux
+   utilitaires maison, les polices, la base et les animations. Le balisage qui se répète est un
+   composant Astro (Section, Pastille, TexteRiche…), pas une classe. */
 
 /* Seuls les gabarits et scripts de src/ sont lus : les tests et la migration parlent de classes
    qui ne sont pas les nôtres. */

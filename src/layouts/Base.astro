@@ -107,7 +107,7 @@ const entrée =
     {site.head_verification && <Fragment set:html={site.head_verification} />}
     {ld && <script type="application/ld+json" set:html={ld} />}
     <script is:inline>
-      // Avec JS : le burger remplace la ligne de liens (site.css). Le routeur
+      // Avec JS : le burger remplace la ligne de liens (variante sans-js). Le routeur
       // recopie les attributs de <html> de la page suivante, qui n'a pas la
       // classe : on la remet après chaque changement.
       document.documentElement.classList.add('js');
