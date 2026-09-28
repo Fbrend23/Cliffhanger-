@@ -12,4 +12,4 @@ interface Props {
 const { epingle = false } = Astro.props;
 ---
 
-<p class:list={['foot', { 'foot--pinned': epingle }]} set:html={tx(T.pied(new Date().getFullYear()))} />
+<p class:list={['px-gouttiere py-8 text-xs opacity-60', epingle ? 'absolute inset-x-0 bottom-0 text-left' : 'text-center']} set:html={tx(T.pied(new Date().getFullYear()))} />

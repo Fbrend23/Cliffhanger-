@@ -115,27 +115,6 @@
 
 
 /* ================= ANCIEN, à migrer ================= */
-/* le texte blanc reste lisible sur les photos claires : une ombre douce en haut (logo) et en bas (titres) */
-.bgs::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.35),transparent 22%,transparent 50%,rgba(0,0,0,.45));pointer-events:none}
-.title{font-family:var(--font-display);font-weight:800;letter-spacing:.1875em;text-transform:uppercase;line-height:1.15;text-wrap:balance}
-.index{position:relative;isolation:isolate;min-height:100svh;display:flex;flex-direction:column;padding:0 var(--spacing-gouttiere) 6.75rem}
-.index--home{justify-content:flex-end}
-.index--prod{justify-content:center;align-items:center;text-align:center;padding-top:6rem}
-.bgs{position:fixed;inset:-2rem;z-index:-1;pointer-events:none}
-.bgs figure{position:absolute;inset:0}
-.bgs img{width:100%;height:100%;object-fit:cover;filter:brightness(var(--bright,.75))}
-.bgs--dim{--bright:.45}
-.bgs--dark{--bright:.3}
-.bgs .bg{opacity:0;filter:blur(2rem);transition:opacity .5s ease-in,filter 1s ease-in}
-.bgs .bg.is-visible{opacity:1;filter:blur(0);transition-timing-function:ease-out}
-.list li{margin:.15rem 0}
-.index--prod .list li{margin:.5rem 0}
-.list a{display:inline-block;font-size:clamp(2rem,6vw,3rem);opacity:.75;transition:opacity .25s linear,filter .25s linear}
-.list a:hover,.list a:focus-visible{opacity:1}
-.list:has(a:hover) a:not(:hover),.list:has(a:focus-visible) a:not(:focus-visible){filter:blur(.125rem)}
-.list small{margin-left:.75rem;font-family:var(--font-sans);font-weight:400;font-size:1rem;letter-spacing:0;vertical-align:.8em;white-space:nowrap}
-.foot{padding:2rem var(--spacing-gouttiere);font-size:.75rem;opacity:.6;text-align:center}
-.foot--pinned{position:absolute;left:0;right:0;bottom:0;text-align:left}
 @media (pointer:coarse){.pill{min-height:2.75rem}}
 .phead::before{content:"";position:absolute;inset:0 0 auto 0;z-index:1;height:25%;background:linear-gradient(rgba(0,0,0,.35),transparent);pointer-events:none}
 

@@ -12,21 +12,31 @@ import { cadrage, heros, herosPhoto } from '../lib/images.js';
 
 interface Props {
   fond: { image: any; width: number | null; height: number | null; focal: { x: number; y: number } | null } | null;
-  ton?: '' | 'bgs--dim' | 'bgs--dark';
+  // La photo plus ou moins éteinte sous le texte : pleine (accueil), voilée (listes, contact), sombre (agenda).
+  ton?: 'plein' | 'voile' | 'sombre';
   survol?: { slug: string; hero: any; heroTaille: { width: number | null; height: number | null }; focal: { x: number; y: number } | null }[];
 }
 
-const { fond, ton = '', survol = [] } = Astro.props;
+const { fond, ton = 'plein', survol = [] } = Astro.props;
+const lumière = { plein: 'brightness-75', voile: 'brightness-45', sombre: 'brightness-30' }[ton];
+const photo = `size-full object-cover ${lumière}`;
 const base = await herosPhoto(fond);
 const figures = await Promise.all(survol.map(async (s) => ({ slug: s.slug, img: await heros(s.hero, s.heroTaille), style: cadrage(s.focal) })));
 ---
 
-<div class:list={['bgs', ton]} aria-hidden="true">
-  {base && <figure><Photo img={base} eager style={cadrage(fond!.focal)} /></figure>}
+{/* Le texte blanc reste lisible sur les photos claires : une ombre douce en haut (logo) et en bas (titres). */}
+<div
+  class="pointer-events-none fixed -inset-8 -z-1 after:pointer-events-none after:absolute after:inset-0 after:bg-[linear-gradient(rgba(0,0,0,.35),transparent_22%,transparent_50%,rgba(0,0,0,.45))]"
+  aria-hidden="true"
+>
+  {base && <figure class="absolute inset-0"><Photo img={base} eager class={photo} style={cadrage(fond!.focal)} /></figure>}
   {
     figures.map((f) => (
-      <figure class="bg" data-for={f.slug}>
-        <Photo img={f.img} differee style={f.style} />
+      <figure
+        class="absolute inset-0 opacity-0 blur-[2rem] [transition:opacity_.5s_ease-in,filter_1s_ease-in] visible:opacity-100 visible:blur-[0px] visible:ease-[ease-out]"
+        data-for={f.slug}
+      >
+        <Photo img={f.img} differee class={photo} style={f.style} />
       </figure>
     ))
   }
@@ -42,7 +52,7 @@ const figures = await Promise.all(survol.map(async (s) => ({ slug: s.slug, img: 
   };
 
   document.addEventListener('astro:page-load', () => {
-    const figures = document.querySelectorAll<HTMLElement>('.bgs .bg');
+    const figures = document.querySelectorAll<HTMLElement>('[data-for]');
     if (!figures.length) return;
 
     // Au repos, toutes les photos de survol : le premier survol est instantané.

@@ -29,7 +29,7 @@ const jsonLd = organisation({
 ---
 
 <Base precharger={precharger} jsonLd={jsonLd}>
-  <section class="index index--home">
+  <section class="relative isolate flex min-h-svh flex-col justify-end px-gouttiere pb-27">
     <h1 class="sr-only" set:html={tx(T.accueilH1)} />
     <Fond fond={fond} survol={c.belges} />
     <ListeSpectacles spectacles={c.belges} />
