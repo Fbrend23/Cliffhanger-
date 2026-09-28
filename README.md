@@ -48,8 +48,15 @@ Il ne vit que dans `test/` : le site, lui, ne connaît que le vrai CMS.
 ## Le cache des images
 
 `.cache/directus-assets/` (git-ignoré) garde les originaux téléchargés et un manifeste : un
-fichier absent ou modifié dans le Studio est retéléchargé, le reste ne l'est pas. Le loader des
-photos le purge en fin de chargement. Le supprimer force un retéléchargement complet.
+fichier absent ou modifié dans le Studio est retéléchargé, le reste ne l'est pas. Le manifeste
+garde aussi, par fichier, son aperçu flou (32 px en `data:`) et, pour les photos plein écran
+(grandes photos des spectacles, fonds de page), le nom de son recadrage portrait 9:16 autour du
+point focal (`<id>.portrait.webp`), refait quand le point bouge. Le loader des photos le purge
+en fin de chargement. Le supprimer force un retéléchargement complet.
+
+Les photos plein écran sont servies en AVIF (qualité 60, calibrée face au WebP 84), WebP en
+repli, et en recadrage portrait aux écrans tenus droits ; leur `sizes` tient compte de
+`object-fit: cover`. Le reste reste en WebP. Tout est décidé dans `src/lib/images.js`.
 
 ## Le contenu vit dans le CMS
 
