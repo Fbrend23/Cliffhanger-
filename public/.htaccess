@@ -20,8 +20,9 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 <IfModule mod_headers.c>
   # Les fichiers de /_astro/ portent une empreinte dans leur nom : ils ne
   # changent jamais, on peut les garder un an. Les polices aussi, qui ne
-  # bougent qu'avec le code. La vidéo et l'image du menu, une semaine, comme
-  # les images du prototype.
+  # bougent qu'avec le code. La vidéo et l'image du menu, et les icônes, une
+  # semaine, comme les images du prototype (les icônes n'avaient aucun
+  # en-tête : le navigateur les gardait au jugé).
   # Les pages, elles, changent à chaque déploiement : le navigateur les
   # redemande à chaque visite (l'ETag lui vaut un 304 quand rien n'a bougé).
   <FilesMatch "\.[0-9a-zA-Z_-]{6,}\.(css|js|webp|jpe?g|png|svg|avif)$">
@@ -30,7 +31,7 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
   <FilesMatch "\.woff2$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
-  <FilesMatch "^menu(-poster)?\.(mp4|webp)$">
+  <FilesMatch "^(menu(-poster)?\.(mp4|webp)|favicon\.png|apple-touch-icon\.png)$">
     Header set Cache-Control "public, max-age=604800"
   </FilesMatch>
   <FilesMatch "\.html$">
