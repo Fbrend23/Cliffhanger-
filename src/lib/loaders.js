@@ -17,6 +17,7 @@ import {
   assurerFichier,
   assurerFichierExterne,
   champsFichier,
+  dimensionsFichier,
   mapLimit,
   ouvrirCache,
   pointFocal,
@@ -102,8 +103,6 @@ function prodysosDuBuild(logger) {
 /** @type {ReturnType<typeof prodysosDuBuild> | null} */
 let lectureProdysos = null;
 
-/** Les dimensions d'un fichier, lues ici pour ne jamais les lire sur une ImageMetadata (ce qui émettrait l'original dans dist/). */
-const dimensions = (f) => ({ width: f?.width ?? null, height: f?.height ?? null });
 
 /**
  * Les spectacles publiés, dans l'ordre du Studio, puis du plus récent.
@@ -155,7 +154,7 @@ export function spectaclesLoader() {
         let posterTaille = null;
         if (s.poster?.id) {
           poster = await assurerFichier(s.poster, cache, logger);
-          posterTaille = dimensions(s.poster);
+          posterTaille = await dimensionsFichier(s.poster, cache);
         } else if (texte(show?.poster_url)) {
           const a = await assurerFichierExterne(show.poster_url.trim(), idAfficheProdysos(show.slug), cache, logger);
           poster = a.chemin;
@@ -176,7 +175,7 @@ export function spectaclesLoader() {
             duration: texte(s.duration),
             sort: s.sort ?? 0,
             hero,
-            heroTaille: dimensions(s.hero),
+            heroTaille: await dimensionsFichier(s.hero, cache),
             focal: pointFocal(s.hero),
             poster,
             posterTaille,
@@ -271,7 +270,7 @@ export function photosLoader() {
             spectacle: texte(p.spectacle?.slug),
             sort: p.sort ?? 0,
             image,
-            ...dimensions(p.image),
+            ...(await dimensionsFichier(p.image, cache)),
             focal: pointFocal(p.image),
           },
         });

@@ -220,6 +220,27 @@ export async function assurerFichier(fichier, cache, logger) {
 }
 
 /**
+ * Les dimensions d'un fichier : celles du CMS, sinon lues sur l'original du
+ * cache (déjà là : appeler après `assurerFichier`). Directus ne les calcule
+ * pas toujours (la photo de fond de l'accueil, 8256 px, n'en avait pas) :
+ * sans elles, `sizes` ne sait pas que la photo couvre l'écran, et un recadrage
+ * ne peut pas être calculé.
+ *
+ * @param {{id:string, width?:number|null, height?:number|null}} fichier
+ * @param {Cache} cache
+ * @returns {Promise<{ width: number|null, height: number|null }>}
+ */
+export async function dimensionsFichier(fichier, cache) {
+  if (fichier.width && fichier.height) return { width: fichier.width, height: fichier.height };
+  const entrée = cache.manifest[fichier.id];
+  if (!entrée) return { width: null, height: null };
+  // Depuis un tampon, comme plus bas : Windows et les fichiers restés ouverts.
+  const méta = await sharp(await readFile(path.join(cache.dossier, entrée.fichier))).metadata();
+  const { width = null, height = null } = méta.autoOrient ?? méta;
+  return { width, height };
+}
+
+/**
  * Le même cache pour une image qui ne vient pas de Directus : l'affiche de
  * la page publique Prodysos d'un spectacle (lib/prodysos.js). L'URL tient
  * lieu de date de modification : Prodysos la change (`?v=`) quand l'affiche
