@@ -130,32 +130,10 @@
 /* les liens des textes riches du CMS ont le style des noms : le Studio peut retirer les classes, pas les balises */
 .sub{margin-top:.5rem;font-size:1.25rem;font-weight:400;opacity:.75}
 
-
 /* ---------- pastilles ---------- */
 .pills{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}
 .pill{display:inline-flex;align-items:center;min-height:2.25rem;padding:.5rem 1rem;border:.0625rem solid var(--color-front);border-radius:2rem;font-size:1rem;font-weight:400;transition:background-color .2s,color .2s}
 .pill:hover,.pill:focus-visible{background:var(--color-front);color:var(--color-back)}
-
-/* ---------- pages liste (agenda, galerie, fiche personne) ---------- */
-.page{position:relative;isolation:isolate;min-height:100svh;padding-top:7rem;padding-bottom:2rem}
-
-.gallery{columns:3 18rem;column-gap:1rem;margin-top:var(--spacing-respiration)}
-.gallery figure{margin-bottom:1rem;break-inside:avoid}
-.gallery button{display:block;width:100%;cursor:zoom-in}
-.gallery img{width:100%;height:auto;transition:opacity .25s;animation:fadein .6s ease both}
-.gallery button:hover img,.gallery button:focus-visible img{opacity:.85}
-.gallery figcaption{padding:.35rem .25rem;font-size:.75rem;opacity:.75}
-
-/* la visionneuse est un <dialog> : showModal() garde le focus dedans et Échap la ferme, sans script */
-.lightbox{position:fixed;inset:0;z-index:50;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;overscroll-behavior:contain;touch-action:pan-y;padding:3.5rem 1rem 2.5rem;background:rgba(0,0,0,.94);color:var(--color-front)}
-.lightbox[open]{display:flex;align-items:center;justify-content:center;animation:fadein .3s ease both}
-.lightbox::backdrop{background:transparent}
-.lightbox img{max-width:100%;max-height:100%;object-fit:contain}
-.lb-close{position:absolute;top:calc(1rem + var(--safe-top));right:1rem;padding:.35rem .9rem;border:.0625rem solid var(--color-front);border-radius:2rem}
-.lb-prev,.lb-next{position:absolute;top:50%;transform:translateY(-50%);min-width:2.75rem;min-height:2.75rem;padding:1rem;font-size:3rem;opacity:.75}
-.lb-prev{left:0}
-.lb-next{right:0}
-.lb-cap{position:absolute;left:0;right:0;bottom:1rem;text-align:center;font-size:.875rem;opacity:.75}
 
 .contact{position:relative;isolation:isolate;min-height:100svh;display:flex;align-items:center;justify-content:center;padding:7rem var(--spacing-gouttiere) 5rem;text-align:center}
 .contact__inner{display:grid;justify-items:center;gap:1.25rem}
