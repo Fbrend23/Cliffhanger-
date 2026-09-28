@@ -1,8 +1,9 @@
 # Déploiement du site de la Compagnie Cliffhanger (repris du portfolio).
 #
-# Un seul job : build, puis mirror FTP vers l'hébergement Infomaniak. Aucune
-# pièce intermédiaire, donc aucun endroit où la chaîne puisse s'arrêter sans
-# que personne ne l'apprenne.
+# Un seul job : build, puis publication FTP vers l'hébergement Infomaniak par
+# manifeste (scripts/deployer.mjs, scripts/lib/deploiement.mjs). Aucune pièce
+# intermédiaire, donc aucun endroit où la chaîne puisse s'arrêter sans que
+# personne ne l'apprenne.
 #
 # Trois déclencheurs :
 #   push (main)         → un changement de code
@@ -30,7 +31,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'mirror en --dry-run (aucune écriture côté serveur)'
+        description: 'aperçu des fichiers à envoyer et à supprimer, aucune écriture côté serveur'
         type: boolean
         default: false
   # Reconstruction nocturne, à 3 h UTC (4 h ou 5 h à Bruxelles) : une
@@ -143,7 +144,7 @@ jobs:
           if ! echo "$racine" | grep -qF " $DEPLOY_MARKER"; then
             echo "::error::Marqueur « $DEPLOY_MARKER » absent de cette racine, abandon."
             echo "Vérifier D'ABORD que le listage ci-dessus est bien CE site : c'est là"
-            echo "que le mirror --delete écrira. Puis y déposer un fichier vide nommé « $DEPLOY_MARKER »."
+            echo "que « Déployer » écrira. Puis y déposer un fichier vide nommé « $DEPLOY_MARKER »."
             exit 1
           fi
 
@@ -172,55 +173,78 @@ jobs:
           PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
         run: npm run build
 
-      # 3 · Publication : quatre passes en deux connexions, dans un
-      #     ordre où le site en ligne n'est jamais cassé.
+      # 3 · Publication par manifeste (scripts/deployer.mjs), plutôt qu'un
+      #     mirror complet. Un mirror liste le serveur avant de comparer :
+      #     une connexion FTP par dossier listé ET par fichier envoyé, plus
+      #     de deux cents pour ce site. Passé un certain nombre, l'hébergeur
+      #     en bloquait la moitié une minute.
       #
-      #     a. /_astro/ : ses fichiers portent une empreinte de leur contenu
-      #        dans leur nom, donc un fichier qui existe déjà sur le serveur
-      #        est identique. --only-missing n'envoie que les nouveaux. Rien
-      #        n'est effacé : les pages en ligne s'en servent encore.
-      #     b. Les fichiers lourds de public/ (vidéo, images, polices,
-      #        icônes), comparés par leur taille (--ignore-time) : le FTP ne
-      #        garde pas les dates, et mirror renvoyait sinon à chaque run
-      #        les cinq mégaoctets de la vidéo du menu.
-      #     c. Les pages, le sitemap, robots.txt et l'.htaccess, toujours :
-      #        une page change sans changer de taille (le 17 devient le 18).
-      #        --delete retire les pages qui n'existent plus.
-      #     d. Seulement maintenant, ce qu'aucune page n'utilise plus :
-      #        /_astro/ et les fichiers lourds retirés (aucun envoi, les
-      #        passes a et b ont tout mis en place).
+      #     Le manifeste du déploiement PRÉCÉDENT (UN fichier, jamais un
+      #     listage) dit ce qui a changé : quelques fichiers la nuit,
+      #     quelques dizaines après un déploiement de code. Rien n'est
+      #     effacé avant d'être renvoyé (chaque chemin part en `put` direct),
+      #     le site en ligne n'a donc jamais de page ou de style manquant
+      #     pendant l'envoi. /_astro/ part en premier (dossiers-a-creer.txt
+      #     et envoyer.txt le mettent avant le reste) : une page ne
+      #     référence jamais un fichier qui n'existe pas encore. Ce qui a
+      #     disparu, dossiers vidés compris, part en dernier.
       #
-      #     --overwrite partout : sans lui, mirror efface un fichier avant de
-      #     renvoyer le nouveau, et index.html, ou l'.htaccess avec ses
-      #     redirections, manquaient pendant l'envoi.
-      #
-      #     Le marqueur est exclu des --delete : il ne vient pas de dist/,
-      #     donc le mirror l'effacerait, et le déploiement SUIVANT échouerait
-      #     faute de le trouver. De même pour les fichiers de l'hébergeur.
+      #     Le manifeste ne connaît que dist/ : ni le marqueur, ni
+      #     .user.ini, ni les pages de maintenance de l'hébergeur, qui ne
+      #     risquent donc plus d'être touchés par erreur.
       - name: Déployer
         env:
-          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
-          DEPLOY_MARKER: ${{ vars.DEPLOY_MARKER }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
         run: |
           set -o pipefail
+          D="$RUNNER_TEMP/deploiement"
+          mkdir -p "$D"
+
           # lftp imprime des URL contenant le mot de passe, encodé en URL. La
-          # chaîne encodée ne correspondant plus au secret, GitHub ne la masque
-          # pas : on rédige nous-mêmes avant que ça n'atteigne les logs.
-          publier() {
-            lftp -u "$FTP_USER,$FTP_PASSWORD" \
-              -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit yes; $1; quit" \
-              "$FTP_HOST" 2>&1 | sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g'
+          # chaîne encodée ne correspondant plus au secret, GitHub ne la
+          # masque pas : on rédige nous-mêmes avant que ça n'atteigne les
+          # logs. Toujours vers un fichier, jamais dans un pipe : sous
+          # `set -o pipefail`, un sed en bout de pipe qui réussit masquerait
+          # un lftp qui échoue.
+          lftp_go() {
+            lftp -u "$FTP_USER,$FTP_PASSWORD" "$@" "$FTP_HOST" > "$D/sortie.log" 2>&1
+            statut=$?
+            sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g' "$D/sortie.log"
+            return $statut
           }
-          # Les motifs sont relus par lftp : entre apostrophes, il les garde tels quels.
-          garder="--exclude-glob $DEPLOY_MARKER --exclude-glob .user.ini --exclude-glob .infomaniak-maintenance.html --exclude ^_astro/"
-          sansTextes="--exclude '\.(html|xml|txt)\$' --exclude '^\.htaccess\$'"
-          sansLourds="--exclude '\.(mp4|webm|webp|avif|png|jpe?g|gif|svg|ico|pdf|woff2?)\$'"
-          commun="--overwrite --verbose $DRY_RUN"
-          # Deux connexions : dans une seule, la passe des pages restait
-          # bloquée plus d'une minute sur une connexion que le serveur avait
-          # fermée pendant les passes précédentes.
-          publier "mirror -R $commun --only-missing --parallel=8 dist/_astro/ ./_astro/; mirror -R $commun --ignore-time --parallel=2 $garder $sansTextes dist/ ./"
-          publier "mirror -R $commun --transfer-all --delete --parallel=2 $garder $sansLourds dist/ ./; mirror -R $commun --delete --only-missing dist/_astro/ ./_astro/; mirror -R $commun --delete --ignore-time $garder $sansTextes dist/ ./"
+
+          node scripts/deployer.mjs construire dist "$D/nouveau.json"
+
+          # Le manifeste du déploiement précédent : absent au premier
+          # déploiement sous ce système, ou après l'avoir supprimé à la main
+          # pour forcer un envoi complet. fail-exit no : un fichier absent
+          # n'est pas une erreur, ancien.json restera vide.
+          lftp_go -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit no; get .deploy-manifest.json -o $D/ancien.json; quit" || true
+          [ -s "$D/ancien.json" ] || : > "$D/ancien.json"
+
+          node scripts/deployer.mjs diff "$D/ancien.json" "$D/nouveau.json" "$D"
+
+          if [ -n "$DRY_RUN" ]; then
+            echo "Aperçu, rien n'est écrit."
+            echo "--- à envoyer ---"; cat "$D/envoyer.txt"
+            echo "--- à supprimer ---"; cat "$D/supprimer.txt"
+            echo "--- dossiers vidés ---"; cat "$D/dossiers-a-supprimer.txt"
+            exit 0
+          fi
+
+          # Un seul script lftp, une seule connexion.
+          script="$D/script.lftp"
+          {
+            echo "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit yes;"
+            sed 's/.*/mkdir -p "&"/' "$D/dossiers-a-creer.txt"
+            sed 's#.*#put "dist/&" -o "&"#' "$D/envoyer.txt"
+            sed 's/.*/rm "&"/' "$D/supprimer.txt"
+            sed 's/.*/rmdir "&"/' "$D/dossiers-a-supprimer.txt"
+            echo "put \"$D/nouveau.json\" -o .deploy-manifest.json"
+            echo quit
+          } > "$script"
+
+          lftp_go -f "$script"
 
       # 4 · Dater la publication dans le CMS, une fois le site vraiment en
       #     ligne. Un échec ici ne casse pas le run : le site EST publié, et
