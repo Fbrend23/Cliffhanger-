@@ -10,9 +10,12 @@
 // reconstruction est refusée avec son message.
 //
 // Sans JavaScript, le formulaire ne peut rien envoyer : il est caché
-// (html.js absent, site.css), et une ligne renvoie vers l'adresse e-mail des
+// (variante sans-js), et une ligne renvoie vers l'adresse e-mail des
 // réglages.
 import { PRODYSOS_KEY, PRODYSOS_URL } from 'astro:env/server';
+import Intitule from './Intitule.astro';
+import Pastille from './Pastille.astro';
+import Section from './Section.astro';
 import { formatJourHeure, lieu } from '../lib/dates.js';
 import { T } from '../lib/textes.js';
 import { tx, typographier } from '../lib/typo.js';
@@ -28,19 +31,27 @@ const options = dates.flatMap((r) => (r.reservation ? [{ ...r, reservation: r.re
   ...r.reservation,
   libellé: tx([formatJourHeure(r.day, r.time), lieu(r)].filter(Boolean).join(' · ')),
 }));
+
+// Pas de maquette : les filets des tableaux, les pastilles, rien d'autre.
+const champ = 'grid content-start gap-[.35rem] [&>span]:text-base [&>span]:opacity-75';
+const saisie =
+  'w-full rounded-none border-b border-front bg-transparent py-2 text-xl text-front focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-front';
+const note = 'text-sm opacity-75 [&_a]:lien-souligne';
+// Sans JS et sans e-mail vers qui se tourner, tout le bloc part.
+const bloc = email ? undefined : 'sans-js:hidden';
 ---
 
 {
   options.length > 0 && PRODYSOS_URL && PRODYSOS_KEY && (
-    <div class:list={['section wrap resa-bloc', { 'resa-bloc--sans-repli': !email }]} id="reserver">
-      <h2 class="label" set:html={tx(T.réserver)} />
+    <Section class={bloc} id="reserver">
+      <Intitule texte={T.réserver} />
       {/* L'adresse et la clé publiable de Prodysos : celles que le navigateur
           doit connaître pour envoyer la demande, rien d'autre. Les messages
           sont typographiés ici, le script n'a qu'à les poser.
           `data-astro-reload` : sans lui, le ClientRouter prend l'envoi pour
           une navigation, avant que le script ne l'arrête. */}
       <form
-        class="resa"
+        class="mt-4 grid grid-cols-1 gap-x-8 gap-y-6 border-t-2 border-front pt-6 sm:grid-cols-2 sans-js:hidden"
         data-reservation
         data-astro-reload
         data-url={PRODYSOS_URL}
@@ -50,51 +61,51 @@ const options = dates.flatMap((r) => (r.reservation ? [{ ...r, reservation: r.re
         data-refus={typographier(T.réservationRefusée)}
         data-hors-ligne={typographier(T.réservationHorsLigne)}
       >
-        <label class="resa__champ">
+        <label class={champ}>
           <span set:html={tx(T.réservationPrénom)} />
-          <input type="text" name="prenom" autocomplete="given-name" maxlength="59" required />
+          <input class={saisie} type="text" name="prenom" autocomplete="given-name" maxlength="59" required />
         </label>
-        <label class="resa__champ">
+        <label class={champ}>
           <span set:html={tx(T.réservationNom)} />
-          <input type="text" name="nom" autocomplete="family-name" maxlength="60" required />
+          <input class={saisie} type="text" name="nom" autocomplete="family-name" maxlength="60" required />
         </label>
-        <label class="resa__champ">
+        <label class={champ}>
           <span set:html={tx(T.réservationEmail)} />
-          <input type="email" name="email" autocomplete="email" maxlength="200" required />
+          <input class={saisie} type="email" name="email" autocomplete="email" maxlength="200" required />
         </label>
         {/* Prodysos accepte de 1 à 20 places par demande. */}
-        <label class="resa__champ">
+        <label class={champ}>
           <span set:html={tx(T.réservationPlaces)} />
-          <input type="number" name="places" min="1" max="20" value="1" inputmode="numeric" required />
+          <input class={saisie} type="number" name="places" min="1" max="20" value="1" inputmode="numeric" required />
         </label>
-        <label class="resa__champ resa__champ--large">
+        <label class={`${champ} col-span-full`}>
           <span set:html={tx(T.réservationDate)} />
-          <select name="representation" required>
+          <select class={`${saisie} [&_option]:bg-back [&_option]:text-front`} name="representation" required>
             {options.map((o) => <option value={o.id} data-slug={o.slug} set:html={o.libellé} />)}
           </select>
         </label>
-        <label class="resa__champ resa__champ--large">
+        <label class={`${champ} col-span-full`}>
           <span set:html={tx(T.réservationMessage)} />
-          <textarea name="message" rows="3" maxlength="2000" />
+          <textarea class={`${saisie} min-h-18 resize-y`} name="message" rows="3" maxlength="2000" />
         </label>
         {/* Piège à robots : un humain ne voit ni ne coche jamais cette case. */}
         <input class="sr-only" type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true" />
-        <div class="resa__pied">
-          <button class="pill" type="submit" set:html={tx(T.envoyer)} />
-          <p class="resa__statut" role="status" aria-live="polite" hidden />
+        <div class="col-span-full flex flex-wrap items-center gap-x-6 gap-y-4">
+          <Pastille class="disabled:cursor-wait disabled:opacity-50" type="submit"><Fragment set:html={tx(T.envoyer)} /></Pastille>
+          <p class="js-statut text-base data-erreur:font-medium" role="status" aria-live="polite" hidden />
         </div>
-        <p class="resa__note" set:html={tx(T.réservationDonnées)} />
+        <p class={`${note} col-span-full`} set:html={tx(T.réservationDonnées)} />
       </form>
       {
         email && (
           <noscript>
-            <p class="resa__note">
+            <p class={note}>
               <Fragment set:html={tx(T.réservationSansJs)} /> <a href={`mailto:${email}`}>{email}</a>
             </p>
           </noscript>
         )
       }
-    </div>
+    </Section>
   )
 }
 
@@ -110,12 +121,12 @@ const options = dates.flatMap((r) => (r.reservation ? [{ ...r, reservation: r.re
     const d = new FormData(form);
     if (d.get('botcheck')) return;
 
-    const statut = form.querySelector<HTMLElement>('.resa__statut')!;
+    const statut = form.querySelector<HTMLElement>('.js-statut')!;
     const bouton = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
     const choix = form.querySelector<HTMLSelectElement>('select[name="representation"]')!.selectedOptions[0];
     const dire = (texte: string, erreur = false) => {
       statut.textContent = texte;
-      statut.classList.toggle('resa__statut--erreur', erreur);
+      statut.toggleAttribute('data-erreur', erreur);
       statut.hidden = false;
     };
 
@@ -137,7 +148,7 @@ const options = dates.flatMap((r) => (r.reservation ? [{ ...r, reservation: r.re
       // Le formulaire laisse place au remerciement, qui prend le focus : un
       // lecteur d'écran l'annonce, et personne n'envoie deux fois.
       const merci = document.createElement('p');
-      merci.className = 'resa__merci';
+      merci.className = 'mt-4 border-t-2 border-front pt-6 text-xl outline-none';
       merci.tabIndex = -1;
       merci.textContent = form.dataset.merci!;
       form.replaceWith(merci);

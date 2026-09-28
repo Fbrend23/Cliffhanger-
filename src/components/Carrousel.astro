@@ -2,6 +2,7 @@
 // Le carrousel d'un spectacle : les photos à la même hauteur, qui défilent
 // avec aimantation (scroll-snap), et deux flèches dès qu'il y en a plus d'une.
 import Photo from './Photo.astro';
+import Section from './Section.astro';
 import type { Réactive } from '../lib/images.js';
 import { T } from '../lib/textes.js';
 
@@ -10,34 +11,35 @@ interface Props {
 }
 
 const { diapos } = Astro.props;
+const flèche = 'size-11 text-[2.5rem] leading-none opacity-75 hover:opacity-100 focus-visible:opacity-100';
 ---
 
 {
   diapos.length > 0 && (
-    <div class="section slider" data-cascade>
-      <div class="slider__items js-track">
+    <Section nu class="js-slider">
+      <div class="js-track flex snap-x snap-mandatory gap-4 overflow-x-auto px-gouttiere [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {diapos.map((d) => (
-          <figure class="slide">
-            <Photo img={d.img} alt={d.alt} />
+          <figure class="flex-none snap-center">
+            <Photo img={d.img} alt={d.alt} class="h-[min(66vh,38rem)] w-auto max-w-none" />
           </figure>
         ))}
       </div>
       {diapos.length > 1 && (
-        <div class="slider__nav">
-          <button type="button" data-dir="-1" aria-label={T.photoPrécédente}>‹</button>
-          <button type="button" data-dir="1" aria-label={T.photoSuivante}>›</button>
+        <div class="flex justify-end gap-6 px-gouttiere pt-4">
+          <button class={flèche} type="button" data-dir="-1" aria-label={T.photoPrécédente}>‹</button>
+          <button class={flèche} type="button" data-dir="1" aria-label={T.photoSuivante}>›</button>
         </div>
       )}
-    </div>
+    </Section>
   )
 }
 
 <script>
   // Une flèche fait défiler de 60 % de la largeur visible, comme le prototype.
   document.addEventListener('click', (e) => {
-    const bouton = (e.target as Element).closest<HTMLButtonElement>('.slider__nav button');
+    const bouton = (e.target as Element).closest<HTMLButtonElement>('.js-slider [data-dir]');
     if (!bouton) return;
-    const piste = bouton.closest('.slider')?.querySelector<HTMLElement>('.js-track');
+    const piste = bouton.closest('.js-slider')?.querySelector<HTMLElement>('.js-track');
     piste?.scrollBy({ left: piste.clientWidth * 0.6 * Number(bouton.dataset.dir), behavior: 'smooth' });
   });
 </script>

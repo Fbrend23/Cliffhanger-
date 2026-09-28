@@ -1,0 +1,26 @@
+---
+// Le bouton arrondi du site : un lien (réseaux, retour à l'accueil) ou un
+// bouton (envoyer une réservation). Il se remplit de blanc au survol, et
+// grandit sous le doigt pour rester une cible confortable.
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = HTMLAttributes<'a'> | HTMLAttributes<'button'>;
+
+const { class: classe, ...attributs } = Astro.props;
+const classes = [
+  'inline-flex min-h-9 items-center rounded-[2rem] border border-front px-4 py-2 text-base font-normal transition-colors duration-200 hover:bg-front hover:text-back focus-visible:bg-front focus-visible:text-back tactile:min-h-11',
+  classe,
+];
+---
+
+{
+  'href' in attributs && attributs.href ? (
+    <a class:list={classes} {...(attributs as HTMLAttributes<'a'>)}>
+      <slot />
+    </a>
+  ) : (
+    <button class:list={classes} {...(attributs as HTMLAttributes<'button'>)}>
+      <slot />
+    </button>
+  )
+}

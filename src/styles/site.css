@@ -113,49 +113,19 @@
   &:hover, &:focus-visible { border-color: var(--color-front); }
 }
 
-
 /* ================= ANCIEN, à migrer ================= */
 @media (pointer:coarse){.pill{min-height:2.75rem}}
-.phead::before{content:"";position:absolute;inset:0 0 auto 0;z-index:1;height:25%;background:linear-gradient(rgba(0,0,0,.35),transparent);pointer-events:none}
-
-/* ---------- pages article (spectacle, compagnie, Montréal) ---------- */
-.phead{position:relative;height:100svh;overflow:hidden}
-.phead::after{content:"";position:absolute;inset:auto 0 0 0;z-index:1;height:40%;background:linear-gradient(transparent,rgba(0,0,0,.55));pointer-events:none}
-.phead figure{position:absolute;inset:0}
-.phead img{width:100%;height:100%;object-fit:cover}
-.phead hgroup{position:absolute;left:0;bottom:0;z-index:2;max-width:100%;padding:1rem;opacity:.75}
-.phead hgroup p{margin-top:.25rem;font-size:clamp(1rem,2.5vw,1.5rem)}
-.phead figcaption{position:absolute;right:0;bottom:0;z-index:2;padding:1rem;font-size:.875rem;opacity:.8}
-/* Découvrir : un trait fin où une lumière descend, parti dès qu'on défile */
-.hint{position:absolute;right:1rem;bottom:1rem;z-index:2;display:flex;flex-direction:column;align-items:center;gap:.6rem;font-size:.8125rem;font-weight:400;letter-spacing:.25em;text-transform:uppercase;opacity:.9;transition:opacity .4s ease}
-.hint:hover,.hint:focus-visible{opacity:1}
-.hint__line{position:relative;width:1px;height:4rem;overflow:hidden;background:rgba(255,255,255,.45)}
-.hint__line::after{content:"";position:absolute;left:0;top:-40%;width:100%;height:40%;background:var(--color-front);animation:drip 2s var(--ease-cliff) infinite}
-@keyframes drip{from{top:-40%}to{top:100%}}
-.hint--gone{opacity:0;pointer-events:none}
-.phead figcaption + .hint,.phead .hint:has(+ figcaption){bottom:3rem}
-/* en bas à droite sur tous les écrans : les longs titres prennent toute la gauche */
-.phead hgroup{padding-right:6rem}
-@media (min-width:48em){.hint{right:var(--spacing-gouttiere)}}
-/* téléphone et tablette : le trait seul, pour qu'un long titre garde la largeur */
-@media (max-width:63.99em){.hint > span:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.phead hgroup{padding-right:2.5rem}}
-.hint > *{animation:fadein 1s ease 1s both}
 
 .wrap{width:100%;max-width:56rem;margin-inline:auto;padding-inline:var(--spacing-gouttiere)}
 .wrap--wide{max-width:96rem}
 .section{margin-block:var(--spacing-respiration)}
-.phead + .section{margin-top:calc(var(--spacing-respiration) * 1.5)}
+[data-tete] + .section{margin-top:calc(var(--spacing-respiration) * 1.5)}
 .punch{font-size:clamp(1.5rem,3.5vw,2.5rem);font-weight:400;line-height:1.25;opacity:.75;text-wrap:balance}
 .punch cite{display:block;margin-top:1rem;font-size:1rem;font-style:normal;opacity:.8}
-/* l'affiche à ses propres proportions : une boîte 16:9 la rendait minuscule sur téléphone */
-.wide{display:flex;justify-content:center}
-.wide img{width:auto;max-width:100%;height:auto;max-height:min(80svh,48rem)}
 .prose{display:grid;gap:1rem;font-size:1.0625rem;line-height:1.5}
 .prose p{text-wrap:pretty}
 @media (min-width:40em){.prose--justify{text-align:justify;hyphens:auto}}
-.infos b{font-weight:500}
 .label{margin-bottom:.5rem;font-size:1.25rem;font-weight:400;text-transform:uppercase}
-.infos{display:grid;gap:.35rem;line-height:1.5}
 .person,.prose a{border-bottom:.0625rem solid rgba(255,255,255,.35);transition:border-color .25s}
 .person:hover,.person:focus-visible,.prose a:hover,.prose a:focus-visible{border-color:var(--color-front)}
 /* les liens des textes riches du CMS ont le style des noms : le Studio peut retirer les classes, pas les balises */
@@ -163,54 +133,8 @@
 .back{display:inline-block;margin-top:2rem;opacity:.75}
 .back:hover,.back:focus-visible{opacity:1}
 
-.slider__items{display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;padding-inline:var(--spacing-gouttiere);scrollbar-width:none}
-.slider__items::-webkit-scrollbar{display:none}
-.slide{flex:0 0 auto;scroll-snap-align:center}
-.slide img{width:auto;max-width:none;height:min(66vh,38rem)}
-.slider__nav{display:flex;justify-content:flex-end;gap:1.5rem;padding:1rem var(--spacing-gouttiere) 0}
-.slider__nav button{width:2.75rem;height:2.75rem;font-size:2.5rem;line-height:1;opacity:.75}
-.slider__nav button:hover,.slider__nav button:focus-visible{opacity:1}
-
-/* ---------- tableaux (dates, équipe) ---------- */
-.table-wrap{overflow-x:auto}
-.events{width:100%;border-collapse:collapse;border-top:.125rem solid var(--color-front);font-variant-numeric:tabular-nums}
-.events td{padding:1rem .5rem;border-bottom:.0625rem solid var(--color-front);font-size:1.25rem;vertical-align:middle}
-.events td:first-child{width:15rem;padding-left:0;white-space:nowrap}
-.events td:last-child{padding-right:0;text-align:right;white-space:nowrap}
-.events .ev-title{font-size:1.5rem;font-weight:400}
-.events .ev-title a{transition:opacity .25s}
-.events .ev-title a:hover{opacity:.75}
-.events--team td:first-child{width:auto}
-.events--team td:last-child{font-size:1.125rem}
-@media (max-width:40em){
-  .events,.events tbody,.events tr,.events td{display:block;width:auto}
-  .events tr{padding:1rem 0;border-bottom:.0625rem solid var(--color-front)}
-  /* empilées, les cellules reprennent le retour à la ligne : un long lieu (« Saint-Josse-ten-Noode ») était coupé */
-  .events td,.events td:first-child,.events td:last-child{width:auto;padding:0;border:0;text-align:left;white-space:normal}
-  .events td + td{margin-top:.25rem}
-}
-
-/* ---------- réservation (fiche spectacle) ---------- */
-/* Pas de maquette : les filets des tableaux, les pastilles, rien d'autre. Sans JS rien ne partirait, le
-   formulaire est caché et la ligne du <noscript> renvoie à l'e-mail ; sans e-mail, tout le bloc part. */
-.resa{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem 2rem;margin-top:1rem;border-top:.125rem solid var(--color-front);padding-top:1.5rem}
-.resa__champ{display:grid;gap:.35rem;align-content:start}
-.resa__champ span{font-size:1rem;opacity:.75}
-.resa__champ--large,.resa__pied,.resa__note{grid-column:1/-1}
-.resa input,.resa select,.resa textarea{width:100%;padding:.5rem 0;border:0;border-bottom:.0625rem solid var(--color-front);border-radius:0;background:transparent;color:var(--color-front);font:inherit;font-size:1.25rem}
-.resa select option{background:var(--color-back);color:var(--color-front)}
-.resa textarea{min-height:4.5rem;resize:vertical}
-.resa :is(input,select,textarea):focus-visible{outline:.0625rem solid var(--color-front);outline-offset:.25rem}
-.resa__pied{display:flex;flex-wrap:wrap;align-items:center;gap:1rem 1.5rem}
-.resa button:disabled{opacity:.5;cursor:wait}
-.resa__statut{font-size:1rem}
-.resa__statut--erreur{font-weight:500}
-.resa__note{font-size:.875rem;opacity:.75}
-.resa__note a,.resa-lien{border-bottom:.0625rem solid rgba(255,255,255,.35);transition:border-color .25s}
-.resa__note a:hover,.resa__note a:focus-visible,.resa-lien:hover,.resa-lien:focus-visible{border-color:var(--color-front)}
-.resa__merci{margin-top:1rem;padding-top:1.5rem;border-top:.125rem solid var(--color-front);font-size:1.25rem;outline:none}
-@media (max-width:40em){.resa{grid-template-columns:1fr}}
-html:not(.js) .resa,html:not(.js) .resa-bloc--sans-repli{display:none}
+.resa-lien{border-bottom:.0625rem solid rgba(255,255,255,.35);transition:border-color .25s}
+.resa-lien:hover,.resa-lien:focus-visible{border-color:var(--color-front)}
 
 /* ---------- pastilles ---------- */
 .pills{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}
@@ -256,3 +180,5 @@ html:not(.js) .resa,html:not(.js) .resa-bloc--sans-repli{display:none}
 /* chaque bloc glisse en place, l'un après l'autre (animate-rise, posé par Base.astro) */
 @keyframes rise{from{opacity:0;transform:translateY(-1.25rem)}to{opacity:var(--o,1);transform:none}}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
+/* la lumière qui descend dans le trait de Découvrir */
+@keyframes drip{from{top:-40%}to{top:100%}}

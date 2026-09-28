@@ -18,14 +18,14 @@ const { lignes, personne, duree = null } = Astro.props;
 const nomHtml = (n: { slug: string; personnage: string | null }) => {
   const p = personne(n.slug);
   if (!p) return null;
-  const lien = `<a class="person" href="/personne/${n.slug}/">${tx(p.name)}</a>`;
+  const lien = `<a class="lien-souligne" href="/personne/${n.slug}/">${tx(p.name)}</a>`;
   return n.personnage ? `${lien} (${tx(n.personnage)})` : lien;
 };
 
 const rendues = lignes.map((l) => ({ role: tx(`${l.role} :`), valeur: valeurLigne(l, nomHtml, tx) })).filter((l) => l.valeur);
 ---
 
-<div class="infos">
-  {rendues.map((l) => <p><b set:html={l.role} /> <Fragment set:html={l.valeur} /></p>)}
-  {duree && <p><b set:html={tx(`${T.durée} :`)} /> <Fragment set:html={tx(duree)} /></p>}
+<div class="grid gap-[.35rem] leading-normal">
+  {rendues.map((l) => <p><b class="font-medium" set:html={l.role} /> <Fragment set:html={l.valeur} /></p>)}
+  {duree && <p><b class="font-medium" set:html={tx(`${T.durée} :`)} /> <Fragment set:html={tx(duree)} /></p>}
 </div>

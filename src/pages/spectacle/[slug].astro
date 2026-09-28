@@ -32,7 +32,9 @@ const jsonLd = c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url,
   <article>
     <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
     <SectionsSpectacle spectacle={s} />
-    <div class="wrap"><a class="back" href="/spectacles/" set:html={tx(T.tousLesSpectacles)} /></div>
+    <div class="mx-auto w-full max-w-4xl px-gouttiere">
+      <a class="mt-8 inline-block opacity-75 hover:opacity-100 focus-visible:opacity-100" href="/spectacles/" set:html={tx(T.tousLesSpectacles)} />
+    </div>
     <Pied />
   </article>
 </Base>

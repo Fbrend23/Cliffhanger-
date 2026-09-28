@@ -300,7 +300,7 @@ const entrée =
           enAttente = true;
           requestAnimationFrame(() => {
             enAttente = false;
-            document.querySelectorAll('.js-hint').forEach((h) => h.classList.toggle('hint--gone', scrollY > 40));
+            document.querySelectorAll('.js-hint').forEach((h) => h.classList.toggle('est-parti', scrollY > 40));
             const héros = document.querySelector<HTMLElement>('.js-hero');
             if (!héros) return;
             const p = Math.min(1, Math.max(0, (scrollY / innerHeight - 0.5) * 2));
@@ -313,7 +313,7 @@ const entrée =
       // Découvrir : défile jusqu'à la première section sous la photo.
       document.addEventListener('click', (e) => {
         if (!(e.target as Element).closest('.js-hint')) return;
-        document.querySelector('.phead + .section')?.scrollIntoView({ behavior: mouvementRéduit.matches ? 'auto' : 'smooth' });
+        document.querySelector('[data-tete] + *')?.scrollIntoView({ behavior: mouvementRéduit.matches ? 'auto' : 'smooth' });
       });
     </script>
   </body>
