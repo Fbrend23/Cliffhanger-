@@ -12,7 +12,7 @@ const c = await contenu();
 const fond = c.photo(c.reglages.fonds.accueil);
 ---
 
-<Base title={T.introuvable}>
+<Base title={T.introuvable} indexer={false}>
   <PageCentree fond={fond} titre={T.introuvable} chapeau={T.introuvableTexte}>
     <div class="mt-4 flex flex-wrap justify-center gap-3" data-cascade>
       <Pastille href="/"><Fragment set:html={tx(T.retourAccueil)} /></Pastille>
