@@ -90,11 +90,11 @@ const QUALITÉ_PLEIN_ÉCRAN = 84;
 const QUALITÉ_AVIF = 60;
 
 // Le recadrage portrait (lib/directus.js) couvre un téléphone ou une
-// tablette tenus droits : 56vh de large sur un téléphone. Plafond à 1280 px,
-// comme le portfolio : 0,9 pixel physique sur un téléphone 3×, c'est la
-// photo que le visiteur attend, et 1600 px la faisait passer de 270 à près
-// de 400 Ko pour une différence qu'on ne voit pas.
-const PORTRAIT_LARGEURS = [640, 960, 1280];
+// tablette tenus droits : 56vh de large sur un téléphone (1420 px physiques
+// en 3×), 100vw sur une tablette (1640 en 2×). Jusqu'à 1600 px, donc, et pas
+// 1280 comme le portfolio : la netteté passe d'abord, comme pour le paysage
+// (le fond de l'accueil sur téléphone pèse 390 Ko au lieu de 256).
+const PORTRAIT_LARGEURS = [640, 960, 1280, 1600];
 const PORTRAIT = { width: 9, height: 16 };
 
 /**
