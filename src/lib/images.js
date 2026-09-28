@@ -57,6 +57,17 @@ function couvre(taille) {
   return `(min-aspect-ratio: ${taille.width}/${taille.height}) 100vw, ${Math.round((taille.width / taille.height) * 100)}vh`;
 }
 
+/**
+ * L'inverse pour une image CONTENUE dans l'écran (la visionneuse) : calée sur
+ * la hauteur quand l'écran est plus large qu'elle, sur la largeur sinon. Un
+ * portrait sur un écran large n'en occupe qu'un tiers.
+ * @param {Taille|null|undefined} taille
+ */
+function contient(taille) {
+  if (!taille?.width || !taille?.height) return '100vw';
+  return `(min-aspect-ratio: ${taille.width}/${taille.height}) ${Math.round((taille.width / taille.height) * 100)}vh, 100vw`;
+}
+
 // Une photo qui couvre l'écran est la première chose que le visiteur regarde :
 // un portable de 1440 px en 2× demande 2880 px de large, un écran 4K plus
 // encore. Les largeurs montent donc jusqu'à 3200, jamais au-dessus de
@@ -167,8 +178,12 @@ export async function vignetteGalerie(image, taille, apercu = null) {
   return r;
 }
 
-/** La photo agrandie de la visionneuse : l'écran entier, mêmes exigences que le héros. */
-export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2560, 3200], '100vw', { qualité: QUALITÉ_PLEIN_ÉCRAN });
+/**
+ * La photo agrandie de la visionneuse : l'écran entier, mêmes exigences que
+ * le héros, AVIF compris. Contenue et non couverte : un portrait n'occupe
+ * qu'une bande d'un écran large, `sizes` le dit.
+ */
+export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2560, 3200], contient(taille), { qualité: QUALITÉ_PLEIN_ÉCRAN, avif: true });
 
 /**
  * L'image des partages : les réseaux veulent un JPEG de 1200 px.

@@ -6,8 +6,12 @@
 // flèches (boutons et clavier), le balayage du doigt, la fermeture d'un clic
 // à côté, et rend le focus à la vignette d'où l'on vient.
 //
-// La grande image n'est demandée qu'à l'ouverture : son srcset attend sur le
-// bouton de la vignette (data-srcset), et le navigateur choisit sa taille.
+// La grande image n'est demandée qu'à l'ouverture : ses srcset (AVIF et WebP)
+// attendent sur le bouton de la vignette, et le navigateur choisit format et
+// taille. Le temps qu'elle arrive, la visionneuse montre la vignette déjà
+// chargée, jamais une case vide ; ses deux voisines suivent, en priorité
+// basse, pour que les flèches soient instantanées. Comme le portfolio
+// (61e2bf7, 1de987e).
 import Photo from './Photo.astro';
 import { grande, vignetteGalerie } from '../lib/images.js';
 import { T } from '../lib/textes.js';
@@ -36,6 +40,8 @@ const tuiles = await Promise.all(
           class="group js-vignette block w-full cursor-zoom-in"
           type="button"
           data-srcset={t.grande.srcset}
+          data-avif={t.grande.avif}
+          data-ratio={t.grande.width / t.grande.height}
           data-src={t.grande.src}
           data-sizes={t.grande.sizes}
           data-legende={typographier(t.caption)}
@@ -73,18 +79,92 @@ const tuiles = await Promise.all(
     const boîte = document.querySelector<HTMLDialogElement>('dialog.js-visionneuse');
     if (!boîte) return;
     const vignettes = [...document.querySelectorAll<HTMLButtonElement>('.js-vignette')];
-    const image = boîte.querySelector('img')!;
+    const classes = boîte.querySelector('img')?.className ?? '';
     const légende = boîte.querySelector<HTMLElement>('.js-legende')!;
+    const économe = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
     let position = 0;
     let retour: HTMLElement | null = null;
 
+    // La grande image d'une vignette, chargée une seule fois et décodée : une
+    // promesse partagée par l'affichage et le préchargement des voisines.
+    // Hors de la page, dans son propre <picture>, pour que le navigateur y
+    // choisisse l'AVIF ; la source et les srcset sont posés avant le src,
+    // sinon le petit WebP partirait d'abord. On attend `load` avant decode() :
+    // sur WebKit, decode() d'une image détachée peut se résoudre trop tôt.
+    // Le <picture> est gardé et affiché tel quel : l'<img> sortie de son
+    // cadre referait son choix sans la source AVIF, et téléchargerait le WebP.
+    const grandes = new Map<number, Promise<HTMLPictureElement>>();
+    const charger = (i: number, priorité: 'high' | 'low') => {
+      let p = grandes.get(i);
+      if (!p) {
+        const v = vignettes[i];
+        const cadre = document.createElement('picture');
+        cadre.className = 'contents';
+        const img = document.createElement('img');
+        if (v.dataset.avif) {
+          const source = document.createElement('source');
+          source.type = 'image/avif';
+          source.sizes = v.dataset.sizes ?? '100vw';
+          source.srcset = v.dataset.avif;
+          cadre.append(source);
+        }
+        cadre.append(img);
+        img.fetchPriority = priorité;
+        img.decoding = 'async';
+        img.sizes = v.dataset.sizes ?? '100vw';
+        img.srcset = v.dataset.srcset ?? '';
+        img.src = v.dataset.src ?? '';
+        p = new Promise<void>((ok, échec) => {
+          img.addEventListener('load', () => ok(), { once: true });
+          img.addEventListener('error', () => échec(), { once: true });
+        })
+          .then(() => img.decode().catch(() => {}))
+          .then(() => cadre);
+        // Une image en échec pourra être redemandée.
+        p.catch(() => grandes.delete(i));
+        grandes.set(i, p);
+      }
+      return p;
+    };
+
+    // L'image affichée prend la place de la précédente dans la visionneuse,
+    // à la taille de la photo contenue dans l'écran, qu'elle soit la vignette
+    // ou la grande : sans ça, la vignette s'afficherait à sa petite taille
+    // naturelle, puis sauterait. 6rem : les marges haute et basse de la
+    // boîte (pt-14, pb-10), où vivent le bouton Fermer et la légende.
+    let affichée: Element = boîte.querySelector('img')!;
+    const afficher = (nœud: HTMLImageElement | HTMLPictureElement, alt: string, ratio: number) => {
+      const img = nœud instanceof HTMLImageElement ? nœud : nœud.querySelector('img')!;
+      img.className = classes;
+      img.alt = alt;
+      if (ratio) {
+        img.style.aspectRatio = String(ratio);
+        img.style.width = `min(100%, calc((100dvh - 6rem) * ${ratio}))`;
+      }
+      if (affichée !== nœud) affichée.replaceWith(nœud);
+      affichée = nœud;
+    };
+
     const montrer = () => {
-      const v = vignettes[position];
-      image.srcset = v.dataset.srcset ?? '';
-      image.sizes = v.dataset.sizes ?? '100vw';
-      image.src = v.dataset.src ?? '';
-      image.alt = v.querySelector('img')?.alt ?? '';
-      légende.textContent = T.légendeVisionneuse(v.dataset.legende ?? '', position + 1, vignettes.length);
+      const i = position;
+      const v = vignettes[i];
+      const vignette = v.querySelector('img');
+      const alt = vignette?.alt ?? '';
+      const ratio = Number(v.dataset.ratio) || 0;
+      légende.textContent = T.légendeVisionneuse(v.dataset.legende ?? '', i + 1, vignettes.length);
+      // D'abord la vignette déjà chargée, agrandie : la photo est là tout de
+      // suite, et se précise quand la grande arrive.
+      if (vignette?.currentSrc) {
+        const aperçu = new Image();
+        aperçu.src = vignette.currentSrc;
+        afficher(aperçu, alt, ratio);
+      }
+      charger(i, 'high')
+        .then((cadre) => {
+          if (position === i && boîte.open) afficher(cadre, alt, ratio);
+        })
+        .catch(() => {});
+      if (!économe) for (const pas of [1, -1]) charger((i + pas + vignettes.length) % vignettes.length, 'low').catch(() => {});
     };
     const avancer = (pas: number) => {
       position = (position + pas + vignettes.length) % vignettes.length;
