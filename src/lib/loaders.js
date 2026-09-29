@@ -48,7 +48,6 @@ const ENV_PRODYSOS = { PRODYSOS_URL, PRODYSOS_KEY, PRODYSOS_COMPANY };
 
 export const SPECTACLES = 'cliff_spectacles';
 export const PERSONNES = 'cliff_personnes';
-export const DISTRIBUTION = 'cliff_distribution';
 export const GENERIQUE = 'cliff_generique';
 export const REPRESENTATIONS = 'cliff_representations';
 export const PHOTOS = 'cliff_photos';
@@ -380,39 +379,8 @@ export function personnesLoader() {
 }
 
 /**
- * La ligne « Avec » de chaque spectacle : une entrée par interprète.
- * @returns {Loader}
- */
-export function distributionLoader() {
-  return {
-    name: 'directus-distribution',
-    async load({ store, parseData, logger }) {
-      const lignes = await requestAll(
-        `/items/${DISTRIBUTION}?${PUBLIÉ}&sort=sort,id&fields=id,sort,spectacle.slug,personne.slug,personnage`
-      );
-      store.clear();
-      for (const l of lignes) {
-        const spectacle = texte(l.spectacle?.slug);
-        const personne = texte(l.personne?.slug);
-        if (!spectacle || !personne) {
-          logger.warn(`distribution ${l.id} : spectacle ou personne dépublié, ligne ignorée`);
-          continue;
-        }
-        signalerTirets(logger, `distribution ${l.id}`, [l.personnage]);
-        const id = String(l.id);
-        const data = await parseData({
-          id,
-          data: { spectacle, personne, personnage: texte(l.personnage), sort: l.sort ?? 0 },
-        });
-        store.set({ id, data, digest: JSON.stringify(l) });
-      }
-      logger.info(`${lignes.length} ligne(s) de distribution chargée(s)`);
-    },
-  };
-}
-
-/**
- * Les autres lignes du générique : Texte, Mise en scène…
+ * Les lignes du générique : Texte, Mise en scène, Avec… Chaque personne porte
+ * le personnage qu'elle joue, s'il y en a un.
  * @returns {Loader}
  */
 export function generiqueLoader() {
@@ -420,7 +388,7 @@ export function generiqueLoader() {
     name: 'directus-generique',
     async load({ store, parseData, logger }) {
       const lignes = await requestAll(
-        `/items/${GENERIQUE}?${PUBLIÉ}&sort=sort,id&fields=id,sort,spectacle.slug,role,note,text,personnes.${PERSONNES}_id.slug` +
+        `/items/${GENERIQUE}?${PUBLIÉ}&sort=sort,id&fields=id,sort,spectacle.slug,role,note,text,personnes.personnage,personnes.${PERSONNES}_id.slug` +
           `&deep[personnes][_sort]=sort`
       );
       store.clear();
@@ -432,9 +400,12 @@ export function generiqueLoader() {
           continue;
         }
         signalerTirets(logger, `générique « ${role} »`, [l.role, l.note, l.text]);
+        signalerTirets(logger, `générique « ${role} » (personnages)`, (l.personnes ?? []).map((/** @type {any} */ j) => j?.personnage));
         // Une personne dépubliée revient sans slug : elle sort de la ligne,
         // les autres restent.
-        const personnes = (l.personnes ?? []).map((/** @type {any} */ j) => texte(j?.[`${PERSONNES}_id`]?.slug)).filter(Boolean);
+        const personnes = (l.personnes ?? [])
+          .map((/** @type {any} */ j) => ({ slug: texte(j?.[`${PERSONNES}_id`]?.slug), personnage: texte(j?.personnage) }))
+          .filter((/** @type {{ slug: string|null }} */ p) => p.slug);
         // La note garde son espace final éventuel : « sous la direction d’ »
         // se colle au nom qui suit (lib/generique.js).
         const note = typeof l.note === 'string' && l.note.trim() ? l.note : null;

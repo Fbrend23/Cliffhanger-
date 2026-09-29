@@ -10,7 +10,6 @@
 import { defineCollection } from 'astro:content';
 import { z } from 'astro/zod';
 import {
-  distributionLoader,
   generiqueLoader,
   montrealLoader,
   personnesLoader,
@@ -78,16 +77,6 @@ const personnes = defineCollection({
   }),
 });
 
-const distribution = defineCollection({
-  loader: distributionLoader(),
-  schema: z.object({
-    spectacle: z.string(),
-    personne: z.string(),
-    personnage: z.string().nullable(),
-    sort: z.number(),
-  }),
-});
-
 const generique = defineCollection({
   loader: generiqueLoader(),
   schema: z.object({
@@ -95,7 +84,7 @@ const generique = defineCollection({
     role: z.string(),
     note: z.string().nullable(),
     text: z.string().nullable(),
-    personnes: z.array(z.string()),
+    personnes: z.array(z.object({ slug: z.string(), personnage: z.string().nullable() })),
     sort: z.number(),
   }),
 });
@@ -156,4 +145,4 @@ const reglages = defineCollection({
     }),
 });
 
-export const collections = { spectacles, photos, personnes, distribution, generique, representations, montreal, reglages };
+export const collections = { spectacles, photos, personnes, generique, representations, montreal, reglages };

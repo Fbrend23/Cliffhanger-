@@ -1,12 +1,9 @@
 // Le générique d'un spectacle et les projets d'une personne. Pur, testé dans
 // test/generique.test.js.
 //
-// Dans le CMS, le générique tient en deux collections : la distribution (une
-// ligne par interprète, avec son personnage) et les autres rôles (note,
-// personnes, texte). Le site les remet en une liste, dans l'ordre du Studio.
-// La distribution devient la ligne « Avec » : elle prend la place d'une ligne
-// de générique de rôle « Avec » s'il y en a une (c'est ce qui permet de la
-// placer où l'on veut), sinon elle vient en dernier.
+// Dans le CMS, le générique d'un spectacle est une seule liste de lignes (rôle,
+// note, personnes, texte), dans l'ordre du Studio. Chaque personne d'une ligne
+// peut porter le personnage qu'elle joue : c'est ce qui fait la ligne « Avec ».
 
 import { T } from './textes.js';
 
@@ -24,33 +21,17 @@ export const joindreFr = (items) => (items.length < 2 ? items.join('') : `${item
 /**
  * Les lignes du générique d'un spectacle, dans l'ordre.
  *
- * @param {{ role: string, note: string|null, text: string|null, personnes: string[], sort: number }[]} generique  les lignes de ce spectacle
- * @param {{ personne: string, personnage: string|null, sort: number }[]} distribution  ses interprètes
+ * @param {{ role: string, note: string|null, text: string|null, personnes: Nom[], sort: number }[]} generique  les lignes de ce spectacle
  * @returns {Ligne[]}
  */
-export function lignesGenerique(generique, distribution) {
-  /**
-   * @param {{ sort: number }} a
-   * @param {{ sort: number }} b
-   */
-  const parOrdre = (a, b) => a.sort - b.sort;
-  const avec = [...distribution].sort(parOrdre).map((d) => ({ slug: d.personne, personnage: d.personnage }));
-  const lignes = [];
-  let placée = false;
-  for (const g of [...generique].sort(parOrdre)) {
-    const repère = g.role.trim() === T.avec;
-    if (repère && placée) continue;
-    lignes.push({
-      role: g.role,
-      note: g.note,
-      noms: [...g.personnes.map((slug) => ({ slug, personnage: null })), ...(repère ? avec : [])],
-      text: g.text,
-    });
-    if (repère) placée = true;
-  }
-  if (!placée && avec.length) lignes.push({ role: T.avec, note: null, noms: avec, text: null });
-  // Une ligne sans rien après son rôle serait un champ vide affiché.
-  return lignes.filter((l) => l.note || l.noms.length || l.text);
+export function lignesGenerique(generique) {
+  return (
+    [...generique]
+      .sort((a, b) => a.sort - b.sort)
+      .map((g) => ({ role: g.role, note: g.note, noms: g.personnes, text: g.text }))
+      // Une ligne sans rien après son rôle serait un champ vide affiché.
+      .filter((l) => l.note || l.noms.length || l.text)
+  );
 }
 
 /**

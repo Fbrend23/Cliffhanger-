@@ -195,16 +195,15 @@ test('personnes : groupes, Marie-Hélène Ruiz invitée, bio en HTML', async () 
   assert.equal(entrées.get('audrey-colomb').data.bio, null);
 });
 
-test('distribution et générique : liens par slug, ordre, note gardée', async () => {
-  const d = contexte();
-  await L.distributionLoader().load(d.ctx);
-  const fsv = [...d.entrées.values()].map((e) => e.data).filter((l) => l.spectacle === 'les-femmes-se-vantent');
-  assert.deepEqual(fsv[0], { spectacle: 'les-femmes-se-vantent', personne: 'sophie-decaestecker', personnage: 'Henriette', sort: fsv[0].sort });
+test('générique : liens par slug, ordre, note gardée, personnage de chaque personne', async () => {
   const g = contexte();
   await L.generiqueLoader().load(g.ctx);
-  const mes = [...g.entrées.values()].map((e) => e.data).find((l) => l.spectacle === 'linedit-de-moliere' && l.role === 'Mise en scène');
+  const lignes = [...g.entrées.values()].map((e) => e.data);
+  const mes = lignes.find((l) => l.spectacle === 'linedit-de-moliere' && l.role === 'Mise en scène');
   assert.equal(mes.note, 'collective, sous la direction d’');
-  assert.deepEqual(mes.personnes, ['alize-cookie']);
+  assert.deepEqual(mes.personnes, [{ slug: 'alize-cookie', personnage: null }]);
+  const avec = lignes.find((l) => l.spectacle === 'les-femmes-se-vantent' && l.role === 'Avec');
+  assert.deepEqual(avec.personnes[0], { slug: 'sophie-decaestecker', personnage: 'Henriette' });
 });
 
 test('représentations : jour, heure sans secondes, champs vides à null', async () => {

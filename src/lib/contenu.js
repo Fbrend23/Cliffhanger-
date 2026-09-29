@@ -17,11 +17,10 @@ export function contenu() {
 }
 
 async function charger() {
-  const [spectacles, photos, personnes, distribution, generique, representations, montreal, reglages] = await Promise.all([
+  const [spectacles, photos, personnes, generique, representations, montreal, reglages] = await Promise.all([
     getCollection('spectacles'),
     getCollection('photos'),
     getCollection('personnes'),
-    getCollection('distribution'),
     getCollection('generique'),
     getCollection('representations'),
     getEntry('montreal', 'site'),
@@ -49,10 +48,7 @@ async function charger() {
   const lignesParSpectacle = new Map(
     tousSpectacles.map((s) => [
       s.slug,
-      lignesGenerique(
-        generique.map((e) => e.data).filter((g) => g.spectacle === s.slug),
-        distribution.map((e) => e.data).filter((d) => d.spectacle === s.slug && personnesParSlug.has(d.personne))
-      ),
+      lignesGenerique(generique.map((e) => e.data).filter((g) => g.spectacle === s.slug)),
     ])
   );
 

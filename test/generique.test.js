@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { joindreFr, lignesGenerique, projetsDe, valeurLigne } from '../src/lib/generique.js';
 
 const g = (sort, role, extra = {}) => ({ sort, role, note: null, text: null, personnes: [], ...extra });
-const d = (sort, personne, personnage = null) => ({ sort, personne, personnage });
+const n = (slug, personnage = null) => ({ slug, personnage });
 
 test('joindreFr', () => {
   assert.equal(joindreFr([]), '');
@@ -12,28 +12,25 @@ test('joindreFr', () => {
   assert.equal(joindreFr(['a', 'b', 'c']), 'a, b et c');
 });
 
-test('la distribution prend la place de la ligne « Avec », dans l’ordre du Studio', () => {
-  const lignes = lignesGenerique(
-    [g(1, 'Texte', { personnes: ['mhr'] }), g(3, 'Genre', { text: 'musical' }), g(2, 'Avec')],
-    [d(2, 'b'), d(1, 'a', 'Henriette')]
-  );
+test('les lignes suivent l’ordre du Studio, les noms gardent leur personnage', () => {
+  const lignes = lignesGenerique([
+    g(1, 'Texte', { personnes: [n('mhr')] }),
+    g(3, 'Genre', { text: 'musical' }),
+    g(2, 'Avec', { personnes: [n('a', 'Henriette'), n('b')] }),
+  ]);
   assert.deepEqual(
     lignes.map((l) => l.role),
     ['Texte', 'Avec', 'Genre']
   );
-  assert.deepEqual(lignes[1].noms, [
-    { slug: 'a', personnage: 'Henriette' },
-    { slug: 'b', personnage: null },
-  ]);
+  assert.deepEqual(lignes[1].noms, [n('a', 'Henriette'), n('b')]);
 });
 
-test('sans ligne « Avec », la distribution vient en dernier ; une ligne vide disparaît', () => {
-  const lignes = lignesGenerique([g(1, 'Mise en scène', { text: 'collective' }), g(2, 'Vide')], [d(1, 'a')]);
+test('une ligne sans note, sans nom et sans texte disparaît', () => {
+  const lignes = lignesGenerique([g(1, 'Mise en scène', { text: 'collective' }), g(2, 'Vide'), g(3, 'Avec')]);
   assert.deepEqual(
     lignes.map((l) => l.role),
-    ['Mise en scène', 'Avec']
+    ['Mise en scène']
   );
-  assert.deepEqual(lignesGenerique([g(1, 'Avec')], []), []);
 });
 
 test('valeur : la note qui finit par une apostrophe se colle au nom', () => {
@@ -55,8 +52,8 @@ test('projets : rôles par spectacle, interprétation avec le personnage, les pl
     { slug: 'inedit', year: 2026 },
   ];
   const lignes = new Map([
-    ['fsv', lignesGenerique([g(1, 'Mise en scène', { text: 'collective' })], [d(1, 'sophie', 'Henriette')])],
-    ['inedit', lignesGenerique([g(1, 'Mise en scène', { personnes: ['sophie'] }), g(2, 'Avec')], [d(1, 'sophie')])],
+    ['fsv', lignesGenerique([g(1, 'Mise en scène', { text: 'collective' }), g(2, 'Avec', { personnes: [n('sophie', 'Henriette')] })])],
+    ['inedit', lignesGenerique([g(1, 'Mise en scène', { personnes: [n('sophie')] }), g(2, 'Avec', { personnes: [n('sophie')] })])],
   ]);
   assert.deepEqual(
     projetsDe('sophie', spectacles, lignes).map((p) => [p.spectacle.slug, p.roles]),

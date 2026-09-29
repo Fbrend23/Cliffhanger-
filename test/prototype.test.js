@@ -29,11 +29,11 @@ test('personnes : Marie-Hélène Ruiz invitée, le collectif de Montréal à par
   assert.equal(groupe['alexandre-van-campenhout'], 'equipe');
 });
 
-test('le générique garde la place de « Avec »', () => {
+test('la ligne « Avec » garde sa place et porte les interprètes', () => {
   const pe = m.generique.filter((g) => g.spectacle === 'par-endroits').map((g) => g.role);
   assert.deepEqual(pe, ['Initiative et mise en scène', 'Écriture', 'Avec', 'Scénographie', 'Assistanat', 'Affiche']);
-  const fsv = m.distribution.filter((d) => d.spectacle === 'les-femmes-se-vantent');
-  assert.deepEqual(fsv[2], { spectacle: 'les-femmes-se-vantent', personne: 'laurie-stevens', personnage: 'Philaminte' });
+  const avec = m.generique.find((g) => g.spectacle === 'les-femmes-se-vantent' && g.role === 'Avec');
+  assert.deepEqual(avec.personnes[2], { slug: 'laurie-stevens', personnage: 'Philaminte' });
 });
 
 test('textes en paragraphes HTML, réglages et fonds', () => {

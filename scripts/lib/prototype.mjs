@@ -109,7 +109,6 @@ export function modèleDuPrototype({ CONTACT, PEOPLE, SHOWS, MONTREAL, GALLERY, 
 
   // --- Spectacles, génériques, représentations.
   const spectacles = [];
-  const distribution = [];
   const generique = [];
   const representations = [];
   for (const s of SHOWS) {
@@ -128,23 +127,17 @@ export function modèleDuPrototype({ CONTACT, PEOPLE, SHOWS, MONTREAL, GALLERY, 
       slides: (s.slides ?? []).map(([nom, légende]) => photo(nom, légende, s.slug, false)),
     });
     for (const c of s.credits ?? []) {
-      if (c.role === 'Avec') {
-        // La distribution est une autre collection ; une ligne « Avec » sans
-        // personne garde sa place dans le générique (src/lib/generique.js).
-        generique.push({ spectacle: s.slug, role: 'Avec', note: null, personnes: [], text: null });
-        for (const p of c.people ?? []) {
-          const [personne, personnage] = Array.isArray(p) ? p : [p, null];
-          distribution.push({ spectacle: s.slug, personne, personnage });
-        }
-      } else {
-        generique.push({
-          spectacle: s.slug,
-          role: c.role,
-          note: c.note ?? null,
-          personnes: (c.people ?? []).map((p) => (Array.isArray(p) ? p[0] : p)),
-          text: c.text ?? null,
-        });
-      }
+      // Une personne est un slug, ou [slug, personnage] pour les interprètes.
+      generique.push({
+        spectacle: s.slug,
+        role: c.role,
+        note: c.note ?? null,
+        personnes: (c.people ?? []).map((p) => {
+          const [slug, personnage] = Array.isArray(p) ? p : [p, null];
+          return { slug, personnage };
+        }),
+        text: c.text ?? null,
+      });
     }
     for (const d of s.dates ?? []) {
       representations.push({
@@ -186,7 +179,6 @@ export function modèleDuPrototype({ CONTACT, PEOPLE, SHOWS, MONTREAL, GALLERY, 
     personnes,
     spectacles,
     photos: [...photos.values()],
-    distribution,
     generique,
     representations,
     montreal,

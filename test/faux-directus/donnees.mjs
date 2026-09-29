@@ -110,16 +110,13 @@ export async function construireBase() {
     s.slides = s._slides.map((clé, i) => ({ id: s.id * 100 + i, sort: i + 1, cliff_photos_id: parClé.get(clé) }));
   }
 
-  const distribution = numéroter(
-    modèle.distribution.map((d) => ({ spectacle: parSlug.get(d.spectacle), personne: parPersonne.get(d.personne), personnage: d.personnage }))
-  );
   const generique = numéroter(
     modèle.generique.map((g) => ({
       spectacle: parSlug.get(g.spectacle),
       role: g.role,
       note: g.note,
       text: g.text,
-      personnes: g.personnes.map((slug, i) => ({ sort: i + 1, cliff_personnes_id: parPersonne.get(slug) })),
+      personnes: g.personnes.map((p, i) => ({ sort: i + 1, personnage: p.personnage, cliff_personnes_id: parPersonne.get(p.slug) })),
     }))
   );
   const representations = numéroter(modèle.representations.map((r) => ({ ...r, spectacle: parSlug.get(r.spectacle) })));
@@ -140,7 +137,6 @@ export async function construireBase() {
       cliff_spectacles: spectacles,
       cliff_personnes: personnes,
       cliff_photos: photos,
-      cliff_distribution: distribution,
       cliff_generique: generique,
       cliff_representations: representations,
     },

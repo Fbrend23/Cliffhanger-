@@ -13,8 +13,7 @@
 // USAGE UNIQUE, MAIS REJOUABLE. Chaque élément est retrouvé par sa clé
 // naturelle avant d'écrire : un fichier par son titre (le nom de l'image),
 // une personne ou un spectacle par son slug, une photo par (fichier,
-// légende), une ligne de distribution par (spectacle, personne), une ligne
-// de générique par (spectacle, rôle), une représentation par (spectacle,
+// légende), une ligne de générique par (spectacle, rôle), une représentation par (spectacle,
 // jour, heure). Ce qui existe est mis à jour si besoin, jamais recréé ; un
 // rejeu finit sur « 0 créé, 0 modifié ». Rien n'est jamais supprimé.
 //
@@ -245,15 +244,8 @@ for (const s of modèle.spectacles) {
   if (!DRY) await appeler('PATCH', `/items/cliff_spectacles/${spectacleId.get(s.slug)}`, { slides: voulu.map((id) => ({ cliff_photos_id: id })) });
 }
 
-// 7 · La distribution (la ligne « Avec ») et les autres lignes du générique.
-console.log(`7. distribution (${modèle.distribution.length}) et générique (${modèle.generique.length})`);
-await verser(
-  'cliff_distribution',
-  ['spectacle', 'personne', 'personnage', 'status', 'sort'],
-  modèle.distribution.map((d, i) => ({ spectacle: spectacleId.get(d.spectacle), personne: personneId.get(d.personne), personnage: d.personnage, ...publié, sort: i + 1 })),
-  (d) => `${d.spectacle}|${d.personne}`,
-  (_, i) => `${modèle.distribution[i].spectacle} · ${modèle.distribution[i].personne}`
-);
+// 7 · Le générique : une ligne par rôle, la ligne « Avec » porte les interprètes.
+console.log(`7. générique (${modèle.generique.length})`);
 const génériqueId = await verser(
   'cliff_generique',
   ['spectacle', 'role', 'note', 'text', 'status', 'sort'],
@@ -261,19 +253,19 @@ const génériqueId = await verser(
   (g) => `${g.spectacle}|${g.role}`,
   (g, i) => `${modèle.generique[i].spectacle} · ${g.role}`
 );
-const personnesDuGénérique = await lire(`/items/cliff_generique?fields=id,personnes.cliff_personnes_id&deep[personnes][_sort]=sort&limit=-1`);
-const personnesParLigne = new Map(personnesDuGénérique.map((g) => [String(g.id), (g.personnes ?? []).map((l) => l.cliff_personnes_id)]));
+const personnesDuGénérique = await lire(`/items/cliff_generique?fields=id,personnes.cliff_personnes_id,personnes.personnage&deep[personnes][_sort]=sort&limit=-1`);
+const personnesParLigne = new Map(personnesDuGénérique.map((g) => [String(g.id), (g.personnes ?? []).map((l) => [l.cliff_personnes_id, l.personnage ?? null])]));
 for (const g of modèle.generique) {
   if (!g.personnes.length) continue;
   const id = génériqueId.get(`${spectacleId.get(g.spectacle)}|${g.role}`);
-  const voulu = g.personnes.map((slug) => personneId.get(slug));
+  const voulu = g.personnes.map((p) => [personneId.get(p.slug), p.personnage ?? null]);
   if (JSON.stringify(voulu) === JSON.stringify(personnesParLigne.get(String(id)) ?? [])) {
     bilan.inchangés++;
     continue;
   }
   bilan.modifiés++;
   console.log(`   ~ ${g.spectacle} · ${g.role} : ${voulu.length} personne(s)`);
-  if (!DRY) await appeler('PATCH', `/items/cliff_generique/${id}`, { personnes: voulu.map((p) => ({ cliff_personnes_id: p })) });
+  if (!DRY) await appeler('PATCH', `/items/cliff_generique/${id}`, { personnes: voulu.map(([p, personnage]) => ({ cliff_personnes_id: p, personnage })) });
 }
 
 // 8 · Les représentations.
