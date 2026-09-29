@@ -212,6 +212,7 @@ const entrée =
               <a
                 class="inline-block px-3 py-1 opacity-75 transition-opacity duration-250 hover:opacity-100 focus-visible:opacity-100 aria-[current=page]:opacity-100 sans-js:pl-0"
                 href={l.href}
+                data-astro-prefetch="load"
                 aria-current={l.href === rubrique ? 'page' : undefined}
                 set:html={tx(l.label)}
               />
@@ -273,8 +274,11 @@ const entrée =
           ouvrirMenu(ouvrir);
           if (!ouvrir) burger()?.focus();
         } else if (cible.closest('#menu a')) {
-          // Un lien vers la page déjà affichée ne change rien : on ferme quand même.
-          ouvrirMenu(false);
+          // Vers une autre page, le menu reste ouvert : `astro:before-swap` le ferme à l'arrivée
+          // de la page. Le fermer ici montrerait l'ancienne page pendant le chargement. Un lien
+          // vers la page déjà affichée ne change rien : on ferme tout de suite.
+          const lien = cible.closest('a') as HTMLAnchorElement;
+          if (lien.pathname === location.pathname || lien.target === '_blank') ouvrirMenu(false);
         }
       });
 
