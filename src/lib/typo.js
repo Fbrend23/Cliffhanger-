@@ -17,7 +17,10 @@
 const INSÉCABLE = ' ';
 const FINE = ' ';
 
-/** Un texte sans balise. */
+/**
+ * Un texte sans balise.
+ * @param {string} t
+ */
 function nœud(t) {
   return t
     .replace(/'/g, '’')
@@ -42,8 +45,14 @@ export function typographier(html) {
     .join('');
 }
 
-/** Échappe un texte pour le poser en HTML. */
-export const échapper = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+/** @type {Record<string, string>} */
+const ÉCHAPPEMENTS = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+
+/**
+ * Échappe un texte pour le poser en HTML.
+ * @param {unknown} s
+ */
+export const échapper = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ÉCHAPPEMENTS[c]);
 
 /**
  * Un texte simple (titre, légende, lieu) prêt pour `set:html` : échappé, puis
