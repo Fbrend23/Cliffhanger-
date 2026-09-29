@@ -5,6 +5,7 @@
 
 import { getCollection, getEntry } from 'astro:content';
 import { lignesGenerique } from './generique.js';
+import { légal } from './legal.js';
 
 /** @type {ReturnType<typeof charger> | null} */
 let promesse = null;
@@ -76,6 +77,8 @@ async function charger() {
     représentationsDe: (slug) => toutesReprésentations.filter((r) => r.spectacle === slug).sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? '').localeCompare(b.time ?? '')),
     montreal: montreal?.data ?? { sub: null, lead: null, text: null },
     reglages: reglages.data,
+    /** Les informations légales, ou null tant qu'il en manque : sans elles, ni pages légales ni liens. */
+    légal: légal(reglages.data),
   };
 }
 
