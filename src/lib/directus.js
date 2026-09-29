@@ -58,8 +58,8 @@ export const champsFichier = (relation) => CHAMPS_FICHIER.map((c) => `${relation
 // Un 5xx ou une coupure réseau (fréquents sur un hébergement mutualisé) se
 // rejouent aussi, deux fois, et une connexion figée s'arrête au bout de 30 s :
 // sans délai, elle tiendrait le déploiement de nuit jusqu'aux 20 min du job.
-const DELAIS_PANNE = [2000, 5000];
-const DELAI_MAX = 30_000;
+// Un objet exporté, pour que les tests réduisent les attentes.
+export const DÉLAIS = { panne: [2000, 5000], max: 30_000 };
 
 /** @param {number} ms */
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -74,10 +74,10 @@ async function appeler(url, tentative = 0, pannes = 0) {
   const adresse = url.replace(DIRECTUS_URL, '');
   let res;
   try {
-    res = await fetch(url, { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, signal: AbortSignal.timeout(DELAI_MAX) });
+    res = await fetch(url, { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, signal: AbortSignal.timeout(DÉLAIS.max) });
   } catch (e) {
-    if (pannes < DELAIS_PANNE.length) {
-      await attendre(DELAIS_PANNE[pannes]);
+    if (pannes < DÉLAIS.panne.length) {
+      await attendre(DÉLAIS.panne[pannes]);
       return appeler(url, tentative, pannes + 1);
     }
     throw new Error(`CMS injoignable (${adresse}) : ${e instanceof Error ? e.message : String(e)}`);
@@ -89,8 +89,8 @@ async function appeler(url, tentative = 0, pannes = 0) {
     return appeler(url, tentative + 1, pannes);
   }
 
-  if (res.status >= 500 && pannes < DELAIS_PANNE.length) {
-    await attendre(DELAIS_PANNE[pannes]);
+  if (res.status >= 500 && pannes < DÉLAIS.panne.length) {
+    await attendre(DÉLAIS.panne[pannes]);
     return appeler(url, tentative, pannes + 1);
   }
 
