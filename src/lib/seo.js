@@ -6,6 +6,7 @@
 
 import { jourEtHeure } from './prodysos.js';
 
+/** @type {Record<string, string>} */
 const ENTITÉS = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 
 /**
@@ -52,7 +53,10 @@ export function décalageBruxelles(jour, heure) {
   return m ? `${m[1]}:${m[2] ?? '00'}` : '+01:00';
 }
 
-/** « 12 € » → « 12 » ; « prix libre » → null (pas d'offre chiffrée). */
+/**
+ * « 12 € » → « 12 » ; « prix libre » → null (pas d'offre chiffrée).
+ * @param {string|null|undefined} prix
+ */
 export function prixEnEuros(prix) {
   const m = /(\d+(?:[.,]\d{1,2})?)\s*€/.exec(prix ?? '');
   return m ? m[1].replace(',', '.') : null;
@@ -97,7 +101,11 @@ export function duréeEnMinutes(durée) {
   return m ? Number(m[1]) : null;
 }
 
-/** « 2026-04-17T20:00:00+02:00 » : un jour et une heure de Bruxelles, avec leur décalage. */
+/**
+ * « 2026-04-17T20:00:00+02:00 » : un jour et une heure de Bruxelles, avec leur décalage.
+ * @param {string} jour
+ * @param {string} heure
+ */
 const instantBruxelles = (jour, heure) => `${jour}T${heure}:00${décalageBruxelles(jour, heure)}`;
 
 /**
@@ -108,7 +116,10 @@ const instantBruxelles = (jour, heure) => `${jour}T${heure}:00${décalageBruxell
  */
 export const idCompagnie = (url) => `${url}#compagnie`;
 
-/** L'identifiant d'une personne : sa fiche. */
+/**
+ * L'identifiant d'une personne : sa fiche.
+ * @param {string} url
+ */
 const idPersonne = (url) => `${url}#personne`;
 
 /**
