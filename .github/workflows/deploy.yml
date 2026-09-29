@@ -205,10 +205,12 @@ jobs:
           # masque pas : on rédige nous-mêmes avant que ça n'atteigne les
           # logs. Toujours vers un fichier, jamais dans un pipe : sous
           # `set -o pipefail`, un sed en bout de pipe qui réussit masquerait
-          # un lftp qui échoue.
+          # un lftp qui échoue. `|| statut=$?` : sous `set -e`, un lftp qui
+          # échoue arrêtait le script à cette ligne même, avant que le sed
+          # suivant n'ait jamais affiché le journal ; l'échec restait muet.
           lftp_go() {
-            lftp -u "$FTP_USER,$FTP_PASSWORD" "$@" "$FTP_HOST" > "$D/sortie.log" 2>&1
-            statut=$?
+            local statut=0
+            lftp -u "$FTP_USER,$FTP_PASSWORD" "$@" "$FTP_HOST" > "$D/sortie.log" 2>&1 || statut=$?
             sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g' "$D/sortie.log"
             return $statut
           }
