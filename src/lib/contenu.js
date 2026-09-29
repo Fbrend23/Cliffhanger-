@@ -27,6 +27,14 @@ async function charger() {
     getEntry('reglages', 'site'),
   ]);
 
+  // Le loader des réglages arrête déjà le build s'ils sont vides ; cette garde
+  // le dit au typage, et protège d'une entrée absente du magasin.
+  if (!reglages) throw new Error('Les réglages du site sont absents : ouvrir « Réglages » dans le Studio et enregistrer.');
+
+  /**
+   * @param {{ sort: number }} a
+   * @param {{ sort: number }} b
+   */
   const parOrdre = (a, b) => a.sort - b.sort;
   // L'ordre du Studio, puis le plus récent, puis le slug : un ordre total,
   // pour que deux spectacles jamais triés et de même année ne changent pas de
@@ -57,16 +65,22 @@ async function charger() {
     belges: tousSpectacles.filter((s) => s.troupe === 'bruxelles'),
     montrealSpectacle: tousSpectacles.find((s) => s.troupe === 'montreal') ?? null,
     photos: [...photosParId.values()].sort((a, b) => parOrdre(a, b) || Number(a.id) - Number(b.id)),
+    /** @param {string|number|null|undefined} id */
     photo: (id) => (id ? (photosParId.get(String(id)) ?? null) : null),
     personnes: personnes.map((e) => e.data).sort((a, b) => parOrdre(a, b) || a.name.localeCompare(b.name, 'fr')),
+    /** @param {string} slug */
     personne: (slug) => personnesParSlug.get(slug) ?? null,
     lignesParSpectacle,
     représentations: toutesReprésentations,
+    /** @param {string} slug */
     représentationsDe: (slug) => toutesReprésentations.filter((r) => r.spectacle === slug).sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? '').localeCompare(b.time ?? '')),
     montreal: montreal?.data ?? { sub: null, lead: null, text: null },
     reglages: reglages.data,
   };
 }
 
-/** L'adresse d'un spectacle : sa page, ou celle de Montréal pour la troupe de Montréal. */
+/**
+ * L'adresse d'un spectacle : sa page, ou celle de Montréal pour la troupe de Montréal.
+ * @param {{ troupe: string, slug: string }} s
+ */
 export const adresseSpectacle = (s) => (s.troupe === 'montreal' ? '/montreal/' : `/spectacle/${s.slug}/`);
