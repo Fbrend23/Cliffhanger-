@@ -45,19 +45,27 @@ export const MANIFEST_REL = `${CACHE_REL}/manifest.json`;
  */
 export const CHAMPS_FICHIER = ['id', 'filename_download', 'type', 'width', 'height', 'modified_on', 'title', 'focal_point_x', 'focal_point_y'];
 
-/** `hero.id,hero.type,…` : les mêmes champs, préfixés pour une relation. */
+/**
+ * `hero.id,hero.type,…` : les mêmes champs, préfixés pour une relation.
+ * @param {string} relation
+ */
 export const champsFichier = (relation) => CHAMPS_FICHIER.map((c) => `${relation}.${c}`).join(',');
 
 // Le limiteur de l'instance : vingt-cinq requêtes par seconde, tous clients
 // confondus. Un 429 n'est pas une panne, c'est un « pas maintenant » : on
 // attend ce que le serveur demande, et on rejoue. Cinq fois, puis on renonce
 // bruyamment plutôt que de boucler en silence.
+/**
+ * @param {string} url
+ * @param {number} [tentative]
+ * @returns {Promise<Response>}
+ */
 async function appeler(url, tentative = 0) {
   let res;
   try {
     res = await fetch(url, { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` } });
   } catch (e) {
-    throw new Error(`CMS injoignable (${url.replace(DIRECTUS_URL, '')}) : ${e.message}`);
+    throw new Error(`CMS injoignable (${url.replace(DIRECTUS_URL, '')}) : ${e instanceof Error ? e.message : String(e)}`);
   }
 
   if (res.status === 429 && tentative < 5) {
@@ -74,7 +82,11 @@ async function appeler(url, tentative = 0) {
   return res;
 }
 
-/** Une requête, son `data`. */
+/**
+ * Une requête, son `data`.
+ * @param {string} chemin
+ * @returns {Promise<any>}
+ */
 export async function request(chemin) {
   const json = await (await appeler(`${DIRECTUS_URL}${chemin}`)).json();
   return json?.data ?? null;
@@ -105,6 +117,7 @@ export async function requestAll(chemin) {
 
 // --- Le cache des originaux --------------------------------------------------
 
+/** @param {string} chemin */
 const existe = (chemin) => access(chemin).then(() => true, () => false);
 
 /** @typedef {{ modified_on: string, fichier: string, aperçu?: string, portrait?: { focal: string, fichier: string } }} Entrée */
@@ -261,7 +274,7 @@ export async function assurerFichierExterne(url, id, cache, logger) {
     try {
       res = await fetch(url);
     } catch (e) {
-      throw new Error(`Image injoignable (${url}) : ${e.message}`);
+      throw new Error(`Image injoignable (${url}) : ${e instanceof Error ? e.message : String(e)}`);
     }
     if (!res.ok) throw new Error(`Image ${url} : HTTP ${res.status}`);
     return res;
@@ -439,6 +452,7 @@ export async function assurerPortrait(id, focal, cache, logger) {
  */
 export function pointFocal(f) {
   if (f?.focal_point_x == null || f?.focal_point_y == null || !f.width || !f.height) return null;
+  /** @param {number} v */
   const borne = (v) => Math.min(100, Math.max(0, Math.round(v * 10) / 10));
   return { x: borne((f.focal_point_x / f.width) * 100), y: borne((f.focal_point_y / f.height) * 100) };
 }
@@ -447,6 +461,12 @@ export function pointFocal(f) {
  * `fn` sur chaque élément, au plus `n` à la fois. Trois téléchargements en
  * parallèle suffisent : au-delà, c'est le limiteur de l'instance qu'on
  * rencontre, pas un gain.
+ *
+ * @template T, R
+ * @param {T[]} items
+ * @param {number} n
+ * @param {(item: T, i: number) => Promise<R>} fn
+ * @returns {Promise<R[]>}
  */
 export async function mapLimit(items, n, fn) {
   const résultats = new Array(items.length);
