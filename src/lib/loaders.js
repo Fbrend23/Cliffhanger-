@@ -78,8 +78,8 @@ export const texte = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null
  */
 function signalerTirets(logger, où, valeurs) {
   for (const v of valeurs) {
-    if (typeof v === 'string' && /[—–]/.test(v)) {
-      logger.warn(`${où} : tiret long ou demi-cadratin dans « ${v.slice(0, 60)}… », remplacé au rendu. À corriger dans le Studio.`);
+    if (typeof v === 'string' && /[—–]|\s-\s/.test(v)) {
+      logger.warn(`${où} : tiret long, demi-cadratin ou tiret entouré d'espaces dans « ${v.slice(0, 60)}… », remplacé au rendu. À corriger dans le Studio.`);
       return;
     }
   }
