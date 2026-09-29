@@ -12,7 +12,7 @@
 
 import { getImage } from 'astro:assets';
 
-/** @typedef {{ width: number|null, height: number|null }} Taille */
+/** @typedef {{ width?: number|null, height?: number|null }} Taille */
 /** @typedef {{ srcset: string, avif: string|null, sizes: string }} Portrait */
 /**
  * Ce que Photo.astro rend : le WebP (`src`, `srcset`), et selon la taille
@@ -134,7 +134,7 @@ export async function heros(image, taille, { portrait = null, apercu = null } = 
 
 /**
  * La grande photo d'un spectacle, avec son portrait et son aperçu.
- * @param {{ hero: import('astro').ImageMetadata, heroTaille: Taille, heroPortrait: import('astro').ImageMetadata, heroApercu: string }} s
+ * @param {{ hero: any, heroTaille: Taille, heroPortrait?: any, heroApercu?: string }} s
  */
 export const herosSpectacle = (s) => heros(s.hero, s.heroTaille, { portrait: s.heroPortrait, apercu: s.heroApercu });
 
@@ -196,7 +196,7 @@ export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2
 
 /**
  * L'image des partages : les réseaux veulent un JPEG de 1200 px.
- * @param {import('astro').ImageMetadata} image
+ * @param {import('astro').ImageMetadata | { src: string, width?: number, height?: number, format?: string } | any} image
  */
 export async function og(image) {
   return (await getImage({ src: image, width: 1200, format: 'jpeg', quality: 80 })).src;
