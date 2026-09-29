@@ -105,7 +105,7 @@ export const T = {
     },
     {
       titre: 'Qui les reçoit',
-      html: `<p>La compagnie, par son outil de gestion Prodysos, qui enregistre la demande et envoie les e-mails de réponse. Prodysos s'appuie sur la plateforme d'hébergement Supabase. Vos données ne sont ni vendues ni cédées.</p><p>L'hébergeur du site, Infomaniak, tient des journaux techniques de connexion (adresse IP, date, page demandée), nécessaires à la sécurité et au bon fonctionnement du site.</p>`,
+      html: `<p>La compagnie, par son outil de gestion Prodysos (<a href="https://prodysos.app" target="_blank" rel="noopener">prodysos.app</a>), édité par Brendan Fleurdelys. Prodysos enregistre la demande et envoie par e-mail la confirmation et les informations pratiques. Il agit pour le compte de la compagnie, qui reste responsable du traitement.</p><p>Les données sont hébergées chez Supabase, sur des serveurs situés à Londres, au Royaume-Uni, pays qui bénéficie d'une décision d'adéquation de l'Union européenne. Elles ne sont ni vendues ni cédées.</p><p>L'hébergeur du site, Infomaniak, tient des journaux techniques de connexion (adresse IP, date, page demandée), nécessaires à la sécurité et au bon fonctionnement du site.</p>`,
     },
     {
       titre: 'Durée de conservation',
