@@ -52,8 +52,9 @@ export const T = {
    */
   descriptionPersonne: (nom, titres) => (titres ? `${nom}, avec la Compagnie Cliffhanger : ${titres}.` : `${nom}, avec la Compagnie Cliffhanger, compagnie de théâtre bruxelloise.`),
   allerAuContenu: 'Aller au contenu',
-  menuOuvrir: 'Ouvrir le menu',
-  menuFermer: 'Fermer le menu',
+  // Un nom fixe : l'état (ouvert ou fermé) est dit par aria-expanded, un nom
+  // qui change en plus l'annoncerait deux fois (« Fermer le menu, développé »).
+  menuBouton: 'Menu',
   menuPrincipal: 'Menu principal',
   menu: [
     { href: '/compagnie/', label: 'La compagnie' },
@@ -133,13 +134,13 @@ export const T = {
 
   spectacles: 'Spectacles',
   découvrir: 'Découvrir',
-  voirLaSuite: 'Voir la suite',
   /**
    * @param {string} titre
    */
   afficheDe: (titre) => `Affiche de ${titre}`,
   photoPrécédente: 'Photo précédente',
   photoSuivante: 'Photo suivante',
+  photosDuSpectacle: 'Photos du spectacle',
   durée: 'Durée',
   // Le rôle « Avec » d'un générique, et ce qu'il devient sur la fiche d'une
   // personne : « Interprétation (Henriette) ».
@@ -191,8 +192,8 @@ export const T = {
   // La légende de la visionneuse : « Coulisses · 3 / 9 ».
   /**
    * @param {string} légende
-   * @param {number} position
-   * @param {number} total
+   * @param {number|string} position
+   * @param {number|string} total
    */
   légendeVisionneuse: (légende, position, total) => `${légende} · ${position} / ${total}`,
   fermer: 'Fermer',

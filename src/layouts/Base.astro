@@ -162,11 +162,9 @@ const entrée =
     <button
       class="fixed top-[calc(.375rem+var(--safe-top))] right-1.5 z-40 grid size-11 place-items-center opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 sans-js:hidden"
       id="burger"
-      aria-label={T.menuOuvrir}
+      aria-label={T.menuBouton}
       aria-expanded="false"
       aria-controls="menu"
-      data-ouvrir={T.menuOuvrir}
-      data-fermer={T.menuFermer}
       transition:persist="burger"
     >
       {/* Les traits pivotent autour de leur bout gauche : le haut et le bas se croisent en X, celui du milieu s'efface. */}
@@ -244,7 +242,8 @@ const entrée =
         if (!b || !m || !vidéo) return;
         document.body.classList.toggle('menu-open', ouvert);
         b.setAttribute('aria-expanded', String(ouvert));
-        b.setAttribute('aria-label', (ouvert ? b.dataset.fermer : b.dataset.ouvrir) ?? '');
+        // Le menu couvre l'écran : ce qu'il cache n'est ni lu ni atteignable (le logo et la page).
+        document.querySelectorAll<HTMLElement>('body > header, main').forEach((n) => (n.inert = ouvert));
         if (ouvert) {
           // Le logo et l'image de la vidéo ne partent qu'à la première ouverture.
           m.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((i) => {
