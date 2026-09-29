@@ -40,6 +40,9 @@ import {
 } from './prodysos.js';
 import { PRODYSOS_COMPANY, PRODYSOS_KEY, PRODYSOS_URL } from 'astro:env/server';
 
+/** @typedef {import('astro/loaders').Loader} Loader */
+/** @typedef {{ id: string, spectacle: string, day: string, time: string|null, venue: string|null, city: string|null, street: string|null, postalCode: string|null, price: string|null, reservation: { slug: string, id: string }|null }} Représentation */
+
 /** Les variables de Prodysos, toutes optionnelles : voir prodysosConfiguré. */
 const ENV_PRODYSOS = { PRODYSOS_URL, PRODYSOS_KEY, PRODYSOS_COMPANY };
 
@@ -58,13 +61,20 @@ const FONDS = ['fond_accueil', 'fond_spectacles', 'fond_agenda', 'fond_compagnie
 /** Le filtre ceinture : la policy du build l'impose déjà. */
 const PUBLIÉ = 'filter[status][_eq]=published';
 
-/** Une chaîne non vide, sinon null : un champ vide n'est jamais affiché. */
+/**
+ * Une chaîne non vide, sinon null : un champ vide n'est jamais affiché.
+ * @param {unknown} v
+ */
 export const texte = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
 /**
  * Le contenu vient du Studio : on ne refuse pas un build pour un tiret long,
  * mais on le dit. Au rendu, `typographier` (lib/typo.js) les remplace de
  * toute façon : la règle de la compagnie tient même si quelqu'un l'oublie.
+ *
+ * @param {{ warn(m: string): void }} logger
+ * @param {string} où
+ * @param {unknown[]} valeurs
  */
 function signalerTirets(logger, où, valeurs) {
   for (const v of valeurs) {
@@ -116,6 +126,7 @@ let lectureProdysos = null;
  * de construire plutôt que d'écraser le site en ligne par un accueil sans
  * titres. Un spectacle sans photo, lui, est un oubli d'édition : on le signale
  * et on passe.
+ * @returns {Loader}
  */
 export function spectaclesLoader() {
   return {
@@ -188,7 +199,7 @@ export function spectaclesLoader() {
             focal,
             poster,
             posterTaille,
-            slides: (s.slides ?? []).map((l) => l?.[`${PHOTOS}_id`]).filter((id) => id != null).map(String),
+            slides: (s.slides ?? []).map((/** @type {any} */ l) => l?.[`${PHOTOS}_id`]).filter((/** @type {unknown} */ id) => id != null).map(String),
           },
         });
         return {
@@ -234,6 +245,7 @@ export function spectaclesLoader() {
  * site affiche (grandes photos et affiches des spectacles, celles venues de
  * Prodysos comprises, image de partage des réglages), pour ne jeter que ce
  * que plus rien n'utilise.
+ * @returns {Loader}
  */
 export function photosLoader() {
   return {
@@ -315,7 +327,10 @@ export function photosLoader() {
   };
 }
 
-/** Les personnes, dans l'ordre du Studio (celui de « L'équipe »). */
+/**
+ * Les personnes, dans l'ordre du Studio (celui de « L'équipe »).
+ * @returns {Loader}
+ */
 export function personnesLoader() {
   return {
     name: 'directus-personnes',
@@ -339,7 +354,10 @@ export function personnesLoader() {
   };
 }
 
-/** La ligne « Avec » de chaque spectacle : une entrée par interprète. */
+/**
+ * La ligne « Avec » de chaque spectacle : une entrée par interprète.
+ * @returns {Loader}
+ */
 export function distributionLoader() {
   return {
     name: 'directus-distribution',
@@ -368,7 +386,10 @@ export function distributionLoader() {
   };
 }
 
-/** Les autres lignes du générique : Texte, Mise en scène… */
+/**
+ * Les autres lignes du générique : Texte, Mise en scène…
+ * @returns {Loader}
+ */
 export function generiqueLoader() {
   return {
     name: 'directus-generique',
@@ -388,7 +409,7 @@ export function generiqueLoader() {
         signalerTirets(logger, `générique « ${role} »`, [l.role, l.note, l.text]);
         // Une personne dépubliée revient sans slug : elle sort de la ligne,
         // les autres restent.
-        const personnes = (l.personnes ?? []).map((j) => texte(j?.[`${PERSONNES}_id`]?.slug)).filter(Boolean);
+        const personnes = (l.personnes ?? []).map((/** @type {any} */ j) => texte(j?.[`${PERSONNES}_id`]?.slug)).filter(Boolean);
         // La note garde son espace final éventuel : « sous la direction d’ »
         // se colle au nom qui suit (lib/generique.js).
         const note = typeof l.note === 'string' && l.note.trim() ? l.note : null;
@@ -410,6 +431,7 @@ export function generiqueLoader() {
  * sur la même date venue de Prodysos. Le prix manquant d'une ligne est celui de
  * son spectacle. Une date de Prodysos est réservable (`reservation`) ; une
  * date du CMS l'est si elle remplace une date de Prodysos.
+ * @returns {Loader}
  */
 export function representationsLoader() {
   return {
@@ -421,6 +443,7 @@ export function representationsLoader() {
       ]);
       const prixDe = new Map(prodysos.spectaclesCms.map((s) => [s.slug, texte(s.price)]));
 
+      /** @type {Représentation[]} */
       const duCms = [];
       for (const r of lignes) {
         const spectacle = texte(r.spectacle?.slug);
@@ -446,6 +469,7 @@ export function representationsLoader() {
         });
       }
 
+      /** @type {Représentation[]} */
       let deProdysos = [];
       if (prodysos.shows) {
         deProdysos = lignesProdysos(prodysos.shows, prodysos.liens, (m) => logger.warn(m));
@@ -471,6 +495,7 @@ export function representationsLoader() {
 /**
  * La page Montréal : un singleton, une seule entrée « site ». Jamais
  * enregistré, il rend une ligne vide, et la page n'affiche que ce qui existe.
+ * @returns {Loader}
  */
 export function montrealLoader() {
   return {
@@ -495,6 +520,7 @@ export function montrealLoader() {
  * Un singleton jamais enregistré rend une ligne vide. Sans titre, le site
  * n'a pas de nom : c'est le signe que personne n'a ouvert « Réglages » dans
  * le Studio, et le message le dit plutôt que de publier un site sans titre.
+ * @returns {Loader}
  */
 export function reglagesLoader() {
   return {
@@ -517,6 +543,7 @@ export function reglagesLoader() {
       const og_image = s.og_image?.id ? await assurerFichier(s.og_image, cache, logger) : null;
       await cache.enregistrer();
 
+      /** @param {any} v */
       const fond = (v) => (v == null ? null : String(typeof v === 'object' ? v.id : v));
       store.clear();
       const data = await parseData({
