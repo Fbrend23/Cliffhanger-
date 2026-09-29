@@ -23,6 +23,7 @@ import { échapper } from './typo.js';
  * Les trois variables vont ensemble. Aucune : le site vit sur les dates du
  * CMS seul. Une partie seulement : une configuration cassée, on refuse.
  * @param {Record<string, string|undefined>} env
+ * @returns {env is EnvProdysos}
  */
 export function prodysosConfiguré(env) {
   const noms = ['PRODYSOS_URL', 'PRODYSOS_KEY', 'PRODYSOS_COMPANY'];
