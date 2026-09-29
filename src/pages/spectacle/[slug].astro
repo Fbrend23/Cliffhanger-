@@ -41,7 +41,7 @@ const jsonLd = [
 ];
 ---
 
-<Base title={s.title} description={s.punch ?? extrait(s.text)} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd}>
+<Base title={s.title} description={extrait(s.punch) ?? extrait(s.text) ?? T.descriptionSpectacle(s.title)} image={s.poster ?? s.hero} precharger={img} jsonLd={jsonLd}>
   <article>
     <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
     <SectionsSpectacle spectacle={s} />

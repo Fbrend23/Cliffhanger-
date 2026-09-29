@@ -35,6 +35,15 @@ export const T = {
    * @param {string} titres
    */
   descriptionGalerie: (titres) => `Les photos des spectacles de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : ${titres}.`,
+  descriptionGalerieVide: 'Les photos des spectacles de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise.',
+  // Une page qui n'a ni accroche ni texte dans le CMS ne reprend pas la
+  // description de l'accueil : deux pages indexées ne la partagent jamais.
+  /**
+   * @param {string} titre
+   */
+  descriptionSpectacle: (titre) => `${titre}, un spectacle de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : dates, distribution, réservations.`,
+  descriptionCompagnie: "La Compagnie Cliffhanger, compagnie de théâtre bruxelloise : sa démarche, son équipe et son histoire.",
+  descriptionMontréal: 'Le spectacle de la Compagnie Cliffhanger présenté à Montréal, et les artistes qui le portent.',
   descriptionContact: 'Écrire à la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : réservations, diffusion, presse.',
   // Une fiche sans biographie : ses spectacles, s'il y en a.
   /**

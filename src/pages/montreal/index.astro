@@ -21,7 +21,7 @@ const s = c.montrealSpectacle;
 const img = s ? await herosSpectacle(s) : null;
 ---
 
-<Base title={T.montreal} description={m.lead ?? extrait(m.text)} image={s?.poster ?? s?.hero ?? null} precharger={img}>
+<Base title={T.montreal} description={extrait(m.lead) ?? extrait(m.text) ?? T.descriptionMontréal} image={s?.poster ?? s?.hero ?? null} precharger={img}>
   <article>
     <TeteDePage img={img} alt={s?.title ?? ''} style={cadrage(s?.focal)} titre={T.montreal} sous={m.sub} />
     {
