@@ -22,7 +22,7 @@ import { tx, typographier } from '../lib/typo.js';
 
 interface Props {
   /** Les représentations réservables, dans l'ordre du calendrier (une ligne sans réservation est ignorée). */
-  dates: { day: string; time: string | null; venue: string | null; city: string | null; reservation: { slug: string; id: string } | null }[];
+  dates: { day: string; time?: string | null; venue?: string | null; city?: string | null; reservation?: { slug: string; id: string } | null }[];
   email: string | null;
 }
 
