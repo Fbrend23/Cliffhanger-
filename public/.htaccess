@@ -4,24 +4,22 @@ DirectoryIndex index.html
 
 RewriteEngine On
 
-# Une seule adresse : https, sans www. HSTS (posé par l'hébergeur) ne vaut
-# qu'après une première visite en https ; sans ces règles, http:// et www.
-# serviraient le site tels quels, en deux ou trois adresses pour une page.
-#
-# LE DOMAINE N'EST PAS ENCORE CHOISI : les règles s'appuient sur l'hôte
-# demandé plutôt que sur un nom en dur. Une fois le domaine décidé, écrire
-# l'adresse canonique en dur ici (voir README), comme sur le portfolio : un
-# autre nom pointé par erreur sur l'hébergement serait alors redirigé.
-RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
-RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+# Une seule adresse : https://compagniecliffhanger.be, sans www. HSTS (posé
+# par l'hébergeur) ne vaut qu'après une première visite en https ; sans ces
+# règles, http:// et www. serviraient le site tels quels, en deux ou trois
+# adresses pour une page, que les moteurs compteraient comme des doublons.
+# Le nom est en dur, comme sur le portfolio : un autre nom pointé par erreur
+# sur l'hébergement est redirigé lui aussi. Il doit rester celui de SITE_URL.
+RewriteCond %{HTTP_HOST} !^compagniecliffhanger\.be$ [NC,OR]
 RewriteCond %{HTTPS} !=on
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+RewriteRule ^ https://compagniecliffhanger.be%{REQUEST_URI} [R=301,L]
 
 <IfModule mod_headers.c>
   # Les fichiers de /_astro/ portent une empreinte dans leur nom : ils ne
   # changent jamais, on peut les garder un an. Les polices aussi, qui ne
-  # bougent qu'avec le code. La vidéo et l'image du menu, une semaine, comme
-  # les images du prototype.
+  # bougent qu'avec le code. La vidéo et l'image du menu, et les icônes, une
+  # semaine, comme les images du prototype (les icônes n'avaient aucun
+  # en-tête : le navigateur les gardait au jugé).
   # Les pages, elles, changent à chaque déploiement : le navigateur les
   # redemande à chaque visite (l'ETag lui vaut un 304 quand rien n'a bougé).
   <FilesMatch "\.[0-9a-zA-Z_-]{6,}\.(css|js|webp|jpe?g|png|svg|avif)$">
@@ -30,7 +28,7 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
   <FilesMatch "\.woff2$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
-  <FilesMatch "^menu(-poster)?\.(mp4|webp)$">
+  <FilesMatch "^(menu(-poster)?\.(mp4|webp)|favicon\.png|apple-touch-icon\.png)$">
     Header set Cache-Control "public, max-age=604800"
   </FilesMatch>
   <FilesMatch "\.html$">

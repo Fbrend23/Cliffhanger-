@@ -1,0 +1,13 @@
+---
+// L'intitulé d'un bloc (À venir, Biographie, Réserver…) : petites capitales
+// du corps, au-dessus d'un tableau ou d'un texte.
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  texte: string;
+}
+
+const { texte } = Astro.props;
+---
+
+<h2 class="mb-2 text-xl font-normal uppercase" set:html={tx(texte)} />

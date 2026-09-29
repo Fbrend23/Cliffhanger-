@@ -2,8 +2,8 @@
 // La page introuvable, servie par Apache (ErrorDocument dans .htaccess) :
 // sobre, sur le fond de l'accueil, avec le chemin du retour.
 import Base from '../layouts/Base.astro';
-import Fond from '../components/Fond.astro';
-import Pied from '../components/Pied.astro';
+import PageCentree from '../components/PageCentree.astro';
+import Pastille from '../components/Pastille.astro';
 import { contenu } from '../lib/contenu.js';
 import { T } from '../lib/textes.js';
 import { tx } from '../lib/typo.js';
@@ -12,14 +12,10 @@ const c = await contenu();
 const fond = c.photo(c.reglages.fonds.accueil);
 ---
 
-<Base title={T.introuvable}>
-  <section class="contact">
-    <Fond fond={fond} ton="bgs--dim" />
-    <div class="contact__inner">
-      <h1 class="title title--xl title--page" set:html={tx(T.introuvable)} />
-      <p class="contact__lead" set:html={tx(T.introuvableTexte)} />
-      <div class="pills"><a class="pill" href="/" set:html={tx(T.retourAccueil)} /></div>
+<Base title={T.introuvable} indexer={false}>
+  <PageCentree fond={fond} titre={T.introuvable} chapeau={T.introuvableTexte}>
+    <div class="mt-4 flex flex-wrap justify-center gap-3" data-cascade>
+      <Pastille href="/"><Fragment set:html={tx(T.retourAccueil)} /></Pastille>
     </div>
-    <Pied epingle />
-  </section>
+  </PageCentree>
 </Base>

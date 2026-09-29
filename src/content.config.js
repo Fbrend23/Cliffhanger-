@@ -39,6 +39,9 @@ const spectacles = defineCollection({
       sort: z.number(),
       hero: image(),
       heroTaille: taille,
+      // Le recadrage 9:16 pour les téléphones tenus droits, et l'aperçu flou en data: URI (lib/directus.js).
+      heroPortrait: image(),
+      heroApercu: z.string(),
       focal,
       poster: image().nullable(),
       posterTaille: taille.nullable(),
@@ -55,6 +58,9 @@ const photos = defineCollection({
       spectacle: z.string().nullable(),
       sort: z.number(),
       image: image(),
+      // Seulement pour les fonds de page : voir le loader.
+      portrait: image().nullable(),
+      apercu: z.string(),
       width: z.number().nullable(),
       height: z.number().nullable(),
       focal,
@@ -102,7 +108,13 @@ const representations = defineCollection({
     time: z.string().nullable(),
     venue: z.string().nullable(),
     city: z.string().nullable(),
+    // La rue et le code postal, pour les moteurs : Prodysos seulement.
+    street: z.string().nullable(),
+    postalCode: z.string().nullable(),
     price: z.string().nullable(),
+    // De quoi la réserver dans Prodysos : le spectacle (sa page publique) et
+    // la représentation. Null pour une date qui n'existe que dans le CMS.
+    reservation: z.object({ slug: z.string(), id: z.string() }).nullable(),
   }),
 });
 

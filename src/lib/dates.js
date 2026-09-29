@@ -11,25 +11,41 @@ const formatJourMois = new Intl.DateTimeFormat('fr-BE', { day: 'numeric', month:
 /** @param {string} iso */
 const parties = (iso) => Object.fromEntries(formatJourMois.formatToParts(new Date(`${iso}T00:00:00Z`)).map((p) => [p.type, p.value]));
 
-/** « 17 avr. 2026 ». */
+/**
+ * « 17 avr. 2026 ».
+ * @param {string} iso
+ */
 export function formatJour(iso) {
   const p = parties(iso);
   return `${p.day} ${p.month} ${p.year}`;
 }
 
-/** « 20:00 » ou « 20:00:00 » → « 20h00 ». Vide, rien. */
+/**
+ * « 20:00 » ou « 20:00:00 » → « 20h00 ». Vide, rien.
+ * @param {string|null|undefined} t
+ */
 export const formatHeure = (t) => (t ? t.slice(0, 5).replace(':', 'h') : '');
 
-/** Le jour et l'heure d'une représentation : « 17 avr. 2026, 20h00 ». */
+/**
+ * Le jour et l'heure d'une représentation : « 17 avr. 2026, 20h00 ».
+ * @param {string} jour
+ * @param {string|null|undefined} [heure]
+ */
 export const formatJourHeure = (jour, heure) => (heure ? `${formatJour(jour)}, ${formatHeure(heure)}` : formatJour(jour));
 
 const UN_JOUR = 864e5;
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 const écart = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / UN_JOUR);
 
 /**
  * Une série de soirs : « 17 et 18 avr. 2026 » pour deux soirs, « 24 au 26
  * mai 2024 » pour plus, le mois et l'année dits une fois quand ils sont
  * communs.
+ * @param {string} de
+ * @param {string} à
  */
 export function formatPlage(de, à) {
   if (de === à) return formatJour(de);
@@ -41,7 +57,10 @@ export function formatPlage(de, à) {
   return `${A.day} ${joint} ${B.day} ${B.month} ${B.year}`;
 }
 
-/** « Théâtre L'Improviste, Forest » : la salle et la ville, ce qui existe. */
+/**
+ * « Théâtre L'Improviste, Forest » : la salle et la ville, ce qui existe.
+ * @param {{ venue?: string|null, city?: string|null }} r
+ */
 export const lieu = (r) => [r.venue, r.city].filter(Boolean).join(', ');
 
 /**
@@ -49,16 +68,19 @@ export const lieu = (r) => [r.venue, r.city].filter(Boolean).join(', ');
  * au plus) d'un même spectacle au même lieu (salle et ville) deviennent une
  * ligne. Les plus récentes d'abord, comme le prototype.
  *
- * @template {{ spectacle: string, day: string, venue: string|null, city: string|null }} R
+ * @template {{ spectacle: string, day: string, venue?: string|null, city?: string|null }} R
  * @param {R[]} représentations
  * @returns {{ spectacle: string, de: string, à: string, lieu: string }[]}
  */
 export function séries(représentations) {
+  /** @type {Map<string, R[]>} */
   const parSpectacle = new Map();
   for (const r of représentations) {
-    if (!parSpectacle.has(r.spectacle)) parSpectacle.set(r.spectacle, []);
-    parSpectacle.get(r.spectacle).push(r);
+    const liste = parSpectacle.get(r.spectacle) ?? [];
+    liste.push(r);
+    parSpectacle.set(r.spectacle, liste);
   }
+  /** @type {{ spectacle: string, de: string, à: string, lieu: string }[]} */
   const sortie = [];
   for (const [spectacle, liste] of parSpectacle) {
     let courante = null;

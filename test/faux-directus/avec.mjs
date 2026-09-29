@@ -25,7 +25,7 @@ console.log(`Faux Directus sur ${faux.url}`);
 const enfant = spawn([commande, ...args].join(' '), {
   stdio: 'inherit',
   shell: true,
-  env: { ...process.env, DIRECTUS_URL: faux.url, DIRECTUS_TOKEN: 'faux', SITE_URL: process.env.SITE_URL ?? 'https://www.exemple-cliffhanger.test' },
+  env: { ...process.env, DIRECTUS_URL: faux.url, DIRECTUS_TOKEN: 'faux', PRODYSOS_URL: faux.url, PRODYSOS_KEY: 'faux', PRODYSOS_COMPANY: 'cliffhanger', SITE_URL: process.env.SITE_URL ?? 'https://www.exemple-cliffhanger.test' },
 });
 enfant.on('exit', async (code) => {
   await faux.fermer();

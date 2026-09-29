@@ -1,9 +1,11 @@
 # Vérification du site, sans le publier.
 #
-# À chaque poussée sur dev (et sur une PR), le même build que le
-# déploiement : une erreur de type, un loader qui refuse, une page qui ne
-# se rend pas se voient ici, avant le merge vers main, et non au moment de
-# mettre en ligne. Rien n'est écrit nulle part : ni FTP, ni date dans le CMS.
+# À chaque poussée sur dev, le même build que le déploiement : une erreur
+# de type, un loader qui refuse, une page qui ne se rend pas se voient ici,
+# avant le fast-forward vers main, et non au moment de mettre en ligne. Pas
+# de déclencheur pull_request : le flux ne passe pas par des PR (dev → main
+# en fast-forward direct), ça doublerait juste le run pour rien.
+# Rien n'est écrit nulle part : ni FTP, ni date dans le CMS.
 #
 # Le cache des images est lu mais jamais réécrit (actions/cache/restore) :
 # la clé cliff-images-<run> est celle du déploiement, qui a la version la
@@ -14,7 +16,6 @@ name: Vérification
 on:
   push:
     branches: [dev]
-  pull_request:
 
 permissions:
   contents: read
@@ -28,6 +29,9 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
       DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
       DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+      PRODYSOS_URL: ${{ vars.PRODYSOS_URL }}
+      PRODYSOS_KEY: ${{ secrets.PRODYSOS_KEY }}
+      PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
     steps:
       - uses: actions/checkout@v7
 

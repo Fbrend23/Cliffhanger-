@@ -4,20 +4,26 @@
 import { tx } from '../lib/typo.js';
 
 interface Props {
-  spectacles: { slug: string; title: string; year: number | null }[];
+  spectacles: { slug: string; title: string; year?: number | null }[];
   annee?: boolean;
 }
 
 const { spectacles, annee = false } = Astro.props;
 ---
 
-<ul class="list">
+{/* Survoler un titre floute un peu les autres. */}
+<ul class="group">
   {
     spectacles.map((s) => (
-      <li>
-        <a class="title" href={`/spectacle/${s.slug}/`} data-bg={s.slug} translate="no">
+      <li class={annee ? 'my-2' : 'my-[.15rem]'} data-cascade>
+        <a
+          class="titre inline-block text-titre opacity-75 [transition:opacity_.25s_linear,filter_.25s_linear] group-has-[a:focus-visible]:not-focus-visible:blur-[.125rem] group-has-[a:hover]:not-hover:blur-[.125rem] hover:opacity-100 focus-visible:opacity-100"
+          href={`/spectacle/${s.slug}/`}
+          data-bg={s.slug}
+          translate="no"
+        >
           <Fragment set:html={tx(s.title)} />
-          {annee && s.year != null && <small>{s.year}</small>}
+          {annee && s.year != null && <small class="ml-3 align-[.8em] font-sans text-base font-normal tracking-normal whitespace-nowrap">{s.year}</small>}
         </a>
       </li>
     ))

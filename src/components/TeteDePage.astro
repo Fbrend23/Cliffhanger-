@@ -24,12 +24,32 @@ interface Props {
 const { img, alt, style, titre, sous = null, credit = null, sansTraduction = false } = Astro.props;
 ---
 
-<header class="phead">
-  {img && <figure><Photo img={img} alt={alt} eager class="js-hero" style={style} /></figure>}
-  <button class="hint js-hint" type="button" aria-label={T.voirLaSuite}><span>{T.découvrir}</span><span class="hint__line" aria-hidden="true"></span></button>
-  <hgroup>
-    <h1 class="title title--xl" translate={sansTraduction ? 'no' : undefined} set:html={tx(titre)} />
-    {sous != null && sous !== '' && <p set:html={tx(sous)} />}
+{/* Une ombre douce en haut (le logo) et en bas (le titre) : le blanc reste lisible sur une photo claire. */}
+<header
+  class="relative h-svh overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-1 before:h-1/4 before:bg-[linear-gradient(rgba(0,0,0,.35),transparent)] after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:z-1 after:h-2/5 after:bg-[linear-gradient(transparent,rgba(0,0,0,.55))]"
+  data-tete
+>
+  {img && <figure class="absolute inset-0"><Photo img={img} alt={alt} eager class="js-hero size-full object-cover" style={style} /></figure>}
+  {/* Découvrir : un trait fin où une lumière descend, parti dès qu'on défile (Base.astro). En bas à
+      droite sur tous les écrans, remonté au-dessus du crédit ; sous 64rem le trait seul, pour qu'un
+      long titre garde la largeur. */}
+  <button
+    class:list={[
+      'js-hint absolute right-4 z-2 flex flex-col items-center gap-[.6rem] text-legende font-normal tracking-large uppercase opacity-90 transition-opacity duration-400 hover:opacity-100 focus-visible:opacity-100 md:right-gouttiere parti:pointer-events-none parti:opacity-0 *:animate-[fadein_1s_ease_1s_both]',
+      credit ? 'bottom-12' : 'bottom-4',
+    ]}
+    type="button"
+    aria-label={T.voirLaSuite}
+  >
+    <span class="max-lg:sr-only">{T.découvrir}</span>
+    <span
+      class="relative h-16 w-px overflow-hidden bg-front/45 after:absolute after:-top-2/5 after:left-0 after:h-2/5 after:w-full after:animate-drip after:bg-front"
+      aria-hidden="true"
+    ></span>
+  </button>
+  <hgroup class="absolute bottom-0 left-0 z-2 max-w-full p-4 pr-10 opacity-75 lg:pr-24">
+    <h1 class="titre text-titre" data-cascade translate={sansTraduction ? 'no' : undefined} set:html={tx(titre)} />
+    {sous != null && sous !== '' && <p class="mt-1 text-sous-titre" data-cascade set:html={tx(sous)} />}
   </hgroup>
-  {credit && <figcaption set:html={tx(T.crédit(credit))} />}
+  {credit && <figcaption class="absolute right-0 bottom-0 z-2 p-4 text-sm opacity-80" set:html={tx(T.crédit(credit))} />}
 </header>

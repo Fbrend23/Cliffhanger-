@@ -5,50 +5,86 @@
 // photos des spectacles belges, qui apparaissent au survol de leur titre.
 //
 // Ces photos de survol sont différées : leur srcset attend dans data-srcset,
-// posé quand la page est au repos, ou au premier survol. Survoler un titre
-// montre alors sa photo tout de suite, sans jamais retarder celle du fond.
+// posé une fois la photo du fond arrivée et la page au repos, ou au premier
+// survol. Survoler un titre montre alors sa photo tout de suite, sans jamais
+// retarder celle du fond.
 import Photo from './Photo.astro';
-import { cadrage, heros, herosPhoto } from '../lib/images.js';
+import { cadrage, herosPhoto, herosSpectacle } from '../lib/images.js';
 
+type Focal = { x: number; y: number } | null;
 interface Props {
-  fond: { image: any; width: number | null; height: number | null; focal: { x: number; y: number } | null } | null;
-  ton?: '' | 'bgs--dim' | 'bgs--dark';
-  survol?: { slug: string; hero: any; heroTaille: { width: number | null; height: number | null }; focal: { x: number; y: number } | null }[];
+  fond: { image: any; width?: number | null; height?: number | null; portrait?: any; apercu?: string; focal?: Focal } | null;
+  // La photo plus ou moins éteinte sous le texte : pleine (accueil), voilée (listes, contact), sombre (agenda).
+  ton?: 'plein' | 'voile' | 'sombre';
+  survol?: { slug: string; hero: any; heroTaille: { width?: number | null; height?: number | null }; heroPortrait: any; heroApercu: string; focal?: Focal }[];
 }
 
-const { fond, ton = '', survol = [] } = Astro.props;
+const { fond, ton = 'plein', survol = [] } = Astro.props;
+const lumière = { plein: 'brightness-75', voile: 'brightness-45', sombre: 'brightness-30' }[ton];
+const photo = `size-full object-cover ${lumière}`;
 const base = await herosPhoto(fond);
-const figures = await Promise.all(survol.map(async (s) => ({ slug: s.slug, img: await heros(s.hero, s.heroTaille), style: cadrage(s.focal) })));
+const figures = await Promise.all(
+  survol.map(async (s) => ({ slug: s.slug, img: await herosSpectacle(s), style: cadrage(s.focal) }))
+);
 ---
 
-<div class:list={['bgs', ton]} aria-hidden="true">
-  {base && <figure><Photo img={base} eager style={cadrage(fond!.focal)} /></figure>}
+{/* Le texte blanc reste lisible sur les photos claires : une ombre douce en haut (logo) et en bas (titres). */}
+<div
+  class="pointer-events-none fixed -inset-8 -z-1 after:pointer-events-none after:absolute after:inset-0 after:bg-[linear-gradient(rgba(0,0,0,.35),transparent_22%,transparent_50%,rgba(0,0,0,.45))]"
+  aria-hidden="true"
+>
+  {base && <figure class="absolute inset-0" data-fond><Photo img={base} eager class={photo} style={cadrage(fond!.focal)} /></figure>}
   {
     figures.map((f) => (
-      <figure class="bg" data-for={f.slug}>
-        <Photo img={f.img} differee style={f.style} />
+      <figure
+        class="absolute inset-0 opacity-0 blur-[2rem] [transition:opacity_.5s_ease-in,filter_1s_ease-in] visible:opacity-100 visible:blur-[0px] visible:ease-[ease-out]"
+        data-for={f.slug}
+      >
+        <Photo img={f.img} differee class={photo} style={f.style} />
       </figure>
     ))
   }
 </div>
 
 <script>
-  // Poser le srcset gardé en attente : le navigateur choisit alors sa taille.
+  // Poser les srcset gardés en attente : le navigateur choisit alors sa
+  // source et sa taille. Les <source> d'abord, sinon l'<img> partirait en
+  // WebP. En priorité basse : même au survol, la photo de fond passe d'abord.
   const charger = (i: HTMLImageElement) => {
     if (!i.dataset.srcset) return;
+    i.parentElement?.querySelectorAll<HTMLSourceElement>('source[data-srcset]').forEach((s) => {
+      s.srcset = s.dataset.srcset!;
+      s.removeAttribute('data-srcset');
+    });
+    i.fetchPriority = 'low';
     i.srcset = i.dataset.srcset;
     i.src = i.dataset.src ?? '';
     i.removeAttribute('data-srcset');
   };
 
+  // L'économiseur de données du navigateur : rien d'avance, seulement au survol.
+  const économe = () => (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+
   document.addEventListener('astro:page-load', () => {
-    const figures = document.querySelectorAll<HTMLElement>('.bgs .bg');
+    const figures = document.querySelectorAll<HTMLElement>('[data-for]');
     if (!figures.length) return;
 
-    // Au repos, toutes les photos de survol : le premier survol est instantané.
+    // Au repos, toutes les photos de survol : le premier survol est instantané,
+    // et sur téléphone ce sont les héros des fiches, déjà là au changement de
+    // page. Mais requestIdleCallback suit le processeur, pas le réseau : sur
+    // une connexion lente, le fil principal est au repos bien avant que la
+    // photo de fond soit arrivée, et quatre photos de survol lui disputaient
+    // alors le débit. On attend donc qu'elle soit chargée.
     const tout = () => figures.forEach((f) => f.querySelectorAll<HTMLImageElement>('img[data-srcset]').forEach(charger));
-    if ('requestIdleCallback' in window) requestIdleCallback(tout, { timeout: 2500 });
-    else setTimeout(tout, 1200);
+    const auRepos = () => ('requestIdleCallback' in window ? requestIdleCallback(tout, { timeout: 2500 }) : setTimeout(tout, 1200));
+    const fond = document.querySelector<HTMLImageElement>('[data-fond] img');
+    if (!économe()) {
+      if (!fond || fond.complete) auRepos();
+      else {
+        fond.addEventListener('load', auRepos, { once: true });
+        fond.addEventListener('error', auRepos, { once: true });
+      }
+    }
 
     const montrer = (slug: string | null) =>
       figures.forEach((f) => {

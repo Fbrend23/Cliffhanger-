@@ -21,28 +21,36 @@ import logo from '../assets/logo-arc-en-ciel.webp';
 import { og } from '../lib/images.js';
 import type { Réactive } from '../lib/images.js';
 import { T } from '../lib/textes.js';
-import { tx } from '../lib/typo.js';
+import { tx, typographier } from '../lib/typo.js';
 import '../styles/site.css';
 
 interface Props {
   title?: string;
   description?: string | null;
   // L'image des partages de cette page (une affiche, une grande photo).
-  image?: ImageMetadata | null;
+  image?: ImageMetadata | { src: string; width: number; height: number; format?: string } | null;
   // La photo du haut, préchargée : c'est le premier téléchargement de la page.
   precharger?: Réactive | null;
   // Les données structurées (schema.org), sans le contexte : il est posé ici.
   jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
+  // Faux pour une page qui n'a pas sa place dans un moteur (la 404).
+  indexer?: boolean;
 }
 
-const { title, description = null, image = null, precharger = null, jsonLd = null } = Astro.props;
+const { title, description = null, image = null, precharger = null, jsonLd = null, indexer = true } = Astro.props;
 
 const site = (await getEntry('reglages', 'site'))!.data;
 
 // Le titre de l'onglet suit le prototype : « Page · Compagnie Cliffhanger ».
-const titreComplet = tx(title ? `${title} · ${site.site_title}` : site.site_title);
-const résumé = description ?? site.site_description ?? T.descriptionParDéfaut;
-const canonique = new URL(Astro.url.pathname, Astro.site).toString();
+// L'accueil dit en plus ce qu'est la compagnie, et où : le nom seul ne dit
+// rien à qui cherche du théâtre à Bruxelles.
+const titrePartage = title ?? `${site.site_title} · ${T.titreAccueil}`;
+const titreComplet = tx(title ? `${title} · ${site.site_title}` : titrePartage);
+// La description, typographiée comme le titre (Astro échappe l'attribut).
+const résumé = typographier(description || site.site_description || T.descriptionParDéfaut);
+// Une page hors index n'a pas d'adresse canonique : la 404 est servie à
+// toutes les adresses qui n'existent pas.
+const canonique = indexer ? new URL(Astro.url.pathname, Astro.site).toString() : null;
 
 // L'image des partages : celle de la page, sinon celle des réglages, sinon
 // le fond d'accueil ; rien plutôt qu'une image fausse.
@@ -57,6 +65,27 @@ const logoMenu = await getImage({ src: logo, width: 384, format: 'webp' });
 // Le lien du menu vers la rubrique en cours : la première partie de
 // l'adresse, comme le prototype (une fiche spectacle n'allume pas « Spectacles »).
 const rubrique = `/${Astro.url.pathname.split('/').filter(Boolean)[0] ?? ''}/`;
+
+// Le préchargement de la photo du haut vise ce que le <picture> choisira :
+// l'AVIF (un navigateur qui ne le lit pas ignore le lien et trouve le WebP
+// dans la page), et le recadrage portrait sur un écran tenu droit. Les deux
+// médias sont complémentaires : un seul lien part.
+const préchargements = precharger
+  ? [
+      precharger.portrait && {
+        media: '(orientation: portrait)',
+        type: precharger.portrait.avif ? 'image/avif' : undefined,
+        srcset: precharger.portrait.avif ?? precharger.portrait.srcset,
+        sizes: precharger.portrait.sizes,
+      },
+      {
+        media: precharger.portrait ? '(orientation: landscape)' : undefined,
+        type: precharger.avif ? 'image/avif' : undefined,
+        srcset: precharger.avif ?? precharger.srcset,
+        sizes: precharger.sizes,
+      },
+    ].filter((p) => !!p)
+  : [];
 
 const ld = jsonLd
   ? JSON.stringify(Array.isArray(jsonLd) ? jsonLd.map((o) => ({ '@context': 'https://schema.org', ...o })) : { '@context': 'https://schema.org', ...jsonLd }).replace(
@@ -73,6 +102,12 @@ const fondu = {
   new: { name: 'cliffFondu', duration: '0.7s', easing: 'ease', fillMode: 'both' },
 };
 const animation = { forwards: fondu, backwards: fondu };
+
+// Les trois traits du burger, qui deviennent une croix.
+const trait = 'fill-current [transition:translate_.3s_ease,rotate_.3s_ease,opacity_.1s_ease]';
+// Les entrées du menu descendent en place l'une après l'autre (--i), et repartent ensemble.
+const entrée =
+  '-translate-y-3 opacity-0 [transition:opacity_.4s_ease,translate_.5s_var(--ease-cliff)] menu-ouvert:translate-y-0 menu-ouvert:opacity-100 menu-ouvert:delay-[calc(var(--i,0)*50ms)] sans-js:translate-y-0 sans-js:opacity-100';
 ---
 
 <!doctype html>
@@ -83,13 +118,15 @@ const animation = { forwards: fondu, backwards: fondu };
     <meta name="theme-color" content="#000000" />
     <title set:html={titreComplet} />
     <meta name="description" content={résumé} />
-    <link rel="canonical" href={canonique} />
+    {canonique && <link rel="canonical" href={canonique} />}
+    {/* max-image-preview : les grandes vignettes dans les résultats et Discover. N'autorise rien de plus aux robots d'entraînement. */}
+    <meta name="robots" content={indexer ? 'max-image-preview:large' : 'noindex'} />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_BE" />
     <meta property="og:site_name" content={site.site_title} />
-    <meta property="og:title" content={title ?? site.site_title} />
+    <meta property="og:title" content={typographier(titrePartage)} />
     <meta property="og:description" content={résumé} />
-    <meta property="og:url" content={canonique} />
+    {canonique && <meta property="og:url" content={canonique} />}
     {ogUrl && <meta property="og:image" content={ogUrl} />}
     <meta name="twitter:card" content={ogUrl ? 'summary_large_image' : 'summary'} />
     <link rel="icon" type="image/png" href="/favicon.png" />
@@ -97,11 +134,11 @@ const animation = { forwards: fondu, backwards: fondu };
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="preload" href="/fonts/jost-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/archivo-800-latin.woff2" as="font" type="font/woff2" crossorigin />
-    {precharger && <link rel="preload" as="image" href={precharger.src} imagesrcset={precharger.srcset} imagesizes={precharger.sizes} fetchpriority="high" />}
+    {préchargements.map((p) => <link rel="preload" as="image" media={p.media} type={p.type} imagesrcset={p.srcset} imagesizes={p.sizes} fetchpriority="high" />)}
     {site.head_verification && <Fragment set:html={site.head_verification} />}
     {ld && <script type="application/ld+json" set:html={ld} />}
     <script is:inline>
-      // Avec JS : le burger remplace la ligne de liens (site.css). Le routeur
+      // Avec JS : le burger remplace la ligne de liens (variante sans-js). Le routeur
       // recopie les attributs de <html> de la page suivante, qui n'a pas la
       // classe : on la remet après chaque changement.
       document.documentElement.classList.add('js');
@@ -112,24 +149,74 @@ const animation = { forwards: fondu, backwards: fondu };
     </script>
     <ClientRouter fallback="swap" />
   </head>
-  <body>
-    <a class="skip" href="#contenu">{T.allerAuContenu}</a>
-    <header class="mh">
-      <a href="/" class="mh__logo" translate="no" set:html={tx(site.site_title)} />
+  <body class="menu-ouvert:overflow-hidden">
+    <a class="fixed -top-16 left-4 z-60 bg-front px-4 py-3 font-normal text-back transition-[top] duration-200 focus:top-[calc(1rem+var(--safe-top))]" href="#contenu">{T.allerAuContenu}</a>
+    <header class="pointer-events-none absolute inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere">
+      <a
+        href="/"
+        class="pointer-events-auto inline-block max-w-56 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
+        translate="no"
+        set:html={tx(site.site_title)}
+      />
     </header>
-    <button class="burger" id="burger" aria-label={T.menuOuvrir} aria-expanded="false" aria-controls="menu" data-ouvrir={T.menuOuvrir} data-fermer={T.menuFermer} transition:persist="burger">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect class="s1" y="4" width="32" height="4"></rect><rect class="s2" y="14" width="32" height="4"></rect><rect class="s3" y="24" width="32" height="4"></rect></svg>
+    <button
+      class="fixed top-[calc(.375rem+var(--safe-top))] right-1.5 z-40 grid size-11 place-items-center opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 sans-js:hidden"
+      id="burger"
+      aria-label={T.menuOuvrir}
+      aria-expanded="false"
+      aria-controls="menu"
+      data-ouvrir={T.menuOuvrir}
+      data-fermer={T.menuFermer}
+      transition:persist="burger"
+    >
+      {/* Les traits pivotent autour de leur bout gauche : le haut et le bas se croisent en X, celui du milieu s'efface. */}
+      <svg class="block size-6" viewBox="0 0 32 32" aria-hidden="true">
+        <rect class={`${trait} origin-[2px_6px] menu-ouvert:translate-x-[4px] menu-ouvert:rotate-45`} y="4" width="32" height="4"></rect>
+        <rect class={`${trait} menu-ouvert:opacity-0`} y="14" width="32" height="4"></rect>
+        <rect class={`${trait} origin-[2px_26px] menu-ouvert:translate-x-[4px] menu-ouvert:-rotate-45`} y="24" width="32" height="4"></rect>
+      </svg>
     </button>
-    <nav class="menu" id="menu" aria-label={T.menuPrincipal} transition:persist="menu">
-      <video class="menu__bg" id="menuVideo" muted loop playsinline preload="none" data-poster="/menu-poster.webp" aria-hidden="true">
+    <nav
+      class:list={[
+        'fixed inset-0 z-30 isolate flex items-center justify-center overscroll-contain bg-back px-4 py-8',
+        'invisible opacity-0 [transition:opacity_.25s_linear,visibility_.25s_linear]',
+        // À l'ouverture, visible tout de suite (le fondu reste celui de l'opacité) : pendant la
+        // transition depuis hidden, le premier lien n'était pas encore focalisable.
+        'menu-ouvert:visible menu-ouvert:opacity-100 menu-ouvert:[transition:opacity_.25s_linear,visibility_0s]',
+        // Sans JS, pas de burger : le menu devient une ligne de liens sous le logo, pour que chaque
+        // page reste atteignable.
+        'sans-js:visible sans-js:relative sans-js:inset-auto sans-js:z-25 sans-js:block sans-js:bg-transparent sans-js:px-gouttiere sans-js:pt-[calc(5rem+var(--safe-top))] sans-js:pb-0 sans-js:opacity-100',
+      ]}
+      id="menu"
+      aria-label={T.menuPrincipal}
+      transition:persist="menu"
+    >
+      <video
+        class="pointer-events-none absolute inset-0 -z-1 size-full object-cover brightness-40 sans-js:hidden"
+        id="menuVideo"
+        muted
+        loop
+        playsinline
+        preload="none"
+        data-poster="/menu-poster.webp"
+        aria-hidden="true"
+      >
         <source src="/menu.mp4" type="video/mp4" />
       </video>
-      <ul>
-        <li style="--i:0" aria-hidden="true"><img class="menu__logo" data-src={logoMenu.src} alt="" width="384" height="384" /></li>
+      <ul class="relative grid gap-2 text-center text-2xl font-normal sans-js:flex sans-js:flex-wrap sans-js:justify-start sans-js:gap-x-1 sans-js:gap-y-0 sans-js:text-left sans-js:text-base">
+        {/* Le logo ne se charge qu'à la première ouverture : sans JS, il n'a pas lieu d'être. */}
+        <li class={`${entrée} sans-js:hidden`} style="--i:0" aria-hidden="true">
+          <img class="mx-auto mb-[clamp(1.5rem,5vh,3rem)] h-auto w-[clamp(7rem,22vh,12rem)]" data-src={logoMenu.src} alt="" width="384" height="384" />
+        </li>
         {
           T.menu.map((l, i) => (
-            <li style={`--i:${i + 1}`}>
-              <a href={l.href} aria-current={l.href === rubrique ? 'page' : undefined} set:html={tx(l.label)} />
+            <li class={entrée} style={`--i:${i + 1}`}>
+              <a
+                class="inline-block px-3 py-1 opacity-75 transition-opacity duration-250 hover:opacity-100 focus-visible:opacity-100 aria-[current=page]:opacity-100 sans-js:pl-0"
+                href={l.href}
+                aria-current={l.href === rubrique ? 'page' : undefined}
+                set:html={tx(l.label)}
+              />
             </li>
           ))
         }
@@ -168,7 +255,9 @@ const animation = { forwards: fondu, backwards: fondu };
             vidéo.poster = vidéo.dataset.poster;
             delete vidéo.dataset.poster;
           }
-          if (!mouvementRéduit.matches) vidéo.play().catch(() => {});
+          // La vidéo pèse cinq mégaoctets : avec l'économiseur de données, l'image fixe suffit.
+          const économe = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+          if (!mouvementRéduit.matches && !économe) vidéo.play().catch(() => {});
           m.querySelector('a')?.focus({ preventScroll: true });
         } else {
           setTimeout(() => {
@@ -224,13 +313,15 @@ const animation = { forwards: fondu, backwards: fondu };
       });
 
       // --- Apparition en cascade ------------------------------------------------
-      // Chaque bloc glisse en place, l'un après l'autre, à chaque page.
-      const CASCADE = '.list li, .phead hgroup > *, .title--page, .pills, .section, .gallery figure, .contact__inner > *';
+      // Chaque bloc glisse en place, l'un après l'autre, à chaque page. Les
+      // blocs portent data-cascade : titres, lignes des listes, sections,
+      // pastilles, vignettes de la galerie.
       document.addEventListener('astro:page-load', () => {
         if (mouvementRéduit.matches) return;
-        document.querySelectorAll<HTMLElement>(`main ${CASCADE.split(', ').join(', main ')}`).forEach((el, i) => {
-          el.style.setProperty('--d', `${Math.min(0.1 + i * 0.07, 0.9)}s`);
-          el.classList.add('rise');
+        document.querySelectorAll<HTMLElement>('main [data-cascade]').forEach((el, i) => {
+          el.classList.add('animate-rise');
+          // Le décalage en style en ligne : il l'emporte sur le raccourci animation de la classe.
+          el.style.animationDelay = `${Math.min(0.1 + i * 0.07, 0.9)}s`;
         });
       });
 
@@ -243,7 +334,7 @@ const animation = { forwards: fondu, backwards: fondu };
           enAttente = true;
           requestAnimationFrame(() => {
             enAttente = false;
-            document.querySelectorAll('.js-hint').forEach((h) => h.classList.toggle('hint--gone', scrollY > 40));
+            document.querySelectorAll('.js-hint').forEach((h) => h.classList.toggle('est-parti', scrollY > 40));
             const héros = document.querySelector<HTMLElement>('.js-hero');
             if (!héros) return;
             const p = Math.min(1, Math.max(0, (scrollY / innerHeight - 0.5) * 2));
@@ -256,7 +347,7 @@ const animation = { forwards: fondu, backwards: fondu };
       // Découvrir : défile jusqu'à la première section sous la photo.
       document.addEventListener('click', (e) => {
         if (!(e.target as Element).closest('.js-hint')) return;
-        document.querySelector('.phead + .section')?.scrollIntoView({ behavior: mouvementRéduit.matches ? 'auto' : 'smooth' });
+        document.querySelector('[data-tete] + *')?.scrollIntoView({ behavior: mouvementRéduit.matches ? 'auto' : 'smooth' });
       });
     </script>
   </body>

@@ -2,10 +2,24 @@
 // Un <img> rendu par une taille de lib/images.js : srcset WebP, dimensions
 // réelles pour réserver la place, chargement paresseux sauf la photo du haut.
 //
-// `differee` : les photos de survol de l'accueil et de la liste. Leur srcset
-// est gardé dans data-srcset, et le script de Fond.astro le pose au repos
-// (requestIdleCallback) ou au premier survol, pour qu'elles ne concurrencent
+// Les photos plein écran passent par un <picture> : le navigateur prend la
+// première source dont le média et le type lui vont, dans l'ordre du
+// portfolio : portrait AVIF, portrait WebP (écran tenu droit), paysage AVIF,
+// et l'<img> elle-même, paysage WebP. Le <picture> est en `display:
+// contents` : l'<img> reste l'enfant direct du conteneur, ses classes
+// (size-full, js-hero) et son flou au défilement n'en voient rien.
+//
+// L'aperçu flou (quelques centaines d'octets en data:) est le fond de l'<img>
+// elle-même, cadré comme elle : le temps que la photo arrive, on en voit la
+// lumière, jamais un rectangle noir, et le fondu de page reste photo sur
+// photo. Pas de fondu à l'arrivée : celui de la page (0,7 s) le fait déjà.
+//
+// `differee` : les photos de survol de l'accueil et de la liste. Leurs srcset
+// sont gardés dans data-srcset, et le script de Fond.astro les pose une fois
+// le fond arrivé, ou au premier survol, pour qu'elles ne concurrencent
 // jamais la photo visible.
+//
+// `basse` : sous la photo du haut (carrousel, affiche), priorité basse.
 import type { Réactive } from '../lib/images.js';
 
 interface Props {
@@ -13,29 +27,45 @@ interface Props {
   alt?: string;
   eager?: boolean;
   differee?: boolean;
+  basse?: boolean;
   class?: string;
   style?: string;
 }
 
-const { img, alt = '', eager = false, differee = false, class: classe, style } = Astro.props;
+const { img, alt = '', eager = false, differee = false, basse = false, class: classe, style } = Astro.props;
+
+// Un attribut srcset, posé tout de suite ou gardé en attente.
+const srcset = (valeur: string) => (differee ? { 'data-srcset': valeur } : { srcset: valeur });
+const sources = [
+  img.portrait?.avif && { media: '(orientation: portrait)', type: 'image/avif', srcset: img.portrait.avif, sizes: img.portrait.sizes },
+  img.portrait && { media: '(orientation: portrait)', type: 'image/webp', srcset: img.portrait.srcset, sizes: img.portrait.sizes },
+  img.avif && { type: 'image/avif', srcset: img.avif, sizes: img.sizes },
+].filter((s) => !!s);
+const fond = img.apercu ? `background-image:url(${img.apercu});background-size:cover` : undefined;
+const attributs = {
+  class: classe,
+  ...(differee ? { 'data-src': img.src } : { src: img.src }),
+  ...srcset(img.srcset),
+  sizes: img.sizes,
+  width: img.width,
+  height: img.height,
+  alt,
+  loading: eager || differee ? undefined : 'lazy',
+  fetchpriority: eager ? 'high' : basse ? 'low' : undefined,
+  decoding: 'async',
+  style: [fond, style].filter(Boolean).join(';') || undefined,
+} as const;
 ---
 
 {
-  differee ? (
-    <img class={classe} data-srcset={img.srcset} data-src={img.src} sizes={img.sizes} width={img.width} height={img.height} alt={alt} decoding="async" style={style} />
+  sources.length > 0 ? (
+    <picture class="contents">
+      {sources.map((s) => (
+        <source media={s.media} type={s.type} sizes={s.sizes} {...srcset(s.srcset)} />
+      ))}
+      <img {...attributs} />
+    </picture>
   ) : (
-    <img
-      class={classe}
-      src={img.src}
-      srcset={img.srcset}
-      sizes={img.sizes}
-      width={img.width}
-      height={img.height}
-      alt={alt}
-      loading={eager ? undefined : 'lazy'}
-      fetchpriority={eager ? 'high' : undefined}
-      decoding="async"
-      style={style}
-    />
+    <img {...attributs} />
   )
 }

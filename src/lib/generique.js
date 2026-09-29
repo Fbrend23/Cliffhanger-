@@ -10,7 +10,10 @@
 
 import { T } from './textes.js';
 
-/** « a, b et c ». */
+/**
+ * « a, b et c ».
+ * @param {unknown[]} items
+ */
 export const joindreFr = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`);
 
 /**
@@ -26,6 +29,10 @@ export const joindreFr = (items) => (items.length < 2 ? items.join('') : `${item
  * @returns {Ligne[]}
  */
 export function lignesGenerique(generique, distribution) {
+  /**
+   * @param {{ sort: number }} a
+   * @param {{ sort: number }} b
+   */
   const parOrdre = (a, b) => a.sort - b.sort;
   const avec = [...distribution].sort(parOrdre).map((d) => ({ slug: d.personne, personnage: d.personnage }));
   const lignes = [];
@@ -74,7 +81,7 @@ export function valeurLigne(ligne, nomHtml, texte) {
  * (« Interprétation (Henriette) », « Mise en scène »), les plus récents
  * d'abord. L'ordre des rôles est celui du générique.
  *
- * @template {{ slug: string, year: number|null }} S
+ * @template {{ slug: string, year?: number|null }} S
  * @param {string} personne
  * @param {S[]} spectacles  dans l'ordre du site
  * @param {Map<string, Ligne[]>} lignesParSpectacle
