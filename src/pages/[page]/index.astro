@@ -11,16 +11,12 @@ import TexteRiche from '../../components/TexteRiche.astro';
 import TitrePage from '../../components/TitrePage.astro';
 import { contenu } from '../../lib/contenu.js';
 import { T } from '../../lib/textes.js';
-import { échapper } from '../../lib/typo.js';
-
-// Les valeurs du CMS sont échappées ici : les textes de T sont du HTML.
-/** @param {any} l */
-const échappé = (l) => ({ ...l, ...Object.fromEntries(Object.entries(l).map(([k, v]) => [k, Array.isArray(v) ? v.map(échapper) : v === null ? null : échapper(v)])) });
+import { légalÉchappé } from '../../lib/legal.js';
 
 export async function getStaticPaths() {
   const { légal } = await contenu();
   if (!légal) return [];
-  const l = échappé(légal);
+  const l = légalÉchappé(légal);
   return [
     {
       params: { page: 'mentions-legales' },

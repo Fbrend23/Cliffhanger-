@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { légal } from '../src/lib/legal.js';
+import { légal, légalÉchappé } from '../src/lib/legal.js';
 import { T } from '../src/lib/textes.js';
 
 const complet = {
@@ -34,4 +34,10 @@ test('les pages légales rendent chaque section, sans tiret long', () => {
   const html = T.sectionsConfidentialité({ ...l, conservation: '12 mois' }).map((s) => s.html).join('');
   assert.match(html, /conservée 12 mois/);
   assert.match(html, /aucun cookie/);
+});
+
+test('les valeurs échappées ne laissent passer aucune balise', () => {
+  const l = légalÉchappé({ ...légal(complet), denomination: 'A & <b>B</b>', conservation: '<i>1 an</i>' });
+  assert.equal(l.denomination, 'A &amp; &lt;b&gt;B&lt;/b&gt;');
+  assert.equal(l.conservation, '&lt;i&gt;1 an&lt;/i&gt;');
 });

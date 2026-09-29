@@ -3,6 +3,8 @@
 // doivent dire est renseigné : jamais de champ vide rendu, jamais de texte
 // provisoire à sa place.
 
+import { échapper } from './typo.js';
+
 /**
  * @typedef {object} Légal
  * @property {string} denomination
@@ -27,3 +29,17 @@ export function légal(reglages) {
   if (!denomination || !bce || !responsable || !email || adresse.length === 0) return null;
   return { denomination, adresse, bce, responsable, email, conservation: reglages.legal_conservation };
 }
+
+/**
+ * Les mêmes informations, échappées : les textes de T qui les reçoivent sont du HTML.
+ * @param {Légal} l
+ * @returns {Légal}
+ */
+export const légalÉchappé = (l) => ({
+  denomination: échapper(l.denomination),
+  adresse: l.adresse.map(échapper),
+  bce: échapper(l.bce),
+  responsable: échapper(l.responsable),
+  email: échapper(l.email),
+  conservation: l.conservation === null ? null : échapper(l.conservation),
+});
