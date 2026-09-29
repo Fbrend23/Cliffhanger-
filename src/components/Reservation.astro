@@ -24,9 +24,11 @@ interface Props {
   /** Les représentations réservables, dans l'ordre du calendrier (une ligne sans réservation est ignorée). */
   dates: { day: string; time?: string | null; venue?: string | null; city?: string | null; reservation?: { slug: string; id: string } | null }[];
   email: string | null;
+  /** La page Confidentialité existe : la note sous le formulaire y mène. */
+  confidentialite?: boolean;
 }
 
-const { dates, email } = Astro.props;
+const { dates, email, confidentialite = false } = Astro.props;
 const options = dates.flatMap((r) => (r.reservation ? [{ ...r, reservation: r.reservation }] : [])).map((r) => ({
   ...r.reservation,
   libellé: tx([formatJourHeure(r.day, r.time), lieu(r)].filter(Boolean).join(' · ')),
@@ -94,7 +96,7 @@ const bloc = email ? undefined : 'sans-js:hidden';
           <Pastille class="disabled:cursor-wait disabled:opacity-50" type="submit"><Fragment set:html={tx(T.envoyer)} /></Pastille>
           <p class="js-statut text-base data-erreur:font-medium" role="status" aria-live="polite" hidden />
         </div>
-        <p class={`${note} col-span-full`} set:html={tx(T.réservationDonnées)} />
+        <p class={`${note} col-span-full`} set:html={tx(T.réservationDonnées) + (confidentialite ? ` <a href="/confidentialite/">${tx(T.confidentialité)}</a>` : '')} />
       </form>
       {
         email && (

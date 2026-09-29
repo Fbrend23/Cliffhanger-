@@ -1,7 +1,9 @@
 ---
 // Le pied : une ligne. Épinglé en bas de l'écran sur les pages plein écran
 // (accueil, spectacles, contact), à la suite du contenu ailleurs. C'est, avec
-// /montreal/, le seul endroit où Montréal apparaît.
+// /montreal/, le seul endroit où Montréal apparaît. Les liens vers les pages
+// légales n'y sont que si les réglages du CMS les rendent possibles.
+import { contenu } from '../lib/contenu.js';
 import { T } from '../lib/textes.js';
 import { tx } from '../lib/typo.js';
 
@@ -10,6 +12,10 @@ interface Props {
 }
 
 const { epingle = false } = Astro.props;
+const c = await contenu();
+const liens = c.légal
+  ? ` · <a href="/mentions-legales/">${tx(T.mentionsLégales)}</a> · <a href="/confidentialite/">${tx(T.confidentialité)}</a>`
+  : '';
 ---
 
-<p class:list={['px-gouttiere py-8 text-xs opacity-60', epingle ? 'absolute inset-x-0 bottom-0 text-left' : 'text-center']} set:html={tx(T.pied(new Date().getFullYear()))} />
+<p class:list={['px-gouttiere py-8 text-xs opacity-60 [&_a]:lien-souligne', epingle ? 'absolute inset-x-0 bottom-0 text-left' : 'text-center']} set:html={tx(T.pied(new Date().getFullYear())) + liens} />

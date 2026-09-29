@@ -1,0 +1,54 @@
+---
+// Les deux pages légales, /mentions-legales/ et /confidentialite/. Elles ne
+// sont générées que si les réglages du CMS donnent toutes les informations
+// légales (`légal()`) : sinon aucune page, et le pied n'en parle pas.
+import Base from '../../layouts/Base.astro';
+import Intitule from '../../components/Intitule.astro';
+import PageListe from '../../components/PageListe.astro';
+import Pied from '../../components/Pied.astro';
+import Section from '../../components/Section.astro';
+import TexteRiche from '../../components/TexteRiche.astro';
+import TitrePage from '../../components/TitrePage.astro';
+import { contenu } from '../../lib/contenu.js';
+import { T } from '../../lib/textes.js';
+import { échapper } from '../../lib/typo.js';
+
+// Les valeurs du CMS sont échappées ici : les textes de T sont du HTML.
+/** @param {any} l */
+const échappé = (l) => ({ ...l, ...Object.fromEntries(Object.entries(l).map(([k, v]) => [k, Array.isArray(v) ? v.map(échapper) : v === null ? null : échapper(v)])) });
+
+export async function getStaticPaths() {
+  const { légal } = await contenu();
+  if (!légal) return [];
+  const l = échappé(légal);
+  return [
+    {
+      params: { page: 'mentions-legales' },
+      props: { titre: T.mentionsLégales, description: T.descriptionMentionsLégales, sections: T.sectionsMentionsLégales(l) },
+    },
+    {
+      params: { page: 'confidentialite' },
+      props: { titre: T.confidentialité, description: T.descriptionConfidentialité, sections: T.sectionsConfidentialité(l) },
+    },
+  ];
+}
+
+const { titre, description, sections } = Astro.props;
+---
+
+<Base title={titre} description={description}>
+  <PageListe>
+    <div class="mx-auto w-full max-w-4xl px-gouttiere">
+      <TitrePage texte={titre} />
+    </div>
+    {
+      sections.map((s: { titre: string; html: string }) => (
+        <Section>
+          <Intitule texte={s.titre} />
+          <TexteRiche html={s.html} />
+        </Section>
+      ))
+    }
+    <Pied />
+  </PageListe>
+</Base>

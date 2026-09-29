@@ -59,6 +59,68 @@ export const T = {
    */
   pied: (année) => `© ${année} Compagnie Cliffhanger · Bruxelles · Montréal`,
 
+  // Pages légales. Les valeurs de `l` (informations légales des réglages) arrivent déjà échappées ;
+  // chaque section est un intitulé et son HTML, rendus par Intitule et TexteRiche.
+  mentionsLégales: 'Mentions légales',
+  confidentialité: 'Confidentialité',
+  descriptionMentionsLégales: "Mentions légales du site de la Compagnie Cliffhanger : éditeur, responsable de la publication, hébergeur et droits d'auteur.",
+  descriptionConfidentialité: "Politique de confidentialité du site de la Compagnie Cliffhanger : données des demandes de réservation, destinataires, durée de conservation, cookies et droits.",
+  /**
+   * @param {{ denomination: string, adresse: string[], bce: string, responsable: string, email: string }} l
+   */
+  sectionsMentionsLégales: (l) => [
+    {
+      titre: 'Éditeur',
+      html: `<p>${l.denomination}<br>${(l.adresse ?? []).join('<br>')}<br>Numéro d'entreprise : ${l.bce}<br>E-mail : <a href="mailto:${l.email}">${l.email}</a></p>`,
+    },
+    { titre: 'Responsable de la publication', html: `<p>${l.responsable}</p>` },
+    {
+      titre: 'Hébergement',
+      html: `<p>Infomaniak Network SA, Rue Eugène-Marziano 25, 1227 Genève, Suisse. <a href="https://www.infomaniak.com" target="_blank" rel="noopener">infomaniak.com</a></p>`,
+    },
+    {
+      titre: "Droits d'auteur",
+      html: `<p>Les photographies, affiches, textes et vidéos de ce site appartiennent à la compagnie et à leurs auteurs. Toute reproduction, même partielle, sans autorisation écrite préalable est interdite, y compris pour l'entraînement de systèmes d'intelligence artificielle.</p>`,
+    },
+    {
+      titre: 'Données personnelles',
+      html: `<p>Le traitement des données personnelles est décrit dans la <a href="/confidentialite/">politique de confidentialité</a>.</p>`,
+    },
+  ],
+  /**
+   * @param {{ denomination: string, adresse: string[], email: string, conservation: string|null }} l
+   */
+  sectionsConfidentialité: (l) => [
+    {
+      titre: 'Responsable du traitement',
+      html: `<p>${l.denomination}, ${(l.adresse ?? []).join(', ')}. Contact : <a href="mailto:${l.email}">${l.email}</a>.</p>`,
+    },
+    {
+      titre: 'Données collectées',
+      html: `<p>Le site ne collecte des données que lorsque vous demandez une réservation : prénom, nom, adresse e-mail, nombre de places, représentation choisie et, si vous le souhaitez, un message. Il n'y a ni compte, ni newsletter, ni autre formulaire.</p>`,
+    },
+    {
+      titre: 'Pourquoi et sur quelle base',
+      html: `<p>Ces données servent uniquement à traiter votre demande de réservation et à vous répondre. Le traitement repose sur votre demande, en vue de conclure la réservation (article 6, paragraphe 1, point b du RGPD).</p>`,
+    },
+    {
+      titre: 'Qui les reçoit',
+      html: `<p>La compagnie, par son outil de gestion Prodysos, qui enregistre la demande et envoie les e-mails de réponse. Prodysos s'appuie sur la plateforme d'hébergement Supabase. Vos données ne sont ni vendues ni cédées.</p><p>L'hébergeur du site, Infomaniak, tient des journaux techniques de connexion (adresse IP, date, page demandée), nécessaires à la sécurité et au bon fonctionnement du site.</p>`,
+    },
+    {
+      titre: 'Durée de conservation',
+      html: `<p>Votre demande est conservée ${l.conservation ?? 'le temps nécessaire à son traitement'}, puis supprimée.</p>`,
+    },
+    {
+      titre: 'Cookies',
+      html: `<p>Ce site n'utilise aucun cookie, aucun traceur et aucun outil de mesure d'audience, et ne charge aucun contenu de tiers : polices, images et vidéos viennent du site lui-même. Aucun consentement n'est donc demandé. Les liens vers Instagram et Facebook mènent hors du site, où s'appliquent les règles de ces services.</p>`,
+    },
+    {
+      titre: 'Vos droits',
+      html: `<p>Vous pouvez demander l'accès à vos données, leur rectification, leur effacement, la limitation du traitement, vous y opposer ou en demander la portabilité, en écrivant à <a href="mailto:${l.email}">${l.email}</a>. La compagnie répond dans un délai d'un mois.</p><p>Vous pouvez aussi introduire une réclamation auprès de l'Autorité de protection des données, Rue de la Presse 35, 1000 Bruxelles, <a href="https://www.autoriteprotectiondonnees.be" target="_blank" rel="noopener">autoriteprotectiondonnees.be</a>.</p>`,
+    },
+  ],
+
   spectacles: 'Spectacles',
   découvrir: 'Découvrir',
   voirLaSuite: 'Voir la suite',
