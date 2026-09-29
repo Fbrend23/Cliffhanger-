@@ -17,10 +17,12 @@
 
 import { échapper } from './typo.js';
 
+/** @typedef {{ PRODYSOS_URL: string, PRODYSOS_KEY: string, PRODYSOS_COMPANY: string }} EnvProdysos */
+
 /**
  * Les trois variables vont ensemble. Aucune : le site vit sur les dates du
  * CMS seul. Une partie seulement : une configuration cassée, on refuse.
- * @param {{ PRODYSOS_URL?: string, PRODYSOS_KEY?: string, PRODYSOS_COMPANY?: string }} env
+ * @param {Record<string, string|undefined>} env
  */
 export function prodysosConfiguré(env) {
   const noms = ['PRODYSOS_URL', 'PRODYSOS_KEY', 'PRODYSOS_COMPANY'];
@@ -34,6 +36,12 @@ export function prodysosConfiguré(env) {
 // secondes : deux nouveaux essais avant de faire échouer le build.
 const DÉLAIS = [2000, 5000];
 
+/**
+ * @param {EnvProdysos} env
+ * @param {string} fonction
+ * @param {unknown} corps
+ * @param {number[]} [délais]
+ */
 async function rpc(env, fonction, corps, délais = DÉLAIS) {
   for (let essai = 0; ; essai++) {
     let res;
@@ -45,8 +53,8 @@ async function rpc(env, fonction, corps, délais = DÉLAIS) {
       });
     } catch (e) {
       // Une erreur réseau est aussi passagère qu'un 5xx : mêmes essais.
-      if (essai >= délais.length) throw new Error(`Prodysos injoignable (${fonction}) : ${e.message}`);
-      await attendre(délais[essai], fonction, e.message);
+      if (essai >= délais.length) throw new Error(`Prodysos injoignable (${fonction}) : ${e instanceof Error ? e.message : String(e)}`);
+      await attendre(délais[essai], fonction, e instanceof Error ? e.message : String(e));
       continue;
     }
     if (res.ok) return res.json();
@@ -57,6 +65,11 @@ async function rpc(env, fonction, corps, délais = DÉLAIS) {
   }
 }
 
+/**
+ * @param {number} ms
+ * @param {string} fonction
+ * @param {string} raison
+ */
 function attendre(ms, fonction, raison) {
   console.warn(`${raison}, nouvel essai de ${fonction} dans ${ms / 1000} s`);
   return new Promise((ok) => setTimeout(ok, ms));
@@ -64,6 +77,7 @@ function attendre(ms, fonction, raison) {
 
 // Une panne derrière Cloudflare rend une page HTML de centaines de lignes qui
 // noierait le log ; une erreur PostgREST est un JSON court, gardé.
+/** @param {Response} res */
 async function décrireErreur(res) {
   const détail = await res.text().catch(() => '');
   if ((res.headers.get('content-type') ?? '').includes('text/html')) return '(page HTML : Prodysos injoignable derrière Cloudflare)';
@@ -76,6 +90,9 @@ async function décrireErreur(res) {
  * Prodysos rend null pour une compagnie inconnue OU sans `public_slug`
  * (l'exposition publique y est un choix explicite). On lève : un agenda
  * silencieusement privé de ses dates serait pire qu'un build en échec.
+ *
+ * @param {EnvProdysos} env
+ * @param {{ délais?: number[] }} [options]  les attentes entre les essais (les tests les raccourcissent)
  */
 export async function lireSpectaclesProdysos(env, { délais } = {}) {
   const data = await rpc(env, 'get_public_company_shows', { p_company_slug: env.PRODYSOS_COMPANY }, délais);
@@ -102,6 +119,7 @@ const bruxelles = new Intl.DateTimeFormat('en-CA', {
  * Un horodatage Prodysos (« 2026-11-14T20:00:00+01:00 ») devient le jour et
  * l'heure À BRUXELLES, la forme des lignes du CMS : « 2026-11-14 », « 20:00 ».
  * Illisible : null.
+ * @param {string|number|null|undefined} horodatage  un nombre est un instant en millisecondes
  */
 export function jourEtHeure(horodatage) {
   const d = new Date(horodatage ?? '');
@@ -115,6 +133,7 @@ export function jourEtHeure(horodatage) {
  * code postal belge et la commune qui le suit en fin d'adresse (« Rue
  * Traversière 45, 1210 Saint-Josse-ten-Noode »), pays final permis. Les
  * moteurs veulent l'adresse entière d'une représentation. Autre forme : null.
+ * @param {unknown} texte
  * @returns {{ street: string|null, postalCode: string, city: string } | null}
  */
 export function adresse(texte) {
@@ -130,6 +149,7 @@ export function adresse(texte) {
  * La commune d'une adresse Prodysos (« Rue Traversière 45, 1210
  * Saint-Josse-ten-Noode » → « Saint-Josse-ten-Noode »). Autre forme : null,
  * et la salle s'affiche seule.
+ * @param {unknown} texte
  */
 export const commune = (texte) => adresse(texte)?.city ?? null;
 
@@ -137,6 +157,7 @@ export const commune = (texte) => adresse(texte)?.city ?? null;
  * Un titre réduit à ce qui le distingue : sans casse, accents, apostrophes
  * ni ponctuation. « L’Inédit de Molière » et « L'inedit de moliere » se
  * valent ; la compagnie ne tape pas deux fois la même typographie.
+ * @param {unknown} titre
  */
 export function titreNormalisé(titre) {
   if (typeof titre !== 'string') return '';
@@ -172,6 +193,7 @@ export function titreNormalisé(titre) {
  */
 export function relier(spectaclesProdysos, spectaclesCms, { avertir, informer = () => {} }) {
   const liens = new Map();
+  /** @type {typeof spectaclesCms} */
   const libres = [];
   for (const s of spectaclesCms) {
     const clé = texteOuNull(s.prodysos_slug);
@@ -185,6 +207,7 @@ export function relier(spectaclesProdysos, spectaclesCms, { avertir, informer = 
     liens.set(clé, { slug: s.slug, price: texteOuNull(s.price) });
   }
 
+  /** @type {Map<string, typeof spectaclesCms>} */
   const parTitre = new Map();
   for (const s of libres) {
     const titre = titreNormalisé(s.title);
@@ -251,6 +274,7 @@ export function lignesProdysos(spectaclesProdysos, parSlugProdysos, avertir) {
   return lignes;
 }
 
+/** @param {unknown} v */
 const texteOuNull = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
 /**
@@ -269,11 +293,15 @@ const texteOuNull = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null)
  * @returns {{ lignes: L[], écartées: number }}
  */
 export function fusionner(duCms, deProdysos) {
+  /** @param {L} l */
   const jour = (l) => `${l.spectacle}|${l.day}`;
+  /** @param {L} l */
   const exacte = (l) => `${jour(l)}|${l.time ?? ''}`;
   const jourEntier = new Set(duCms.filter((l) => !l.time).map(jour));
   const exactes = new Set(duCms.map(exacte));
+  /** @type {L[]} */
   const gardées = [];
+  /** @type {L[]} */
   const écartées = [];
   for (const l of deProdysos) (jourEntier.has(jour(l)) || exactes.has(exacte(l)) ? écartées : gardées).push(l);
 
@@ -307,6 +335,7 @@ export function parSpectacleCms(spectaclesProdysos, liens) {
 /**
  * Le nom de l'affiche d'un spectacle Prodysos dans le cache des originaux.
  * Sans point : la purge du cache lit l'id jusqu'au premier.
+ * @param {unknown} slug
  */
 export const idAfficheProdysos = (slug) => `prodysos-affiche-${String(slug).replace(/[^\w-]/g, '-')}`;
 
@@ -314,6 +343,7 @@ export const idAfficheProdysos = (slug) => `prodysos-affiche-${String(slug).repl
  * Le synopsis d'une page publique Prodysos, du texte brut, en HTML de la
  * forme du texte du CMS : une ligne vide sépare deux paragraphes, un retour
  * simple reste un retour. Vide : null.
+ * @param {unknown} synopsis
  */
 export function synopsisEnHtml(synopsis) {
   if (typeof synopsis !== 'string' || !synopsis.trim()) return null;
