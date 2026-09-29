@@ -200,6 +200,11 @@ jobs:
           D="$RUNNER_TEMP/deploiement"
           mkdir -p "$D"
 
+          # Toujours un script (-f), jamais -e avec un site en argument : lftp
+          # refuse de les combiner (« -c, -f, -v, -h conflict with other
+          # `open' options and arguments »). La connexion est donc ouverte
+          # depuis l'INTÉRIEUR de chaque script, en sa première ligne.
+          #
           # lftp imprime des URL contenant le mot de passe, encodé en URL. La
           # chaîne encodée ne correspondant plus au secret, GitHub ne la
           # masque pas : on rédige nous-mêmes avant que ça n'atteigne les
@@ -210,10 +215,12 @@ jobs:
           # suivant n'ait jamais affiché le journal ; l'échec restait muet.
           lftp_go() {
             local statut=0
-            lftp -u "$FTP_USER,$FTP_PASSWORD" "$@" "$FTP_HOST" > "$D/sortie.log" 2>&1 || statut=$?
+            lftp -f "$1" > "$D/sortie.log" 2>&1 || statut=$?
             sed -E 's#(ftps?|sftp)://[^[:space:]]*@#\1://***@#g' "$D/sortie.log"
             return $statut
           }
+          ouvrir="open -u \"$FTP_USER,$FTP_PASSWORD\" \"$FTP_HOST\""
+          parametres="set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes"
 
           node scripts/deployer.mjs construire dist "$D/nouveau.json"
 
@@ -221,7 +228,8 @@ jobs:
           # déploiement sous ce système, ou après l'avoir supprimé à la main
           # pour forcer un envoi complet. fail-exit no : un fichier absent
           # n'est pas une erreur, ancien.json restera vide.
-          lftp_go -e "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit no; get .deploy-manifest.json -o $D/ancien.json; quit" || true
+          printf '%s\n%s\nset cmd:fail-exit no\nget .deploy-manifest.json -o "%s/ancien.json"\nquit\n' "$ouvrir" "$parametres" "$D" > "$D/get-ancien.lftp"
+          lftp_go "$D/get-ancien.lftp" || true
           [ -s "$D/ancien.json" ] || : > "$D/ancien.json"
 
           node scripts/deployer.mjs diff "$D/ancien.json" "$D/nouveau.json" "$D"
@@ -237,7 +245,8 @@ jobs:
           # Un seul script lftp, une seule connexion.
           script="$D/script.lftp"
           {
-            echo "set net:timeout 20; set net:max-retries 2; set net:reconnect-interval-base 5; set dns:fatal-timeout 20; set ftp:ssl-force yes; set cmd:fail-exit yes;"
+            echo "$ouvrir"
+            echo "$parametres; set cmd:fail-exit yes;"
             sed 's/.*/mkdir -p "&"/' "$D/dossiers-a-creer.txt"
             sed 's#.*#put "dist/&" -o "&"#' "$D/envoyer.txt"
             sed 's/.*/rm "&"/' "$D/supprimer.txt"
@@ -246,7 +255,7 @@ jobs:
             echo quit
           } > "$script"
 
-          lftp_go -f "$script"
+          lftp_go "$script"
 
       # 4 · Dater la publication dans le CMS, une fois le site vraiment en
       #     ligne. Un échec ici ne casse pas le run : le site EST publié, et
