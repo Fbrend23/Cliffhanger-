@@ -141,10 +141,10 @@ export const herosSpectacle = (s) => heros(s.hero, s.heroTaille, { portrait: s.h
 /**
  * La même taille pour une photo de la photothèque (fond de page, photo de La
  * compagnie), qui porte ses dimensions à plat. Sans photo, rien.
- * @param {{ image: import('astro').ImageMetadata, width: number|null, height: number|null, portrait?: import('astro').ImageMetadata|null, apercu?: string|null } | null | undefined} photo
+ * @param {{ image: any, width?: number|null, height?: number|null, portrait?: any, apercu?: string|null } | null | undefined} photo
  */
 export const herosPhoto = (photo) =>
-  photo ? heros(photo.image, { width: photo.width, height: photo.height }, { portrait: photo.portrait, apercu: photo.apercu }) : Promise.resolve(null);
+  photo ? heros(photo.image, { width: photo.width ?? null, height: photo.height ?? null }, { portrait: photo.portrait, apercu: photo.apercu }) : Promise.resolve(null);
 
 /** L'affiche, à ses proportions, 40rem de large au plus. */
 export const affiche = (image, taille) => réactive(image, taille, [400, 800, 1200], '(max-width: 40em) 100vw, 40rem');

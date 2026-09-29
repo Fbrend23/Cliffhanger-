@@ -49,7 +49,7 @@ export const lieu = (r) => [r.venue, r.city].filter(Boolean).join(', ');
  * au plus) d'un même spectacle au même lieu (salle et ville) deviennent une
  * ligne. Les plus récentes d'abord, comme le prototype.
  *
- * @template {{ spectacle: string, day: string, venue: string|null, city: string|null }} R
+ * @template {{ spectacle: string, day: string, venue?: string|null, city?: string|null }} R
  * @param {R[]} représentations
  * @returns {{ spectacle: string, de: string, à: string, lieu: string }[]}
  */
