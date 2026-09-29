@@ -13,13 +13,12 @@ interface Props {
 
 const { lignes, personne, duree = null } = Astro.props;
 
-// Le lien d'une personne, et son personnage entre parenthèses. Une personne
-// dépubliée entre-temps n'a plus de fiche : elle sort de la ligne.
-const nomHtml = (n: { slug: string; personnage: string | null }) => {
-  const p = personne(n.slug);
-  if (!p) return null;
-  const lien = `<a class="lien-souligne" href="/personne/${n.slug}/">${tx(p.name)}</a>`;
-  return n.personnage ? `${lien} (${tx(n.personnage)})` : lien;
+// Le lien d'une personne, et son personnage entre parenthèses. Un nom sans
+// fiche (ou dont la fiche est dépubliée) reste un simple nom.
+const nomHtml = (n: { slug: string | null; nom: string; personnage: string | null }) => {
+  const p = n.slug ? personne(n.slug) : null;
+  const affiché = p ? `<a class="lien-souligne" href="/personne/${n.slug}/">${tx(p.name)}</a>` : tx(n.nom);
+  return n.personnage ? `${affiché} (${tx(n.personnage)})` : affiché;
 };
 
 const rendues = lignes.map((l) => ({ role: tx(`${l.role} :`), valeur: valeurLigne(l, nomHtml, tx) })).filter((l) => l.valeur);

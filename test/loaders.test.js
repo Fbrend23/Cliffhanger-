@@ -201,9 +201,9 @@ test('générique : liens par slug, ordre, note gardée, personnage de chaque pe
   const lignes = [...g.entrées.values()].map((e) => e.data);
   const mes = lignes.find((l) => l.spectacle === 'linedit-de-moliere' && l.role === 'Mise en scène');
   assert.equal(mes.note, 'collective, sous la direction d’');
-  assert.deepEqual(mes.personnes, [{ slug: 'alize-cookie', personnage: null }]);
+  assert.deepEqual(mes.personnes, [{ slug: 'alize-cookie', nom: 'Alizé Cookie', personnage: null }]);
   const avec = lignes.find((l) => l.spectacle === 'les-femmes-se-vantent' && l.role === 'Avec');
-  assert.deepEqual(avec.personnes[0], { slug: 'sophie-decaestecker', personnage: 'Henriette' });
+  assert.deepEqual(avec.personnes[0], { slug: 'sophie-decaestecker', nom: 'Sophie Decaestecker', personnage: 'Henriette' });
 });
 
 test('représentations : jour, heure sans secondes, champs vides à null', async () => {

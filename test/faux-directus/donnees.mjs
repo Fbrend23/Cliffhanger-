@@ -110,15 +110,18 @@ export async function construireBase() {
     s.slides = s._slides.map((clé, i) => ({ id: s.id * 100 + i, sort: i + 1, cliff_photos_id: parClé.get(clé) }));
   }
 
-  const generique = numéroter(
-    modèle.generique.map((g) => ({
-      spectacle: parSlug.get(g.spectacle),
-      role: g.role,
-      note: g.note,
-      text: g.text,
-      personnes: g.personnes.map((p, i) => ({ sort: i + 1, personnage: p.personnage, cliff_personnes_id: parPersonne.get(p.slug) })),
-    }))
-  );
+  // Le générique se saisit dans la fiche du spectacle : une ligne par rôle, les
+  // noms un par ligne, « Nom (Personnage) » pour un interprète.
+  for (const s of spectacles) {
+    s.generique = modèle.generique
+      .filter((g) => g.spectacle === s.slug)
+      .map((g) => ({
+        role: g.role,
+        note: g.note,
+        text: g.text,
+        noms: g.personnes.map((p) => `${parPersonne.get(p.slug).name}${p.personnage ? ` (${p.personnage})` : ''}`).join('\n'),
+      }));
+  }
   const representations = numéroter(modèle.representations.map((r) => ({ ...r, spectacle: parSlug.get(r.spectacle) })));
 
   const r = modèle.reglages;
@@ -137,7 +140,6 @@ export async function construireBase() {
       cliff_spectacles: spectacles,
       cliff_personnes: personnes,
       cliff_photos: photos,
-      cliff_generique: generique,
       cliff_representations: representations,
     },
     singletons: { cliff_montreal: modèle.montreal, cliff_reglages: reglages },

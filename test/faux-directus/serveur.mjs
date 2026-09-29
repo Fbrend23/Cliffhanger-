@@ -28,7 +28,8 @@ const CHAMPS_FICHIERS_PERMIS = new Set(['id', 'filename_download', 'type', 'widt
 const estFichier = (v) => v && typeof v === 'object' && 'filename_download' in v;
 
 /** La clé primaire d'une ligne dépliée, ce que Directus rend pour un m2o sans sous-champ. */
-const clé = (v) => (v && typeof v === 'object' ? (v.id ?? null) : v);
+// Un objet sans `id` est du JSON (le champ `generique`), rendu tel quel.
+const clé = (v) => (v && typeof v === 'object' ? ('id' in v ? v.id : v) : v);
 
 /**
  * Projette une ligne sur les chemins demandés (`slug`, `hero.id`,

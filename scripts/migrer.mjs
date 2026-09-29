@@ -244,28 +244,29 @@ for (const s of modèle.spectacles) {
   if (!DRY) await appeler('PATCH', `/items/cliff_spectacles/${spectacleId.get(s.slug)}`, { slides: voulu.map((id) => ({ cliff_photos_id: id })) });
 }
 
-// 7 · Le générique : une ligne par rôle, la ligne « Avec » porte les interprètes.
+// 7 · Le générique : une liste dans la fiche du spectacle (champ generique), une
+// ligne par rôle, les noms un par ligne (« Nom (Personnage) » pour un interprète).
 console.log(`7. générique (${modèle.generique.length})`);
-const génériqueId = await verser(
-  'cliff_generique',
-  ['spectacle', 'role', 'note', 'text', 'status', 'sort'],
-  modèle.generique.map(({ personnes, ...g }, i) => ({ ...g, spectacle: spectacleId.get(g.spectacle), ...publié, sort: i + 1 })),
-  (g) => `${g.spectacle}|${g.role}`,
-  (g, i) => `${modèle.generique[i].spectacle} · ${g.role}`
-);
-const personnesDuGénérique = await lire(`/items/cliff_generique?fields=id,personnes.cliff_personnes_id,personnes.personnage&deep[personnes][_sort]=sort&limit=-1`);
-const personnesParLigne = new Map(personnesDuGénérique.map((g) => [String(g.id), (g.personnes ?? []).map((l) => [l.cliff_personnes_id, l.personnage ?? null])]));
-for (const g of modèle.generique) {
-  if (!g.personnes.length) continue;
-  const id = génériqueId.get(`${spectacleId.get(g.spectacle)}|${g.role}`);
-  const voulu = g.personnes.map((p) => [personneId.get(p.slug), p.personnage ?? null]);
-  if (JSON.stringify(voulu) === JSON.stringify(personnesParLigne.get(String(id)) ?? [])) {
+const nomsDe = new Map(modèle.personnes.map((p) => [p.slug, p.name]));
+for (const s of modèle.spectacles) {
+  const voulu = modèle.generique
+    .filter((g) => g.spectacle === s.slug)
+    .map((g) => ({
+      role: g.role,
+      note: g.note,
+      text: g.text,
+      noms: g.personnes.map((p) => `${nomsDe.get(p.slug)}${p.personnage ? ` (${p.personnage})` : ''}`).join('\n'),
+    }));
+  if (!voulu.length) continue;
+  const id = spectacleId.get(s.slug);
+  const actuel = (await lire(`/items/cliff_spectacles/${id}?fields=generique`))?.generique ?? [];
+  if (JSON.stringify(actuel) === JSON.stringify(voulu)) {
     bilan.inchangés++;
     continue;
   }
   bilan.modifiés++;
-  console.log(`   ~ ${g.spectacle} · ${g.role} : ${voulu.length} personne(s)`);
-  if (!DRY) await appeler('PATCH', `/items/cliff_generique/${id}`, { personnes: voulu.map(([p, personnage]) => ({ cliff_personnes_id: p, personnage })) });
+  console.log(`   ~ ${s.title} : ${voulu.length} ligne(s)`);
+  if (!DRY) await appeler('PATCH', `/items/cliff_spectacles/${id}`, { generique: voulu });
 }
 
 // 8 · Les représentations.

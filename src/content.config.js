@@ -84,7 +84,7 @@ const generique = defineCollection({
     role: z.string(),
     note: z.string().nullable(),
     text: z.string().nullable(),
-    personnes: z.array(z.object({ slug: z.string(), personnage: z.string().nullable() })),
+    personnes: z.array(z.object({ slug: z.string().nullable(), nom: z.string(), personnage: z.string().nullable() })),
     sort: z.number(),
   }),
 });

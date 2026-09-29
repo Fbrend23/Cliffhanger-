@@ -27,6 +27,7 @@ import {
   request,
   requestAll,
 } from './directus.js';
+import { lireNoms } from './generique.js';
 import { T } from './textes.js';
 import {
   fusionner,
@@ -48,7 +49,6 @@ const ENV_PRODYSOS = { PRODYSOS_URL, PRODYSOS_KEY, PRODYSOS_COMPANY };
 
 export const SPECTACLES = 'cliff_spectacles';
 export const PERSONNES = 'cliff_personnes';
-export const GENERIQUE = 'cliff_generique';
 export const REPRESENTATIONS = 'cliff_representations';
 export const PHOTOS = 'cliff_photos';
 export const MONTREAL = 'cliff_montreal';
@@ -379,44 +379,42 @@ export function personnesLoader() {
 }
 
 /**
- * Les lignes du générique : Texte, Mise en scène, Avec… Chaque personne porte
- * le personnage qu'elle joue, s'il y en a un.
+ * Les lignes du générique : Texte, Mise en scène, Avec… Elles se saisissent
+ * dans la fiche du spectacle (champ `generique`) ; chaque nom y est relié à la
+ * fiche d'une personne publiée (lib/generique.js), sinon il reste un nom.
  * @returns {Loader}
  */
 export function generiqueLoader() {
   return {
     name: 'directus-generique',
     async load({ store, parseData, logger }) {
-      const lignes = await requestAll(
-        `/items/${GENERIQUE}?${PUBLIÉ}&sort=sort,id&fields=id,sort,spectacle.slug,role,note,text,personnes.personnage,personnes.${PERSONNES}_id.slug` +
-          `&deep[personnes][_sort]=sort`
-      );
+      const spectacles = await requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&sort=sort,id&fields=id,slug,generique`);
+      const personnes = await requestAll(`/items/${PERSONNES}?${PUBLIÉ}&fields=slug,name`);
+      const connues = personnes.map((/** @type {any} */ p) => ({ slug: texte(p.slug) ?? '', name: texte(p.name) ?? '' })).filter((p) => p.slug && p.name);
       store.clear();
-      for (const l of lignes) {
-        const spectacle = texte(l.spectacle?.slug);
-        const role = texte(l.role);
-        if (!spectacle || !role) {
-          logger.warn(`générique ${l.id} : spectacle dépublié ou rôle vide, ligne ignorée`);
-          continue;
+      let total = 0;
+      for (const s of spectacles) {
+        const spectacle = texte(s.slug);
+        if (!spectacle) continue;
+        for (const [i, l] of (Array.isArray(s.generique) ? s.generique : []).entries()) {
+          const role = texte(l?.role);
+          if (!role) {
+            logger.warn(`générique de « ${spectacle} » : ligne ${i + 1} sans rôle, ignorée`);
+            continue;
+          }
+          signalerTirets(logger, `générique « ${role} »`, [l.role, l.note, l.text, l.noms]);
+          const { noms, inconnus } = lireNoms(l.noms, connues);
+          for (const nom of inconnus) logger.warn(`générique « ${spectacle} », ${role} : « ${nom} » n'a pas de fiche publiée, affiché sans lien`);
+          // La note garde son espace final éventuel : « sous la direction d’ »
+          // se colle au nom qui suit (lib/generique.js).
+          const note = typeof l.note === 'string' && l.note.trim() ? l.note : null;
+          const id = `${spectacle}#${i}`;
+          const data = await parseData({ id, data: { spectacle, role, note, text: texte(l.text), personnes: noms, sort: i } });
+          store.set({ id, data, digest: JSON.stringify({ l, noms }) });
+          total += 1;
         }
-        signalerTirets(logger, `générique « ${role} »`, [l.role, l.note, l.text]);
-        signalerTirets(logger, `générique « ${role} » (personnages)`, (l.personnes ?? []).map((/** @type {any} */ j) => j?.personnage));
-        // Une personne dépubliée revient sans slug : elle sort de la ligne,
-        // les autres restent.
-        const personnes = (l.personnes ?? [])
-          .map((/** @type {any} */ j) => ({ slug: texte(j?.[`${PERSONNES}_id`]?.slug), personnage: texte(j?.personnage) }))
-          .filter((/** @type {{ slug: string|null }} */ p) => p.slug);
-        // La note garde son espace final éventuel : « sous la direction d’ »
-        // se colle au nom qui suit (lib/generique.js).
-        const note = typeof l.note === 'string' && l.note.trim() ? l.note : null;
-        const id = String(l.id);
-        const data = await parseData({
-          id,
-          data: { spectacle, role, note, text: texte(l.text), personnes, sort: l.sort ?? 0 },
-        });
-        store.set({ id, data, digest: JSON.stringify(l) });
       }
-      logger.info(`${lignes.length} ligne(s) de générique chargée(s)`);
+      logger.info(`${total} ligne(s) de générique chargée(s)`);
     },
   };
 }

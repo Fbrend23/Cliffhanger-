@@ -1,15 +1,28 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { joindreFr, lignesGenerique, projetsDe, valeurLigne } from '../src/lib/generique.js';
+import { cléNom, joindreFr, lignesGenerique, lireNoms, projetsDe, valeurLigne } from '../src/lib/generique.js';
 
 const g = (sort, role, extra = {}) => ({ sort, role, note: null, text: null, personnes: [], ...extra });
-const n = (slug, personnage = null) => ({ slug, personnage });
+const n = (slug, personnage = null) => ({ slug, nom: slug, personnage });
 
 test('joindreFr', () => {
   assert.equal(joindreFr([]), '');
   assert.equal(joindreFr(['a']), 'a');
   assert.equal(joindreFr(['a', 'b']), 'a et b');
   assert.equal(joindreFr(['a', 'b', 'c']), 'a, b et c');
+});
+
+test('un nom se retrouve sans accents ni majuscules, le personnage est entre parenthèses', () => {
+  assert.equal(cléNom('  Alizé   COOKIE '), 'alize cookie');
+  const personnes = [{ slug: 'alize-cookie', name: 'Alizé Cookie' }, { slug: 'hans-melot', name: 'Hans Mélot' }];
+  const { noms, inconnus } = lireNoms('Alize cookie\r\nHans Mélot (Clitandre)\n\n  Inconnu Personne  ', personnes);
+  assert.deepEqual(noms, [
+    { slug: 'alize-cookie', nom: 'Alize cookie', personnage: null },
+    { slug: 'hans-melot', nom: 'Hans Mélot', personnage: 'Clitandre' },
+    { slug: null, nom: 'Inconnu Personne', personnage: null },
+  ]);
+  assert.deepEqual(inconnus, ['Inconnu Personne']);
+  assert.deepEqual(lireNoms(null, personnes), { noms: [], inconnus: [] });
 });
 
 test('les lignes suivent l’ordre du Studio, les noms gardent leur personnage', () => {

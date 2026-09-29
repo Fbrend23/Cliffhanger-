@@ -1,9 +1,11 @@
 // Le générique d'un spectacle et les projets d'une personne. Pur, testé dans
 // test/generique.test.js.
 //
-// Dans le CMS, le générique d'un spectacle est une seule liste de lignes (rôle,
-// note, personnes, texte), dans l'ordre du Studio. Chaque personne d'une ligne
-// peut porter le personnage qu'elle joue : c'est ce qui fait la ligne « Avec ».
+// Dans le CMS, le générique d'un spectacle est une liste de lignes saisie dans
+// sa fiche (rôle, note, noms un par ligne, texte), dans l'ordre du Studio. Un
+// nom se tape tel qu'il s'affiche, avec le personnage entre parenthèses pour
+// un interprète (« Sophie Decaestecker (Henriette) ») : le site le relie à la
+// fiche de la personne par son nom.
 
 import { T } from './textes.js';
 
@@ -14,9 +16,48 @@ import { T } from './textes.js';
 export const joindreFr = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} et ${items[items.length - 1]}`);
 
 /**
- * @typedef {{ slug: string, personnage: string|null }} Nom
+ * @typedef {{ slug: string|null, nom: string, personnage: string|null }} Nom
  * @typedef {{ role: string, note: string|null, noms: Nom[], text: string|null }} Ligne
  */
+
+/**
+ * Un nom comparable : sans accents, majuscules ni ponctuation, pour qu'une
+ * étourderie de saisie (« Alize  cookie ») retrouve quand même la fiche.
+ * @param {string} s
+ */
+export const cléNom = (s) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+/**
+ * Les noms d'une ligne : un par ligne du texte saisi, « Nom (Personnage) ».
+ * Un nom sans fiche publiée reste un nom sans lien, et est rendu à l'appelant
+ * dans `inconnus` pour qu'il le signale.
+ *
+ * @param {unknown} saisie
+ * @param {{ slug: string, name: string }[]} personnes  les personnes publiées
+ * @returns {{ noms: Nom[], inconnus: string[] }}
+ */
+export function lireNoms(saisie, personnes) {
+  const parClé = new Map(personnes.map((p) => [cléNom(p.name), p.slug]));
+  /** @type {Nom[]} */
+  const noms = [];
+  /** @type {string[]} */
+  const inconnus = [];
+  for (const brut of typeof saisie === 'string' ? saisie.split(/\r?\n/) : []) {
+    const m = brut.trim().match(/^(.*?)\s*\(([^)]*)\)$/);
+    const nom = (m ? m[1] : brut).trim();
+    if (!nom) continue;
+    const slug = parClé.get(cléNom(nom)) ?? null;
+    if (!slug) inconnus.push(nom);
+    noms.push({ slug, nom, personnage: m?.[2].trim() || null });
+  }
+  return { noms, inconnus };
+}
 
 /**
  * Les lignes du générique d'un spectacle, dans l'ordre.
