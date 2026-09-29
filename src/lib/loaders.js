@@ -86,6 +86,25 @@ function signalerTirets(logger, où, valeurs) {
 }
 
 /**
+ * Un slug fait l'adresse de la page : on ne refuse pas l'entrée (la page existe
+ * peut-être déjà, et changer son adresse est la décision de la compagnie), mais
+ * on dit ce qui s'écarte de « lettres minuscules, chiffres, tirets », ou ce qui
+ * en écrase un autre : `store.set` garderait silencieusement le dernier.
+ *
+ * @param {{ warn(m: string): void }} logger
+ * @param {string} où
+ * @param {string} slug
+ * @param {Set<string>} vus  les slugs déjà rencontrés dans cette collection
+ */
+export function signalerSlug(logger, où, slug, vus) {
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+    logger.warn(`${où} : le slug « ${slug} » n'est pas une adresse propre (minuscules, chiffres et tirets). À corriger dans le Studio.`);
+  }
+  if (vus.has(slug)) logger.warn(`${où} : le slug « ${slug} » est déjà pris, cette entrée écrase l'autre.`);
+  vus.add(slug);
+}
+
+/**
  * Prodysos, lu une fois pour les trois loaders qui s'en servent : ses
  * spectacles publiés, les spectacles du CMS qu'ils rejoignent (relier), et
  * ces spectacles du CMS eux-mêmes. Les représentations y prennent leurs
@@ -148,6 +167,7 @@ export function spectaclesLoader() {
       // rangées ensuite dans l'ordre reçu du CMS : rangées au fil des
       // téléchargements, deux spectacles jamais triés dans le Studio
       // changeaient de place d'un build à l'autre.
+      const slugsVus = new Set();
       const entrées = await mapLimit(lignes, 3, async (s) => {
         const slug = texte(s.slug);
         const title = texte(s.title);
@@ -155,6 +175,7 @@ export function spectaclesLoader() {
           logger.warn(`spectacle ${s.id} sans slug ou sans titre : ignoré`);
           return null;
         }
+        signalerSlug(logger, `spectacle « ${title} »`, slug, slugsVus);
         if (!s.hero?.id) {
           logger.warn(`spectacle « ${title} » sans grande photo : ignoré`);
           return null;
@@ -211,8 +232,9 @@ export function spectaclesLoader() {
           // et le synopsis de Prodysos aussi.
           digest: JSON.stringify([s, s.hero?.modified_on, s.poster?.modified_on, show?.poster_url ?? null, show?.synopsis ?? null]),
         };
-      });
-      await cache.enregistrer();
+        // Le manifeste est enregistré même si un téléchargement échoue : sans
+        // lui, ce qui a déjà été téléchargé serait à refaire au build suivant.
+      }).finally(() => cache.enregistrer());
 
       // La garde porte sur ce qui sera affiché, pas sur ce que le CMS a
       // rendu : des spectacles tous sans photo, ou seulement celui de
@@ -304,7 +326,8 @@ export function photosLoader() {
         });
         // Devenir un fond (réglages) donne un portrait : ça compte dans le digest.
         return { id, data, filePath: MANIFEST_REL, digest: JSON.stringify([p, p.image.modified_on, fonds.has(id)]) };
-      });
+        // Comme pour les spectacles : le manifeste survit à un téléchargement raté.
+      }).finally(() => cache.enregistrer());
       store.clear();
       for (const e of entrées) if (e) store.set(e);
 
@@ -337,6 +360,7 @@ export function personnesLoader() {
     async load({ store, parseData, logger }) {
       const lignes = await requestAll(`/items/${PERSONNES}?${PUBLIÉ}&sort=sort,name&fields=id,sort,slug,name,groupe,bio`);
       store.clear();
+      const slugsVus = new Set();
       for (const p of lignes) {
         const slug = texte(p.slug);
         const name = texte(p.name);
@@ -344,6 +368,7 @@ export function personnesLoader() {
           logger.warn(`personne ${p.id} sans slug ou sans nom : ignorée`);
           continue;
         }
+        signalerSlug(logger, `personne « ${name} »`, slug, slugsVus);
         signalerTirets(logger, `personne « ${name} »`, [p.name, p.bio]);
         const groupe = ['equipe', 'invite', 'montreal'].includes(p.groupe) ? p.groupe : 'equipe';
         const data = await parseData({ id: slug, data: { slug, name, groupe, bio: texte(p.bio), sort: p.sort ?? 0 } });
