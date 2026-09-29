@@ -81,7 +81,7 @@ export function valeurLigne(ligne, nomHtml, texte) {
  * (« Interprétation (Henriette) », « Mise en scène »), les plus récents
  * d'abord. L'ordre des rôles est celui du générique.
  *
- * @template {{ slug: string, year: number|null }} S
+ * @template {{ slug: string, year?: number|null }} S
  * @param {string} personne
  * @param {S[]} spectacles  dans l'ordre du site
  * @param {Map<string, Ligne[]>} lignesParSpectacle
