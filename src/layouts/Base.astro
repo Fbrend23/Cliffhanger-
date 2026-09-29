@@ -28,7 +28,7 @@ interface Props {
   title?: string;
   description?: string | null;
   // L'image des partages de cette page (une affiche, une grande photo).
-  image?: ImageMetadata | null;
+  image?: ImageMetadata | { src: string; width: number; height: number; format?: string } | null;
   // La photo du haut, préchargée : c'est le premier téléchargement de la page.
   precharger?: Réactive | null;
   // Les données structurées (schema.org), sans le contexte : il est posé ici.
