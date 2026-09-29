@@ -62,7 +62,8 @@ export const T = {
   // Pages légales. Les valeurs de `l` (informations légales des réglages) arrivent déjà échappées ;
   // chaque section est un intitulé et son HTML, rendus par Intitule et TexteRiche.
   mentionsLégales: 'Mentions légales',
-  confidentialité: 'Confidentialité',
+  // Court : « Confidentialité » déborde du titre sur un téléphone de 390 px.
+  confidentialité: 'Vie privée',
   descriptionMentionsLégales: "Mentions légales du site de la Compagnie Cliffhanger : éditeur, responsable de la publication, hébergeur et droits d'auteur.",
   descriptionConfidentialité: "Politique de confidentialité du site de la Compagnie Cliffhanger : données des demandes de réservation, destinataires, durée de conservation, cookies et droits.",
   /**

@@ -14,7 +14,7 @@ interface Props {
 const { epingle = false } = Astro.props;
 const c = await contenu();
 const liens = c.légal
-  ? ` · <a href="/mentions-legales/">${tx(T.mentionsLégales)}</a> · <a href="/confidentialite/">${tx(T.confidentialité)}</a>`
+  ? ` · <a href="/mentions-legales/">${tx(T.mentionsLégales).replace(' ', ' ')}</a> · <a href="/confidentialite/">${tx(T.confidentialité)}</a>`
   : '';
 ---
 
