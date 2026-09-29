@@ -242,12 +242,27 @@ jobs:
             exit 0
           fi
 
-          # Un seul script lftp, une seule connexion.
+          # Deux scripts, deux connexions.
+          #
+          # Le premier crée les dossiers manquants. mkdir -p échoue (550
+          # « File exists ») sur un dossier déjà là, le cas courant : sans
+          # lister le serveur, on ne sait pas d'avance lequel est nouveau.
+          # Son statut est ignoré (comme celui d'un mkdir -p sur disque, qui
+          # ne fait pas non plus d'erreur pour ça) : un VRAI problème de
+          # dossier (droits…) se voit de toute façon au put qui suit.
+          dossiers="$D/dossiers.lftp"
+          { echo "$ouvrir"; echo "$parametres; set cmd:fail-exit no;"; sed 's/.*/mkdir -p "&"/' "$D/dossiers-a-creer.txt"; echo quit; } > "$dossiers"
+          lftp_go "$dossiers" || true
+
+          # Le second envoie, supprime et publie le nouveau manifeste. Une
+          # connexion à part : le statut d'ensemble d'un script lftp reste
+          # parfois marqué en échec après un fail-exit no, même le script
+          # continuant ; celui-ci ne contient plus que des commandes dont
+          # l'échec DOIT arrêter le déploiement.
           script="$D/script.lftp"
           {
             echo "$ouvrir"
             echo "$parametres; set cmd:fail-exit yes;"
-            sed 's/.*/mkdir -p "&"/' "$D/dossiers-a-creer.txt"
             sed 's#.*#put "dist/&" -o "&"#' "$D/envoyer.txt"
             sed 's/.*/rm "&"/' "$D/supprimer.txt"
             sed 's/.*/rmdir "&"/' "$D/dossiers-a-supprimer.txt"
