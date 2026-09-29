@@ -55,28 +55,48 @@ export const champsFichier = (relation) => CHAMPS_FICHIER.map((c) => `${relation
 // confondus. Un 429 n'est pas une panne, c'est un « pas maintenant » : on
 // attend ce que le serveur demande, et on rejoue. Cinq fois, puis on renonce
 // bruyamment plutôt que de boucler en silence.
+// Un 5xx ou une coupure réseau (fréquents sur un hébergement mutualisé) se
+// rejouent aussi, deux fois, et une connexion figée s'arrête au bout de 30 s :
+// sans délai, elle tiendrait le déploiement de nuit jusqu'aux 20 min du job.
+const DELAIS_PANNE = [2000, 5000];
+const DELAI_MAX = 30_000;
+
+/** @param {number} ms */
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+
 /**
  * @param {string} url
- * @param {number} [tentative]
+ * @param {number} [tentative]  rejeux faits après un 429
+ * @param {number} [pannes]     rejeux faits après un 5xx ou une coupure
  * @returns {Promise<Response>}
  */
-async function appeler(url, tentative = 0) {
+async function appeler(url, tentative = 0, pannes = 0) {
+  const adresse = url.replace(DIRECTUS_URL, '');
   let res;
   try {
-    res = await fetch(url, { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` } });
+    res = await fetch(url, { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, signal: AbortSignal.timeout(DELAI_MAX) });
   } catch (e) {
-    throw new Error(`CMS injoignable (${url.replace(DIRECTUS_URL, '')}) : ${e instanceof Error ? e.message : String(e)}`);
+    if (pannes < DELAIS_PANNE.length) {
+      await attendre(DELAIS_PANNE[pannes]);
+      return appeler(url, tentative, pannes + 1);
+    }
+    throw new Error(`CMS injoignable (${adresse}) : ${e instanceof Error ? e.message : String(e)}`);
   }
 
   if (res.status === 429 && tentative < 5) {
     const secondes = Number(res.headers.get('retry-after')) || 1;
-    await new Promise((r) => setTimeout(r, secondes * 1000 + 50));
-    return appeler(url, tentative + 1);
+    await attendre(secondes * 1000 + 50);
+    return appeler(url, tentative + 1, pannes);
+  }
+
+  if (res.status >= 500 && pannes < DELAIS_PANNE.length) {
+    await attendre(DELAIS_PANNE[pannes]);
+    return appeler(url, tentative, pannes + 1);
   }
 
   if (!res.ok) {
     const détail = await res.text().catch(() => '');
-    throw new Error(`CMS ${url.replace(DIRECTUS_URL, '')} : HTTP ${res.status} ${détail}`.trim());
+    throw new Error(`CMS ${adresse} : HTTP ${res.status} ${détail}`.trim());
   }
 
   return res;
@@ -107,7 +127,11 @@ export async function requestAll(chemin) {
   const tout = [];
   for (let page = 1; ; page++) {
     const lot = await request(`${chemin}&limit=${PAR_PAGE}&page=${page}`);
-    if (!lot?.length) break;
+    // Une collection vide répond `{ data: [] }` : autre chose est une réponse
+    // mal formée (proxy, page d'erreur en 200), que le build prendrait pour
+    // « rien à publier » et déploierait.
+    if (!Array.isArray(lot)) throw new Error(`CMS ${chemin} : réponse sans liste « data ».`);
+    if (!lot.length) break;
     tout.push(...lot);
     if (lot.length < PAR_PAGE) break;
     if (page > 100) throw new Error(`CMS ${chemin} : plus de cent pages, la pagination ne termine pas.`);

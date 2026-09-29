@@ -51,6 +51,8 @@ async function rpc(env, fonction, corps, délais = DÉLAIS) {
         method: 'POST',
         headers: { apikey: env.PRODYSOS_KEY, Authorization: `Bearer ${env.PRODYSOS_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(corps),
+        // Sans délai, une connexion figée tiendrait le déploiement jusqu'aux 20 min du job.
+        signal: AbortSignal.timeout(30_000),
       });
     } catch (e) {
       // Une erreur réseau est aussi passagère qu'un 5xx : mêmes essais.
@@ -381,6 +383,9 @@ export async function réserver(prodysos, demande) {
       p_message: demande.message,
       p_locale: 'fr',
     }),
+    // Sur un réseau bloqué, « Envoi en cours… » resterait affiché sans fin : au
+    // bout de 15 s la fonction lève, comme pour toute erreur réseau.
+    signal: AbortSignal.timeout(15_000),
   });
   if (res.ok) return { ok: true };
   const corps = await res.json().catch(() => null);
