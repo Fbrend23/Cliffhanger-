@@ -29,7 +29,10 @@ const image = new URL(await og(s.poster ?? s.hero), Astro.site).toString();
 const organisateur = { nom: c.reglages.site_title, url: new URL('/', Astro.site).toString() };
 const maintenant = aujourdhui();
 const jsonLd = [
-  ...c.représentationsDe(s.slug).map((r) => theaterEvent(s, r, { url, image, organisateur, réservable: !!r.reservation && r.day >= maintenant })),
+  ...c
+    .représentationsDe(s.slug)
+    .map((r) => theaterEvent(s, r, { url, image, organisateur, réservable: !!r.reservation && r.day >= maintenant }))
+    .filter((e) => e !== null),
   filAriane([
     { nom: T.accueil, url: organisateur.url },
     { nom: T.spectacles, url: new URL('/spectacles/', Astro.site).toString() },

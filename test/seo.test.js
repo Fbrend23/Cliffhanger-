@@ -55,7 +55,7 @@ test('le site, la compagnie et ses représentations partagent un identifiant', (
   // Chaque membre porte l'identifiant de sa fiche (voir personne()).
   assert.deepEqual(o.member, [{ '@type': 'Person', '@id': `${url}personne/a/#personne`, name: 'Alexandre Van Campenhout', url: `${url}personne/a/` }]);
   assert.deepEqual(siteWeb({ nom: 'Compagnie Cliffhanger', url }).publisher, { '@id': o['@id'] });
-  const e = theaterEvent({ title: 'X' }, { day: '2027-01-01', time: null, venue: null, city: null, price: null }, { url: 'u', organisateur: { nom: 'Compagnie Cliffhanger', url } });
+  const e = theaterEvent({ title: 'X' }, { day: '2027-01-01', time: null, venue: null, city: 'Forest', price: null }, { url: 'u', organisateur: { nom: 'Compagnie Cliffhanger', url } });
   assert.equal(e.organizer['@id'], o['@id']);
   assert.equal(e.performer['@id'], o['@id']);
 });
@@ -105,9 +105,13 @@ test('TheaterEvent : adresse entière, fin, compagnie qui joue, places', () => {
 });
 
 test('TheaterEvent : sans heure, pas de fin ; passée, pas de places', () => {
-  const e = theaterEvent({ title: 'X', duration: '1 h' }, { day: '2024-05-26', time: null, venue: null, city: null, price: '10 €' }, { url: 'u', organisateur });
+  const e = theaterEvent({ title: 'X', duration: '1 h' }, { day: '2024-05-26', time: null, venue: null, city: 'Forest', price: '10 €' }, { url: 'u', organisateur });
   assert.equal(e.endDate, undefined);
   assert.equal(e.offers.availability, undefined);
+});
+
+test('TheaterEvent : sans salle ni ville, pas d’événement (le lieu ne serait pas celui de la compagnie)', () => {
+  assert.equal(theaterEvent({ title: 'X' }, { day: '2027-01-01', time: null, venue: null, city: null, price: '10 €' }, { url: 'u', organisateur }), null);
 });
 
 test('personne : membre de la compagnie pour l’équipe seulement', () => {
