@@ -15,7 +15,8 @@ const { lignes, equipe = false } = Astro.props;
 // retour à la ligne : un long lieu (« Saint-Josse-ten-Noode ») était coupé.
 // Au-delà, un vrai tableau : la date sur une largeur fixe, le prix à droite.
 const cellule = [
-  'block align-middle [&+td]:mt-1 sm:table-cell sm:border-b sm:border-front sm:px-2 sm:py-4',
+  // Vide, une cellule ne garde sa place que dans le tableau (les colonnes s'alignent) : empilée, elle n'aurait que sa marge.
+  'block align-middle empty:hidden [&+td]:mt-1 sm:table-cell sm:empty:table-cell sm:border-b sm:border-front sm:px-2 sm:py-4',
   'sm:first:pl-0 sm:first:whitespace-nowrap sm:last:pr-0 sm:last:text-right sm:last:whitespace-nowrap',
   equipe ? 'last:text-lg' : 'sm:first:w-60',
 ];
