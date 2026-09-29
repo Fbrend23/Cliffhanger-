@@ -146,12 +146,18 @@ export const herosSpectacle = (s) => heros(s.hero, s.heroTaille, { portrait: s.h
 export const herosPhoto = (photo) =>
   photo ? heros(photo.image, { width: photo.width ?? null, height: photo.height ?? null }, { portrait: photo.portrait, apercu: photo.apercu }) : Promise.resolve(null);
 
-/** L'affiche, à ses proportions, 40rem de large au plus. */
+/**
+ * L'affiche, à ses proportions, 40rem de large au plus.
+ * @param {import('astro').ImageMetadata} image
+ * @param {Taille|null|undefined} taille
+ */
 export const affiche = (image, taille) => réactive(image, taille, [400, 800, 1200], '(max-width: 40em) 100vw, 40rem');
 
 /**
  * Une photo du carrousel : 38rem de haut au plus, sa largeur suit son
  * ratio. Trois largeurs couvrent un portrait et un paysage en 1× et 2×.
+ * @param {import('astro').ImageMetadata} image
+ * @param {Taille|null|undefined} taille
  */
 export const diapo = (image, taille) => réactive(image, taille, [700, 1100, 1600], '(max-width: 40em) 90vw, 45vw');
 
@@ -183,6 +189,8 @@ export async function vignetteGalerie(image, taille, apercu = null) {
  * La photo agrandie de la visionneuse : l'écran entier, mêmes exigences que
  * le héros, AVIF compris. Contenue et non couverte : un portrait n'occupe
  * qu'une bande d'un écran large, `sizes` le dit.
+ * @param {import('astro').ImageMetadata} image
+ * @param {Taille|null|undefined} taille
  */
 export const grande = (image, taille) => réactive(image, taille, [1200, 2048, 2560, 3200], contient(taille), { qualité: QUALITÉ_PLEIN_ÉCRAN, avif: true });
 
@@ -197,5 +205,6 @@ export async function og(image) {
 /**
  * Le cadrage d'une photo, d'après son point focal (en %). Sans lui, le
  * centre. Le fond suit le même point : c'est là que Photo.astro pose l'aperçu.
+ * @param {{ x: number, y: number }|null|undefined} focal
  */
 export const cadrage = (focal) => (focal ? `object-position:${focal.x}% ${focal.y}%;background-position:${focal.x}% ${focal.y}%` : undefined);
