@@ -24,6 +24,8 @@ interface Props {
 const { photos } = Astro.props;
 // Les flèches de la visionneuse, de part et d'autre de l'image.
 const flèche = 'absolute top-1/2 min-h-11 min-w-11 -translate-y-1/2 p-4 text-[3rem] opacity-75';
+// Les quatre premières vignettes sont dans l'écran à l'arrivée : en `lazy`, elles ne partaient
+// qu'après la mise en page, et la plus grande d'entre elles est le LCP de la page.
 const tuiles = await Promise.all(
   photos.map(async (p) => {
     const taille = { width: p.width ?? null, height: p.height ?? null };
@@ -34,7 +36,7 @@ const tuiles = await Promise.all(
 
 <div class="mt-respiration columns-[3_18rem] gap-x-4">
   {
-    tuiles.map((t) => (
+    tuiles.map((t, i) => (
       <figure class="mb-4 break-inside-avoid" data-cascade>
         <button
           class="group js-vignette block w-full cursor-zoom-in"
@@ -50,6 +52,7 @@ const tuiles = await Promise.all(
           <Photo
             img={t.vignette}
             alt={t.caption}
+            eager={i < 4}
             class="h-auto w-full animate-[fadein_.6s_ease_both] transition-opacity duration-250 group-hover:opacity-85 group-focus-visible:opacity-85"
           />
         </button>
