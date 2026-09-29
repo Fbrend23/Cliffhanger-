@@ -13,7 +13,7 @@ const c = await contenu();
 const photos = c.photos.filter((p) => p.galerie);
 // Les spectacles belges qu'elle montre, dans son ordre : Montréal n'a que sa page.
 const montrés = [...new Set(photos.map((p) => p.spectacle))].map((slug) => c.belges.find((s) => s.slug === slug)?.title).filter((t) => !!t);
-const description = montrés.length ? T.descriptionGalerie(joindreFr(montrés)) : null;
+const description = montrés.length ? T.descriptionGalerie(joindreFr(montrés)) : T.descriptionGalerieVide;
 ---
 
 <Base title={T.galerie} description={description} image={photos[0]?.image ?? null}>

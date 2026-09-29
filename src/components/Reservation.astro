@@ -94,7 +94,8 @@ const bloc = email ? undefined : 'sans-js:hidden';
         <input class="sr-only" type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <div class="col-span-full flex flex-wrap items-center gap-x-6 gap-y-4">
           <Pastille class="disabled:cursor-wait disabled:opacity-50" type="submit"><Fragment set:html={tx(T.envoyer)} /></Pastille>
-          <p class="js-statut text-base data-erreur:font-medium" role="status" aria-live="polite" hidden />
+          {/* Toujours présente, vide : une région vive qui apparaît avec son texte n'est pas annoncée de façon fiable. */}
+          <p class="js-statut text-base empty:sr-only data-erreur:font-medium" role="status" aria-live="polite" />
         </div>
         <p class={`${note} col-span-full`} set:html={tx(T.réservationDonnées) + (confidentialite ? ` <a href="/confidentialite/">${tx(T.confidentialité)}</a>` : '')} />
       </form>
@@ -129,7 +130,6 @@ const bloc = email ? undefined : 'sans-js:hidden';
     const dire = (texte: string, erreur = false) => {
       statut.textContent = texte;
       statut.toggleAttribute('data-erreur', erreur);
-      statut.hidden = false;
     };
 
     bouton.disabled = true;

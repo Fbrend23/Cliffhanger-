@@ -5,6 +5,7 @@
 // lien. Pur, testé dans test/seo.test.js ; Base.astro pose le contexte.
 
 import { jourEtHeure } from './prodysos.js';
+import { formatPrix } from './dates.js';
 
 /** @type {Record<string, string>} */
 const ENTITÉS = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -58,7 +59,7 @@ export function décalageBruxelles(jour, heure) {
  * @param {string|null|undefined} prix
  */
 export function prixEnEuros(prix) {
-  const m = /(\d+(?:[.,]\d{1,2})?)\s*€/.exec(prix ?? '');
+  const m = /(\d+(?:[.,]\d{1,2})?)\s*€/.exec(formatPrix(prix));
   return m ? m[1].replace(',', '.') : null;
 }
 
@@ -155,11 +156,14 @@ export function organisation({ nom, url, description = null, email = null, rése
 /**
  * Une représentation. La compagnie l'organise et la joue ; la fin se déduit
  * de la durée quand elle se lit ; une date encore réservable a des places.
+ * Sans salle ni ville, le lieu est inconnu : null plutôt qu'un événement dont
+ * le lieu serait la compagnie, ce qui serait faux.
  * @param {{ title: string, punch?: string|null, duration?: string|null }} spectacle
  * @param {{ day: string, time: string|null, venue: string|null, city: string|null, street?: string|null, postalCode?: string|null, price: string|null }} r
  * @param {{ url: string, image?: string|null, organisateur: { nom: string, url: string }, réservable?: boolean }} o
  */
 export function theaterEvent(spectacle, r, { url, image = null, organisateur, réservable = false }) {
+  if (!r.venue && !r.city) return null;
   const début = r.time ? instantBruxelles(r.day, r.time) : r.day;
   const minutes = r.time ? duréeEnMinutes(spectacle.duration) : null;
   const finale = minutes ? jourEtHeure(Date.parse(début) + minutes * 60_000) : null;
@@ -177,7 +181,7 @@ export function theaterEvent(spectacle, r, { url, image = null, organisateur, r�
     ...(image ? { image } : {}),
     location: {
       '@type': 'Place',
-      name: r.venue ?? r.city ?? organisateur.nom,
+      name: r.venue ?? r.city,
       address: {
         '@type': 'PostalAddress',
         ...(r.street ? { streetAddress: r.street } : {}),

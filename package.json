@@ -12,6 +12,7 @@
     "preview": "astro preview",
     "check": "astro check",
     "test": "node --test test/*.test.js",
+    "test:dist": "node --test test/site-construit.mjs",
     "migrer": "node --env-file-if-exists=.env.migration scripts/migrer.mjs"
   },
   "dependencies": {

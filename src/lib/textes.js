@@ -35,6 +35,15 @@ export const T = {
    * @param {string} titres
    */
   descriptionGalerie: (titres) => `Les photos des spectacles de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : ${titres}.`,
+  descriptionGalerieVide: 'Les photos des spectacles de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise.',
+  // Une page qui n'a ni accroche ni texte dans le CMS ne reprend pas la
+  // description de l'accueil : deux pages indexées ne la partagent jamais.
+  /**
+   * @param {string} titre
+   */
+  descriptionSpectacle: (titre) => `${titre}, un spectacle de la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : dates, distribution, réservations.`,
+  descriptionCompagnie: "La Compagnie Cliffhanger, compagnie de théâtre bruxelloise : sa démarche, son équipe et son histoire.",
+  descriptionMontréal: 'Le spectacle de la Compagnie Cliffhanger présenté à Montréal, et les artistes qui le portent.',
   descriptionContact: 'Écrire à la Compagnie Cliffhanger, compagnie de théâtre bruxelloise : réservations, diffusion, presse.',
   // Une fiche sans biographie : ses spectacles, s'il y en a.
   /**
@@ -43,8 +52,9 @@ export const T = {
    */
   descriptionPersonne: (nom, titres) => (titres ? `${nom}, avec la Compagnie Cliffhanger : ${titres}.` : `${nom}, avec la Compagnie Cliffhanger, compagnie de théâtre bruxelloise.`),
   allerAuContenu: 'Aller au contenu',
-  menuOuvrir: 'Ouvrir le menu',
-  menuFermer: 'Fermer le menu',
+  // Un nom fixe : l'état (ouvert ou fermé) est dit par aria-expanded, un nom
+  // qui change en plus l'annoncerait deux fois (« Fermer le menu, développé »).
+  menuBouton: 'Menu',
   menuPrincipal: 'Menu principal',
   menu: [
     { href: '/compagnie/', label: 'La compagnie' },
@@ -124,13 +134,13 @@ export const T = {
 
   spectacles: 'Spectacles',
   découvrir: 'Découvrir',
-  voirLaSuite: 'Voir la suite',
   /**
    * @param {string} titre
    */
   afficheDe: (titre) => `Affiche de ${titre}`,
   photoPrécédente: 'Photo précédente',
   photoSuivante: 'Photo suivante',
+  photosDuSpectacle: 'Photos du spectacle',
   durée: 'Durée',
   // Le rôle « Avec » d'un générique, et ce qu'il devient sur la fiche d'une
   // personne : « Interprétation (Henriette) ».
@@ -182,8 +192,8 @@ export const T = {
   // La légende de la visionneuse : « Coulisses · 3 / 9 ».
   /**
    * @param {string} légende
-   * @param {number} position
-   * @param {number} total
+   * @param {number|string} position
+   * @param {number|string} total
    */
   légendeVisionneuse: (légende, position, total) => `${légende} · ${position} / ${total}`,
   fermer: 'Fermer',

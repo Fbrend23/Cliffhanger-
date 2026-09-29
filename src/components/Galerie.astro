@@ -24,6 +24,8 @@ interface Props {
 const { photos } = Astro.props;
 // Les flèches de la visionneuse, de part et d'autre de l'image.
 const flèche = 'absolute top-1/2 min-h-11 min-w-11 -translate-y-1/2 p-4 text-[3rem] opacity-75';
+// Les quatre premières vignettes sont dans l'écran à l'arrivée : en `lazy`, elles ne partaient
+// qu'après la mise en page, et la plus grande d'entre elles est le LCP de la page.
 const tuiles = await Promise.all(
   photos.map(async (p) => {
     const taille = { width: p.width ?? null, height: p.height ?? null };
@@ -34,7 +36,7 @@ const tuiles = await Promise.all(
 
 <div class="mt-respiration columns-[3_18rem] gap-x-4">
   {
-    tuiles.map((t) => (
+    tuiles.map((t, i) => (
       <figure class="mb-4 break-inside-avoid" data-cascade>
         <button
           class="group js-vignette block w-full cursor-zoom-in"
@@ -50,6 +52,7 @@ const tuiles = await Promise.all(
           <Photo
             img={t.vignette}
             alt={t.caption}
+            eager={i < 4}
             class="h-auto w-full animate-[fadein_.6s_ease_both] transition-opacity duration-250 group-hover:opacity-85 group-focus-visible:opacity-85"
           />
         </button>
@@ -62,19 +65,18 @@ const tuiles = await Promise.all(
 <dialog
   class="js-visionneuse fixed inset-0 z-50 m-0 size-full max-h-none max-w-none touch-pan-y overscroll-contain bg-back/94 px-4 pt-14 pb-10 text-front backdrop:bg-transparent open:flex open:animate-[fadein_.3s_ease_both] open:items-center open:justify-center"
   aria-label={T.photoAgrandie}
+  data-legende={T.légendeVisionneuse("{légende}", "{position}", "{total}")}
 >
-  <button class="js-fermer absolute top-[calc(1rem+var(--safe-top))] right-4 rounded-[2rem] border border-front px-[.9rem] py-[.35rem]" type="button">{T.fermer}</button>
+  <button class="js-fermer absolute top-[calc(1rem+var(--safe-top))] right-4 min-h-11 rounded-[2rem] border border-front px-[.9rem] py-[.35rem]" type="button">{T.fermer}</button>
   <button class={`${flèche} left-0`} type="button" data-pas="-1" aria-label={T.photoPrécédente}>‹</button>
   <img class="max-h-full max-w-full object-contain" alt="" />
   <button class={`${flèche} right-0`} type="button" data-pas="1" aria-label={T.photoSuivante}>›</button>
-  <p class="js-legende absolute inset-x-0 bottom-4 text-center text-sm opacity-75"></p>
+  <p class="js-legende absolute inset-x-0 bottom-4 text-center text-sm opacity-75" aria-live="polite"></p>
 </dialog>
 
 <script>
-  // Les textes restent dans le dictionnaire : le script l'importe, Vite le
-  // met dans le paquet du navigateur.
-  import { T } from '../lib/textes.js';
-
+  // Le texte de la légende vient de la page (data-legende de la boîte) : importer
+  // le dictionnaire mettrait aussi tout le texte légal dans le paquet de la galerie.
   document.addEventListener('astro:page-load', () => {
     const boîte = document.querySelector<HTMLDialogElement>('dialog.js-visionneuse');
     if (!boîte) return;
@@ -151,7 +153,10 @@ const tuiles = await Promise.all(
       const vignette = v.querySelector('img');
       const alt = vignette?.alt ?? '';
       const ratio = Number(v.dataset.ratio) || 0;
-      légende.textContent = T.légendeVisionneuse(v.dataset.legende ?? '', i + 1, vignettes.length);
+      légende.textContent = (boîte.dataset.legende ?? '')
+        .replace('{légende}', () => v.dataset.legende ?? '')
+        .replace('{position}', String(i + 1))
+        .replace('{total}', String(vignettes.length));
       // D'abord la vignette déjà chargée, agrandie : la photo est là tout de
       // suite, et se précise quand la grande arrive.
       if (vignette?.currentSrc) {

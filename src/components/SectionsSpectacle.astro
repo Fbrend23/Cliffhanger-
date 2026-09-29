@@ -15,7 +15,7 @@ import Section from "./Section.astro";
 import TableauDates from "./TableauDates.astro";
 import TexteRiche from "./TexteRiche.astro";
 import { contenu } from "../lib/contenu.js";
-import { aujourdhui, formatJourHeure, lieu } from "../lib/dates.js";
+import { aujourdhui, formatJourHeure, formatPrix, lieu } from "../lib/dates.js";
 import { affiche, diapo } from "../lib/images.js";
 import { T } from "../lib/textes.js";
 import { tx, typographier, échapper } from "../lib/typo.js";
@@ -48,13 +48,13 @@ const réservable = new Set(réservables);
 // trois colonnes.
 const dernière = (r: any) =>
   [
-    tx(r.price ?? ""),
+    tx(formatPrix(r.price)),
     réservable.has(r)
       ? `<a class="lien-souligne" href="#reserver" data-reservation="${échapper(r.reservation.id)}">${tx(T.réserver)}</a>`
       : "",
   ]
     .filter(Boolean)
-    .join(" € · ");
+    .join(" · ");
 ---
 
 {

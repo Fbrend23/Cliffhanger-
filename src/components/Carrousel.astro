@@ -17,7 +17,8 @@ const flèche = 'size-11 text-[2.5rem] leading-none opacity-75 hover:opacity-100
 {
   diapos.length > 0 && (
     <Section nu class="js-slider">
-      <div class="js-track flex snap-x snap-mandatory gap-4 overflow-x-auto px-gouttiere [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Focalisable : sans lui, une piste qui défile n'est pas atteignable au clavier (les photos ne sont pas des liens). */}
+      <div tabindex="0" role="region" aria-label={T.photosDuSpectacle} class="js-track flex snap-x snap-mandatory gap-4 overflow-x-auto px-gouttiere [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {diapos.map((d) => (
           <figure class="flex-none snap-center">
             <Photo img={d.img} alt={d.alt} basse class="h-[min(66vh,38rem)] w-auto max-w-none" />
@@ -40,6 +41,8 @@ const flèche = 'size-11 text-[2.5rem] leading-none opacity-75 hover:opacity-100
     const bouton = (e.target as Element).closest<HTMLButtonElement>('.js-slider [data-dir]');
     if (!bouton) return;
     const piste = bouton.closest('.js-slider')?.querySelector<HTMLElement>('.js-track');
-    piste?.scrollBy({ left: piste.clientWidth * 0.6 * Number(bouton.dataset.dir), behavior: 'smooth' });
+    // Le CSS coupe les animations, pas le défilement lissé demandé par le script.
+    const réduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    piste?.scrollBy({ left: piste.clientWidth * 0.6 * Number(bouton.dataset.dir), behavior: réduit ? 'auto' : 'smooth' });
   });
 </script>
