@@ -12,6 +12,8 @@ test('prix : un montant en euros, sinon rien', () => {
   assert.equal(prixEnEuros('7,50 €'), '7.50');
   assert.equal(prixEnEuros('prix libre'), null);
   assert.equal(prixEnEuros(null), null);
+  // Un nombre seul (le format de Prodysos) est un prix en euros.
+  assert.equal(prixEnEuros('6,07'), '6.07');
 });
 
 const organisateur = { nom: 'Compagnie Cliffhanger', url: 'https://exemple.test/' };

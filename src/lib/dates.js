@@ -64,6 +64,17 @@ export function formatPlage(de, à) {
 export const lieu = (r) => [r.venue, r.city].filter(Boolean).join(', ');
 
 /**
+ * Le prix tel qu'on le lit : un nombre seul (« 6,07 ») prend son « € », un
+ * texte (« 12 € », « prix libre ») reste tel quel. Le même prix nourrit la
+ * page et les données structurées (`prixEnEuros`), qui exigent le « € ».
+ * @param {string|null|undefined} prix
+ */
+export function formatPrix(prix) {
+  const p = (prix ?? '').trim();
+  return /^\d+(?:[.,]\d{1,2})?$/.test(p) ? `${p} €` : p;
+}
+
+/**
  * Les séries de l'agenda : les représentations consécutives (un jour d'écart
  * au plus) d'un même spectacle au même lieu (salle et ville) deviennent une
  * ligne. Les plus récentes d'abord, comme le prototype.

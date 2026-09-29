@@ -5,6 +5,7 @@
 // lien. Pur, testé dans test/seo.test.js ; Base.astro pose le contexte.
 
 import { jourEtHeure } from './prodysos.js';
+import { formatPrix } from './dates.js';
 
 /** @type {Record<string, string>} */
 const ENTITÉS = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
@@ -58,7 +59,7 @@ export function décalageBruxelles(jour, heure) {
  * @param {string|null|undefined} prix
  */
 export function prixEnEuros(prix) {
-  const m = /(\d+(?:[.,]\d{1,2})?)\s*€/.exec(prix ?? '');
+  const m = /(\d+(?:[.,]\d{1,2})?)\s*€/.exec(formatPrix(prix));
   return m ? m[1].replace(',', '.') : null;
 }
 

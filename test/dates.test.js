@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { aujourdhui, formatHeure, formatJour, formatJourHeure, formatPlage, lieu, séries } from '../src/lib/dates.js';
+import { aujourdhui, formatHeure, formatJour, formatJourHeure, formatPlage, formatPrix, lieu, séries } from '../src/lib/dates.js';
+
+test('un prix : le nombre seul prend son €, le texte reste', () => {
+  assert.equal(formatPrix('6,07'), '6,07 €');
+  assert.equal(formatPrix(' 12 '), '12 €');
+  assert.equal(formatPrix('12 €'), '12 €');
+  assert.equal(formatPrix('prix libre'), 'prix libre');
+  assert.equal(formatPrix(null), '');
+});
 
 test('un jour, une heure', () => {
   assert.equal(formatJour('2026-04-17'), '17 avr. 2026');
