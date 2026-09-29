@@ -144,19 +144,21 @@ const bloc = email ? undefined : 'sans-js:hidden';
       }
     ).catch(() => ({ ok: false as const, message: form.dataset.horsLigne! }));
 
-    if (résultat.ok) {
-      // Le formulaire laisse place au remerciement, qui prend le focus : un
-      // lecteur d'écran l'annonce, et personne n'envoie deux fois.
-      const merci = document.createElement('p');
-      merci.className = 'mt-4 border-t-2 border-front pt-6 text-xl outline-none';
-      merci.tabIndex = -1;
-      merci.textContent = form.dataset.merci!;
-      form.replaceWith(merci);
-      merci.focus();
+    if (!résultat.ok) {
+      const message = 'message' in résultat ? résultat.message : null;
+      dire(message ?? form.dataset.refus!, true);
+      bouton.disabled = false;
       return;
     }
-    dire(résultat.message ?? form.dataset.refus!, true);
-    bouton.disabled = false;
+
+    // Le formulaire laisse place au remerciement, qui prend le focus : un
+    // lecteur d'écran l'annonce, et personne n'envoie deux fois.
+    const merci = document.createElement('p');
+    merci.className = 'mt-4 border-t-2 border-front pt-6 text-xl outline-none';
+    merci.tabIndex = -1;
+    merci.textContent = form.dataset.merci!;
+    form.replaceWith(merci);
+    merci.focus();
   });
 
   // « Réserver » sur une date du tableau : c'est elle que le formulaire propose.
