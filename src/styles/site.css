@@ -93,7 +93,9 @@
   /* Tailwind 4 rend aux boutons le curseur par défaut ; ici, tout ce qui se clique le montre */
   button { cursor: pointer; }
   a, button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-  :focus-visible { outline: .125rem dotted var(--color-muted); outline-offset: .2rem; border-radius: .25rem; }
+  /* Un anneau blanc plein, cerné de noir : le gris pointillé se perdait sur une photo claire (héros,
+     fonds). L'ombre noire remplit l'écart de l'anneau et le borde d'un trait. */
+  :focus-visible { outline: .125rem solid var(--color-front); outline-offset: .2rem; box-shadow: 0 0 0 .45rem #000; border-radius: .25rem; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
   }
