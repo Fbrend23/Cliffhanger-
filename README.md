@@ -116,8 +116,9 @@ cible). La reconstruction de la nuit reste le filet : une date jouée ne change 
 
 Règles de saisie, rappelées dans les notes du Studio :
 
-- une ligne de générique de rôle « Avec », sans personne, marque la place de la distribution ;
-  sans elle, la distribution vient en dernier ;
+- le générique d'un spectacle est une seule liste, saisie dans la fiche du spectacle : une ligne
+  par rôle, dans l'ordre voulu. La ligne « Avec » porte les interprètes, chacun avec son
+  personnage ;
 - une photo ne sert que si elle est cochée « Dans la galerie », choisie pour un carrousel ou pour
   un fond de page ;
 - le point focal d'une photo se règle dans l'éditeur d'image du Studio ;
