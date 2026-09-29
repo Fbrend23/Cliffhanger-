@@ -5,20 +5,20 @@
 // sous « À venir » tant qu'une représentation reste à jouer (calculé au
 // build, la reconstruction de la nuit fait le reste). Une date à venir venue
 // de Prodysos se réserve : un lien sur sa ligne, le formulaire en dessous.
-import Accroche from './Accroche.astro';
-import Carrousel from './Carrousel.astro';
-import Generique from './Generique.astro';
-import Intitule from './Intitule.astro';
-import Photo from './Photo.astro';
-import Reservation from './Reservation.astro';
-import Section from './Section.astro';
-import TableauDates from './TableauDates.astro';
-import TexteRiche from './TexteRiche.astro';
-import { contenu } from '../lib/contenu.js';
-import { aujourdhui, formatJourHeure, lieu } from '../lib/dates.js';
-import { affiche, diapo } from '../lib/images.js';
-import { T } from '../lib/textes.js';
-import { tx, typographier, échapper } from '../lib/typo.js';
+import Accroche from "./Accroche.astro";
+import Carrousel from "./Carrousel.astro";
+import Generique from "./Generique.astro";
+import Intitule from "./Intitule.astro";
+import Photo from "./Photo.astro";
+import Reservation from "./Reservation.astro";
+import Section from "./Section.astro";
+import TableauDates from "./TableauDates.astro";
+import TexteRiche from "./TexteRiche.astro";
+import { contenu } from "../lib/contenu.js";
+import { aujourdhui, formatJourHeure, lieu } from "../lib/dates.js";
+import { affiche, diapo } from "../lib/images.js";
+import { T } from "../lib/textes.js";
+import { tx, typographier, échapper } from "../lib/typo.js";
 
 interface Props {
   spectacle: any;
@@ -32,7 +32,10 @@ const diapos = await Promise.all(
   s.slides
     .map((id: string) => c.photo(id))
     .filter(Boolean)
-    .map(async (p: any) => ({ img: await diapo(p.image, { width: p.width, height: p.height }), alt: p.caption }))
+    .map(async (p: any) => ({
+      img: await diapo(p.image, { width: p.width, height: p.height }),
+      alt: p.caption,
+    })),
 );
 // Sans générique ni durée, pas de section : elle aurait sa marge et son
 // entrée en cascade, vides.
@@ -44,9 +47,14 @@ const réservable = new Set(réservables);
 // Le prix, puis « Réserver » pour une date réservable : le tableau garde ses
 // trois colonnes.
 const dernière = (r: any) =>
-  [tx(r.price ?? ''), réservable.has(r) ? `<a class="lien-souligne" href="#reserver" data-reservation="${échapper(r.reservation.id)}">${tx(T.réserver)}</a>` : '']
+  [
+    tx(r.price ?? ""),
+    réservable.has(r)
+      ? `<a class="lien-souligne" href="#reserver" data-reservation="${échapper(r.reservation.id)}">${tx(T.réserver)}</a>`
+      : "",
+  ]
     .filter(Boolean)
-    .join(' · ');
+    .join(" € · ");
 ---
 
 {
@@ -61,7 +69,12 @@ const dernière = (r: any) =>
     <Section large>
       {/* L'affiche à ses propres proportions : une boîte 16:9 la rendait minuscule sur téléphone. */}
       <figure class="flex justify-center">
-        <Photo img={imgAffiche} alt={typographier(T.afficheDe(s.title))} basse class="h-auto max-h-[min(80svh,48rem)] w-auto max-w-full" />
+        <Photo
+          img={imgAffiche}
+          alt={typographier(T.afficheDe(s.title))}
+          basse
+          class="h-auto max-h-[min(80svh,48rem)] w-auto max-w-full"
+        />
       </figure>
     </Section>
   )
@@ -85,7 +98,13 @@ const dernière = (r: any) =>
   dates.length > 0 && (
     <Section>
       <Intitule texte={aVenir ? T.àVenir : T.représentations} />
-      <TableauDates lignes={dates.map((r) => [{ html: tx(formatJourHeure(r.day, r.time)) }, { html: tx(lieu(r)) }, { html: dernière(r) }])} />
+      <TableauDates
+        lignes={dates.map((r) => [
+          { html: tx(formatJourHeure(r.day, r.time)) },
+          { html: tx(lieu(r)) },
+          { html: dernière(r) },
+        ])}
+      />
     </Section>
   )
 }
