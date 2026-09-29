@@ -40,12 +40,14 @@ const saisie =
   'w-full rounded-none border-b border-front bg-transparent py-2 text-xl text-front focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-front';
 const note = 'text-sm opacity-75 [&_a]:lien-souligne';
 // Sans JS et sans e-mail vers qui se tourner, tout le bloc part.
-const bloc = email ? undefined : 'sans-js:hidden';
+// Collé au tableau des dates, le formulaire en semblait la suite : plus de blanc que la
+// respiration seule (1 rem sur téléphone). Pas de trait pour les séparer, les tableaux en ont déjà partout.
+const bloc = ['mt-20 md:mt-24 lg:mt-32', !email && 'sans-js:hidden'];
 ---
 
 {
   options.length > 0 && PRODYSOS_URL && PRODYSOS_KEY && (
-    <Section class={bloc} id="reserver">
+    <Section class:list={bloc} id="reserver">
       <Intitule texte={T.réserver} />
       {/* L'adresse et la clé publiable de Prodysos : celles que le navigateur
           doit connaître pour envoyer la demande, rien d'autre. Les messages
