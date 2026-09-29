@@ -60,3 +60,8 @@ jobs:
 
       - name: Construire le site
         run: npm run build
+
+      # Les règles que seul le rendu final trahit : tirets longs, titres et
+      # descriptions en double, canonical, données structurées.
+      - name: Contrôler le site construit
+        run: npm run test:dist

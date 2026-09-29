@@ -173,6 +173,11 @@ jobs:
           PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
         run: npm run build
 
+      # Comme les tests : un site qui enfreint une règle (tiret long, deux pages
+      # à la même description) ne part pas en ligne.
+      - name: Contrôler le site construit
+        run: npm run test:dist
+
       # 3 · Publication par manifeste (scripts/deployer.mjs), plutôt qu'un
       #     mirror complet. Un mirror liste le serveur avant de comparer :
       #     une connexion FTP par dossier listé ET par fichier envoyé, plus
