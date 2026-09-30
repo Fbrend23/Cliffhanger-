@@ -20,8 +20,7 @@ npm run dev        # astro dev, lit le CMS au démarrage
 npm run build      # télécharge les originaux manquants, fabrique les tailles (sharp)
 npm run preview    # sert dist/
 npm run check      # astro check (charge les collections : il faut le CMS)
-npm test           # node --test : fonctions pures, loaders et migration, sans CMS
-npm run migrer     # la migration du prototype vers le CMS (voir plus bas)
+npm test           # node --test : fonctions pures, loaders, sans CMS
 ```
 
 ## `.env`
@@ -140,22 +139,6 @@ Le balisage qui revient d'une page à l'autre est un composant, pas une classe :
 `Accroche`, `TexteRiche` (le HTML du CMS, stylé depuis son conteneur), `Intitule`, `Pastille`,
 `TitrePage`, `PageListe`, `PageCentree`, `LienRetour`. Les scripts trouvent leurs éléments par
 `js-*` ou `data-*`, jamais par une classe de style.
-
-## La migration du prototype
-
-Le dossier `migration/` garde `content.js` et `img/` du prototype jusqu'à ce que le CMS soit
-rempli. `npm run migrer` les verse dans le CMS avec le jeton **d'administration**
-(`.env.migration`, modèle `.env.migration.example`). Idempotent : un rejeu ne crée rien de plus.
-
-```sh
-npm run migrer -- --hors-ligne   # ce qui serait écrit, sans lire l'instance
-npm run migrer -- --dry-run      # lit l'instance, n'écrit rien
-npm run migrer                   # écrit
-```
-
-Une fois la migration vérifiée dans le Studio, le dossier `migration/` s'en va (avec
-`scripts/lib/prototype.mjs`, `scripts/migrer.mjs` et le faux Directus, ou ce dernier réécrit sur
-des données de test).
 
 ## Déploiement
 

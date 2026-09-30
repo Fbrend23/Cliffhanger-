@@ -45,7 +45,7 @@ commentaires (qui disent pourquoi), identifiants, commits.
 Toujours avec les vraies données du CMS (le `.env` du poste pointe dessus) :
 
 ```sh
-npm test                           # fonctions pures, loaders, migration : sans CMS
+npm test                           # fonctions pures, loaders : sans CMS
 npm run check                      # astro check charge les collections
 npm run build && npm run preview
 ```
