@@ -35,7 +35,7 @@ première requête : c'est voulu, le site n'a aucun contenu local de repli.
 ### Sans jeton : le faux Directus
 
 Pour construire et regarder le site sans accès au CMS, `test/faux-directus/` sert le contenu du
-prototype (`migration/content.js` et ses images) avec la forme de l'API :
+prototype (`test/faux-directus/prototype/` : contenu et images) avec la forme de l'API :
 
 ```sh
 node test/faux-directus/avec.mjs npm run build     # ou npm run check

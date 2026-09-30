@@ -1,11 +1,6 @@
-// Le contenu du prototype (migration/content.js), traduit dans le modèle du
-// CMS (platform-cms, clients/cliffhanger.json).
-//
-// Deux lecteurs : la migration (scripts/migrer.mjs), qui l'écrit dans
-// Directus, et le faux Directus des tests (test/faux-directus/), qui le sert
-// avec la forme de l'API pour construire le site sans jeton. Une seule
-// traduction pour les deux : ce que les tests construisent est exactement ce
-// que la migration écrira.
+// Le contenu du prototype (prototype/content.js), traduit dans le modèle du
+// CMS (platform-cms, clients/cliffhanger.json), pour le faux Directus des
+// tests (test/faux-directus/), qui le sert avec la forme de l'API.
 //
 // Rien ici ne parle au réseau. `lirePrototype` lit le fichier, le reste est pur.
 
@@ -65,7 +60,7 @@ export const cléPhoto = (fichier, caption) => `${fichier}|${caption}`;
  * Le prototype dans le modèle du CMS : des lignes par collection, chacune
  * avec sa clé naturelle, liées entre elles par ces clés (slug, nom de
  * fichier, clé de photo). Les identifiants Directus n'existent pas encore :
- * c'est l'écrivain (migration ou faux Directus) qui les donne.
+ * c'est le faux Directus qui les donne.
  *
  * Aucun tiret long ni demi-cadratin ne doit entrer dans le CMS : la
  * traduction s'arrête s'il en trouve un.
@@ -186,6 +181,6 @@ export function modèleDuPrototype({ CONTACT, PEOPLE, SHOWS, MONTREAL, GALLERY, 
   };
 
   const tiret = JSON.stringify(modèle).match(/.{0,40}[—–].{0,20}/);
-  if (tiret) throw new Error(`Tiret long ou demi-cadratin dans le prototype : « ${tiret[0]} ». À corriger avant la migration.`);
+  if (tiret) throw new Error(`Tiret long ou demi-cadratin dans le prototype : « ${tiret[0]} ». À corriger dans prototype/content.js.`);
   return modèle;
 }

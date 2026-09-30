@@ -1,11 +1,10 @@
-// La traduction du prototype vers le modèle du CMS, partagée par la
-// migration et le faux Directus : ce que ce test garantit, les deux le font.
+// La traduction du prototype vers le modèle du CMS, qui nourrit le faux Directus.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { enParagraphes, focalEnPixels, lireFocus, lirePrototype, modèleDuPrototype } from '../scripts/lib/prototype.mjs';
+import { enParagraphes, focalEnPixels, lireFocus, lirePrototype, modèleDuPrototype } from './faux-directus/prototype.mjs';
 
-const proto = await lirePrototype(new URL('../migration/content.js', import.meta.url));
+const proto = await lirePrototype(new URL('./faux-directus/prototype/content.js', import.meta.url));
 const m = modèleDuPrototype(proto);
 
 test('le focus du prototype devient un point focal en pixels', () => {
