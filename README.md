@@ -60,8 +60,13 @@ repli, et en recadrage portrait aux écrans tenus droits ; leur `sizes` tient co
 ## Le contenu vit dans le CMS
 
 Tout le contenu (spectacles, personnes, génériques, représentations, photothèque, page Montréal,
-réglages) est dans les collections `cliff_*`. Le code garde la structure, les polices, la vidéo du
-menu et le logo. Les textes de l'interface sont dans `src/lib/textes.js`.
+réglages) est dans les collections `cliff_*`. Le code garde la structure, les polices et le logo.
+Les textes de l'interface sont dans `src/lib/textes.js`.
+
+La vidéo du menu (MP4, sans audio, 720p, `-movflags +faststart` : visez moins de 2 Mo) et son
+affiche se changent dans « Réglages » (`menu_video`, `menu_poster`). Vides, `public/menu.mp4` et
+`public/menu-poster.webp` servent. Le loader pose la vidéo dans `public/media/menu.<empreinte>.mp4`
+(ignoré par git) : remplacer la vidéo change l'adresse.
 
 Le modèle est décrit dans `../platform-cms/clients/cliffhanger.json`. Pour le faire évoluer :
 
