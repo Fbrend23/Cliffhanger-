@@ -1,6 +1,5 @@
-// Les données du faux Directus : le prototype (migration/content.js et
-// migration/img/), traduit par scripts/lib/prototype.mjs comme la migration le
-// fera, puis rangé comme Directus le rend, relations dépliées.
+// Les données du faux Directus : le prototype (prototype/content.js et
+// prototype/img/), traduit par prototype.mjs, puis rangé comme Directus le rend, relations dépliées.
 //
 // Les identifiants sont stables d'un lancement à l'autre (un UUID tiré du nom
 // du fichier, des entiers dans l'ordre du prototype) : le cache des images du
@@ -11,10 +10,10 @@ import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-import { focalEnPixels, lirePrototype, modèleDuPrototype } from '../../scripts/lib/prototype.mjs';
+import { focalEnPixels, lirePrototype, modèleDuPrototype } from './prototype.mjs';
 
 const racine = fileURLToPath(new URL('../../', import.meta.url));
-export const DOSSIER_IMAGES = path.join(racine, 'migration', 'img');
+export const DOSSIER_IMAGES = path.join(racine, 'test', 'faux-directus', 'prototype', 'img');
 
 /** Un UUID stable tiré d'un nom : la forme d'un id de directus_files. */
 const uuid = (nom) => {
@@ -63,7 +62,7 @@ export const PRODYSOS = {
 };
 
 export async function construireBase() {
-  const modèle = modèleDuPrototype(await lirePrototype(path.join(racine, 'migration', 'content.js')));
+  const modèle = modèleDuPrototype(await lirePrototype(path.join(racine, 'test', 'faux-directus', 'prototype', 'content.js')));
 
   // directus_files : la plus grande version de chaque image (« nom.webp »),
   // ses vraies dimensions, et le point focal en pixels.
@@ -83,6 +82,17 @@ export async function construireBase() {
       chemin,
     });
   }
+  // La vidéo du menu : le fichier d'origine du site, pour que le faux CMS
+  // serve aussi autre chose qu'une image.
+  const cheminMenu = path.join(racine, 'public', 'menu.mp4');
+  fichiers.set('menu-video', {
+    id: uuid('menu-video'),
+    filename_download: 'menu.mp4',
+    type: 'video/mp4',
+    modified_on: (await stat(cheminMenu)).mtime.toISOString(),
+    title: 'menu',
+    chemin: cheminMenu,
+  });
   const fichierPublic = (nom) => {
     if (!nom) return null;
     const { chemin, ...f } = fichiers.get(nom);
@@ -133,6 +143,9 @@ export async function construireBase() {
     fond_compagnie: parClé.get(r.fond_compagnie) ?? null,
     fond_contact: parClé.get(r.fond_contact) ?? null,
     og_image: fichierPublic(r.og_image),
+    menu_video: fichierPublic('menu-video'),
+    // Sans affiche : le menu garde celle de public/.
+    menu_poster: null,
   };
 
   return {

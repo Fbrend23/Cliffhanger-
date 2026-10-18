@@ -20,8 +20,7 @@ npm run dev        # astro dev, lit le CMS au démarrage
 npm run build      # télécharge les originaux manquants, fabrique les tailles (sharp)
 npm run preview    # sert dist/
 npm run check      # astro check (charge les collections : il faut le CMS)
-npm test           # node --test : fonctions pures, loaders et migration, sans CMS
-npm run migrer     # la migration du prototype vers le CMS (voir plus bas)
+npm test           # node --test : fonctions pures, loaders, sans CMS
 ```
 
 ## `.env`
@@ -36,7 +35,7 @@ première requête : c'est voulu, le site n'a aucun contenu local de repli.
 ### Sans jeton : le faux Directus
 
 Pour construire et regarder le site sans accès au CMS, `test/faux-directus/` sert le contenu du
-prototype (`migration/content.js` et ses images) avec la forme de l'API :
+prototype (`test/faux-directus/prototype/` : contenu et images) avec la forme de l'API :
 
 ```sh
 node test/faux-directus/avec.mjs npm run build     # ou npm run check
@@ -61,8 +60,13 @@ repli, et en recadrage portrait aux écrans tenus droits ; leur `sizes` tient co
 ## Le contenu vit dans le CMS
 
 Tout le contenu (spectacles, personnes, génériques, représentations, photothèque, page Montréal,
-réglages) est dans les collections `cliff_*`. Le code garde la structure, les polices, la vidéo du
-menu et le logo. Les textes de l'interface sont dans `src/lib/textes.js`.
+réglages) est dans les collections `cliff_*`. Le code garde la structure, les polices et le logo.
+Les textes de l'interface sont dans `src/lib/textes.js`.
+
+La vidéo du menu (MP4, sans audio, 720p, `-movflags +faststart` : visez moins de 2 Mo) et son
+affiche se changent dans « Réglages » (`menu_video`, `menu_poster`). Vides, `public/menu.mp4` et
+`public/menu-poster.webp` servent. Le loader pose la vidéo dans `public/media/menu.<empreinte>.mp4`
+(ignoré par git) : remplacer la vidéo change l'adresse.
 
 Le modèle est décrit dans `../platform-cms/clients/cliffhanger.json`. Pour le faire évoluer :
 
@@ -140,22 +144,6 @@ Le balisage qui revient d'une page à l'autre est un composant, pas une classe :
 `Accroche`, `TexteRiche` (le HTML du CMS, stylé depuis son conteneur), `Intitule`, `Pastille`,
 `TitrePage`, `PageListe`, `PageCentree`, `LienRetour`. Les scripts trouvent leurs éléments par
 `js-*` ou `data-*`, jamais par une classe de style.
-
-## La migration du prototype
-
-Le dossier `migration/` garde `content.js` et `img/` du prototype jusqu'à ce que le CMS soit
-rempli. `npm run migrer` les verse dans le CMS avec le jeton **d'administration**
-(`.env.migration`, modèle `.env.migration.example`). Idempotent : un rejeu ne crée rien de plus.
-
-```sh
-npm run migrer -- --hors-ligne   # ce qui serait écrit, sans lire l'instance
-npm run migrer -- --dry-run      # lit l'instance, n'écrit rien
-npm run migrer                   # écrit
-```
-
-Une fois la migration vérifiée dans le Studio, le dossier `migration/` s'en va (avec
-`scripts/lib/prototype.mjs`, `scripts/migrer.mjs` et le faux Directus, ou ce dernier réécrit sur
-des données de test).
 
 ## Déploiement
 

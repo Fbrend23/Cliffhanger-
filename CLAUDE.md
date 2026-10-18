@@ -33,6 +33,7 @@ commentaires (qui disent pourquoi), identifiants, commits.
 - Le **digest** de chaque entrée inclut tout ce qui se rend.
 - `CHAMPS_FICHIER` (`directus.js`) : seuls champs de `directus_files` que la policy du build autorise (`platform-cms/scripts/lib/permissions.mjs`) ; en demander un autre fait échouer la requête.
 - **Images** : tailles dans `src/lib/images.js` (`heros`, `herosSpectacle`, `herosPhoto`, `affiche`, `diapo`, `vignetteGalerie`, `grande`, `og`), rendues par `Photo.astro`. Toujours `width` avec `widths` ; ne jamais lire `.width` d'une `ImageMetadata` dans un gabarit (les dimensions viennent du loader, `dimensionsFichier()` : celles du CMS, sinon lues sur l'original). Astro émet dans `dist/` l'original de tout champ `image()` qu'aucune page ne transforme : c'est pourquoi le loader des photos ne garde que celles de la galerie, des carrousels et des fonds, et que seuls les fonds ont un `portrait`. Un second spectacle de Montréal (seul le premier est montré) aurait le même problème. Photos plein écran (héros, fonds, visionneuse) : AVIF + WebP, recadrage portrait 9:16 au point focal (`assurerPortrait`), `sizes` qui tient compte du cover ; aperçu flou 32 px (`assurerAperçu`) en fond de l'`<img>` pour qu'aucune photo ne sorte du noir. Le préchargement de `Base.astro` vise l'AVIF, portrait ou paysage. Repris du portfolio (`../site-photos-v2`).
+- **Vidéo du menu** : `menu_video` (MP4 seulement) et `menu_poster` des réglages. Le loader des réglages copie la vidéo du cache vers `public/media/menu.<empreinte>.mp4` (`publierVidéoMenu()`, nom changé à chaque remplacement, anciens supprimés) ; vides, `public/menu.mp4` et `menu-poster.webp` servent (`Base.astro`). Les deux ids restent dans `garder` (loader des photos) sinon la purge efface les originaux.
 - **Générique** : une seule collection (`generique`), une ligne par rôle, éditée depuis la fiche du spectacle ; les personnes d'une ligne (jonction `cliff_generique_personnes`) portent chacune un `personnage` optionnel. La ligne de rôle « Avec » (`T.avec`) sert aux projets d'une personne (« Interprétation (personnage) »). `lignesGenerique()` ne fait que trier et écarter les lignes vides.
 - **Dates** : `src/lib/dates.js`, jours formatés en UTC, « aujourd'hui » à Bruxelles ; l'agenda est calculé au build, la reconstruction de la nuit le tient à jour.
 - **Pages** : `/`, `/spectacles/`, `/spectacle/<slug>/` (Bruxelles seulement), `/agenda/`, `/compagnie/`, `/personne/<slug>/`, `/galerie/`, `/montreal/`, `/contact/`, `404`, `robots.txt` (fabriqué depuis `SITE_URL`).
@@ -45,7 +46,7 @@ commentaires (qui disent pourquoi), identifiants, commits.
 Toujours avec les vraies données du CMS (le `.env` du poste pointe dessus) :
 
 ```sh
-npm test                           # fonctions pures, loaders, migration : sans CMS
+npm test                           # fonctions pures, loaders : sans CMS
 npm run check                      # astro check charge les collections
 npm run build && npm run preview
 ```

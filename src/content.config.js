@@ -142,6 +142,8 @@ const reglages = defineCollection({
       legal_conservation: z.string().nullable(),
       head_verification: z.string().nullable(),
       og_image: image().nullable(),
+      menu_video: z.string().nullable(),
+      menu_poster: image().nullable(),
     }),
 });
 

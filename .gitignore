@@ -1,12 +1,13 @@
 # Environnement, jamais commité. Les valeurs vivent dans les secrets GitHub,
-# et les fichiers locaux ne sont là que pour le développement et la migration.
+# et les fichiers locaux ne sont là que pour le développement.
 .env
 .env.*
 !.env.example
-!.env.migration.example
 
 # Build
 dist/
+# Vidéo du menu rapatriée du CMS au build (loader des réglages)
+public/media/
 .astro/
 
 # Dépendances

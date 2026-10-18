@@ -185,6 +185,6 @@ export async function démarrer(port = 8055) {
 // Lancé directement : un serveur au premier plan, jusqu'à Ctrl+C.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const { url } = await démarrer(Number(process.argv[2] ?? 8055));
-  console.log(`Faux Directus sur ${url} (contenu de migration/content.js)`);
+  console.log(`Faux Directus sur ${url} (contenu de test/faux-directus/prototype/content.js)`);
   console.log(`DIRECTUS_URL=${url} DIRECTUS_TOKEN=faux npm run build`);
 }
