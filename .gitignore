@@ -6,6 +6,8 @@
 
 # Build
 dist/
+# Vidéo du menu rapatriée du CMS au build (loader des réglages)
+public/media/
 .astro/
 
 # Dépendances

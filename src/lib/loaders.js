@@ -12,6 +12,10 @@
 // policy du build ne lit que le publié) : elle est ignorée avec un warning,
 // comme si le lien n'existait pas.
 
+import { createHash } from 'node:crypto';
+import { copyFile, mkdir, readdir, unlink } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   MANIFEST_REL,
   assurerAperçu,
@@ -279,7 +283,7 @@ export function photosLoader() {
       ]);
 
       const autres = await requestAll(`/items/${SPECTACLES}?${PUBLIÉ}&fields=hero,poster,slides.${PHOTOS}_id`);
-      const réglages = await request(`/items/${REGLAGES}?fields=og_image,${FONDS.join(',')}`);
+      const réglages = await request(`/items/${REGLAGES}?fields=og_image,menu_video,menu_poster,${FONDS.join(',')}`);
       const servies = new Set();
       for (const s of autres) for (const l of s.slides ?? []) if (l?.[`${PHOTOS}_id`] != null) servies.add(String(l[`${PHOTOS}_id`]));
       // Les fonds couvrent l'écran : eux seuls ont un recadrage portrait.
@@ -335,7 +339,7 @@ export function photosLoader() {
       // remplacées) s'en va, sinon le cache ne fait que grossir.
       const garder = new Set(photos.filter((p) => p.galerie || servies.has(String(p.id))).map((p) => p.image?.id).filter(Boolean));
       for (const s of autres) for (const f of [s.hero, s.poster]) if (f) garder.add(String(f));
-      if (réglages?.og_image) garder.add(String(réglages.og_image));
+      for (const f of [réglages?.og_image, réglages?.menu_video, réglages?.menu_poster]) if (f) garder.add(String(f));
       // Toutes les affiches de Prodysos : seules celles qui manquent au CMS
       // sont téléchargées, garder les autres ne coûte rien.
       for (const show of prodysos.shows ?? []) if (texte(show?.poster_url)) garder.add(idAfficheProdysos(show.slug));
@@ -505,6 +509,54 @@ export function montrealLoader() {
 }
 
 /**
+ * Dossier de `public/` où la vidéo du menu est posée : Vite le sert en
+ * développement et Astro le recopie dans `dist/`, sans code de service. Ignoré
+ * par git, reconstruit à chaque build.
+ */
+const MÉDIAS_REL = 'public/media';
+
+/**
+ * La vidéo du menu, rapatriée du CMS et posée dans `public/media/`. Le nom
+ * porte une empreinte de l'id et de la date de modification : remplacer la
+ * vidéo change l'adresse, donc le navigateur et le FTP ne gardent jamais
+ * l'ancienne. Rend l'adresse publique, ou null (vidéo absente ou pas en MP4) :
+ * le menu retombe alors sur `public/menu.mp4`.
+ *
+ * @param {{id:string, type?:string, modified_on?:string, filename_download?:string}|null|undefined} fichier
+ * @param {import('./directus.js').Cache} cache
+ * @param {URL} racine
+ * @param {{ info(msg:string):void, warn(msg:string):void }} logger
+ * @returns {Promise<string|null>}
+ */
+export async function publierVidéoMenu(fichier, cache, racine, logger) {
+  const dossier = path.join(fileURLToPath(racine), MÉDIAS_REL);
+  // Les anciennes vidéos partent d'abord : une seule à la fois dans dist/.
+  const vider = async (garder = null) => {
+    try {
+      for (const nom of await readdir(dossier)) if (/^menu\.[^.]+\.mp4$/.test(nom) && nom !== garder) await unlink(path.join(dossier, nom));
+    } catch {
+      // Pas de dossier : rien à vider.
+    }
+  };
+  if (!fichier?.id) {
+    await vider();
+    return null;
+  }
+  if (fichier.type !== 'video/mp4') {
+    logger.warn(`vidéo du menu ignorée : ${fichier.type ?? 'type inconnu'} au lieu de video/mp4`);
+    await vider();
+    return null;
+  }
+  const source = await assurerFichier(fichier, cache, logger);
+  const empreinte = createHash('sha1').update(`${fichier.id}|${fichier.modified_on ?? ''}`).digest('hex').slice(0, 10);
+  const nom = `menu.${empreinte}.mp4`;
+  await vider(nom);
+  await mkdir(dossier, { recursive: true });
+  await copyFile(path.join(cache.dossier, source), path.join(dossier, nom));
+  return `/media/${nom}`;
+}
+
+/**
  * Les réglages du site : un singleton, une seule entrée « site ».
  *
  * Les fonds de page sont des ids de photos de la photothèque : la page les
@@ -523,7 +575,7 @@ export function reglagesLoader() {
       const cache = await ouvrirCache(config.root);
       const s = await request(
         `/items/${REGLAGES}?fields=site_title,site_description,email,instagram,facebook,compagnie_sub,compagnie_punch,compagnie_text,` +
-          `fond_accueil,fond_spectacles,fond_agenda,fond_compagnie,fond_contact,legal_denomination,legal_adresse,legal_bce,legal_responsable,legal_conservation,head_verification,${champsFichier('og_image')}`
+          `fond_accueil,fond_spectacles,fond_agenda,fond_compagnie,fond_contact,legal_denomination,legal_adresse,legal_bce,legal_responsable,legal_conservation,head_verification,${champsFichier('og_image')},${champsFichier('menu_video')},${champsFichier('menu_poster')}`
       );
 
       if (!texte(s?.site_title)) {
@@ -535,6 +587,8 @@ export function reglagesLoader() {
       signalerTirets(logger, 'réglages', [s.site_title, s.site_description, s.compagnie_sub, s.compagnie_punch, s.compagnie_text, s.legal_denomination, s.legal_adresse, s.legal_responsable, s.legal_conservation]);
 
       const og_image = s.og_image?.id ? await assurerFichier(s.og_image, cache, logger) : null;
+      const menu_poster = s.menu_poster?.id ? await assurerFichier(s.menu_poster, cache, logger) : null;
+      const menu_video = await publierVidéoMenu(s.menu_video, cache, config.root, logger);
       await cache.enregistrer();
 
       /** @param {any} v */
@@ -566,6 +620,8 @@ export function reglagesLoader() {
           legal_conservation: texte(s.legal_conservation),
           head_verification: texte(s.head_verification),
           og_image,
+          menu_video,
+          menu_poster,
         },
       });
       store.set({ id: 'site', data, filePath: MANIFEST_REL, digest: JSON.stringify(s) });
