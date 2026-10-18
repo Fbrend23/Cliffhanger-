@@ -3,6 +3,7 @@
 // qu'ils rangent est ce que les pages attendent. Sans le vrai CMS ni jeton.
 
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { registerHooks } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -258,6 +259,14 @@ test('représentations : les dates de Prodysos rejoignent celles du CMS', async 
   });
 });
 
+test('vidéo du menu : refusée si ce n’est pas du MP4, avec un warning', async () => {
+  const { ctx, avertissements } = contexte();
+  const adresse = await L.publierVidéoMenu({ id: 'x', type: 'video/webm' }, null, ctx.config.root, ctx.logger);
+  assert.equal(adresse, null);
+  assert.equal(avertissements.length, 1);
+  assert.equal(await L.publierVidéoMenu(null, null, ctx.config.root, ctx.logger), null);
+});
+
 test('réglages et Montréal : singletons, fonds par id de photo', async () => {
   const r = contexte();
   await L.reglagesLoader().load(r.ctx);
@@ -266,6 +275,9 @@ test('réglages et Montréal : singletons, fonds par id de photo', async () => {
   assert.match(site.compagnie_text, /href="\/montreal\/"/);
   assert.ok(site.fonds.accueil && site.fonds.contact);
   assert.match(site.og_image, /\.webp$/);
+  assert.match(site.menu_video, /^\/media\/menu\.[0-9a-f]{10}\.mp4$/);
+  assert.ok(existsSync(path.join(racine, 'public', site.menu_video)));
+  assert.equal(site.menu_poster, null);
   const m = contexte();
   await L.montrealLoader().load(m.ctx);
   assert.equal(m.entrées.get('site').data.sub, 'Collectif Cliffhanger, depuis 2020');

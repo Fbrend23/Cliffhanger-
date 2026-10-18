@@ -82,6 +82,17 @@ export async function construireBase() {
       chemin,
     });
   }
+  // La vidéo du menu : le fichier d'origine du site, pour que le faux CMS
+  // serve aussi autre chose qu'une image.
+  const cheminMenu = path.join(racine, 'public', 'menu.mp4');
+  fichiers.set('menu-video', {
+    id: uuid('menu-video'),
+    filename_download: 'menu.mp4',
+    type: 'video/mp4',
+    modified_on: (await stat(cheminMenu)).mtime.toISOString(),
+    title: 'menu',
+    chemin: cheminMenu,
+  });
   const fichierPublic = (nom) => {
     if (!nom) return null;
     const { chemin, ...f } = fichiers.get(nom);
@@ -132,6 +143,9 @@ export async function construireBase() {
     fond_compagnie: parClé.get(r.fond_compagnie) ?? null,
     fond_contact: parClé.get(r.fond_contact) ?? null,
     og_image: fichierPublic(r.og_image),
+    menu_video: fichierPublic('menu-video'),
+    // Sans affiche : le menu garde celle de public/.
+    menu_poster: null,
   };
 
   return {
