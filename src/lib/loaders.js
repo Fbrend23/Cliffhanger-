@@ -531,7 +531,7 @@ const MÉDIAS_REL = 'public/media';
 export async function publierVidéoMenu(fichier, cache, racine, logger) {
   const dossier = path.join(fileURLToPath(racine), MÉDIAS_REL);
   // Les anciennes vidéos partent d'abord : une seule à la fois dans dist/.
-  const vider = async (garder = null) => {
+  const vider = async (/** @type {string|null} */ garder = null) => {
     try {
       for (const nom of await readdir(dossier)) if (/^menu\.[^.]+\.mp4$/.test(nom) && nom !== garder) await unlink(path.join(dossier, nom));
     } catch {
