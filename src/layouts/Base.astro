@@ -59,7 +59,7 @@ let ogSource = image ?? site.og_image;
 if (!ogSource && site.fonds.accueil) ogSource = (await getEntry('photos', site.fonds.accueil))?.data.image ?? null;
 const ogUrl = ogSource ? new URL(await og(ogSource), Astro.site).toString() : null;
 
-// Le logo arc-en-ciel du menu : chargé en temps mort après la page (data-src),
+// Le logo arc-en-ciel du menu, comme la vidéo : chargé en temps mort après la page (data-src),
 // pour ne pas concurrencer la photo du haut.
 const logoMenu = await getImage({ src: logo, width: 384, format: 'webp' });
 
@@ -244,21 +244,31 @@ const entrée =
       const menu = () => document.getElementById('menu');
 
       // --- Le menu -----------------------------------------------------------
-      // Le logo part en temps mort après le chargement (ou dès que la main approche du bouton),
-      // pour être là quand la cascade le montre : chargé au clic, il surgissait après les liens.
-      function chargerLogo() {
-        menu()
-          ?.querySelectorAll<HTMLImageElement>('img[data-src]')
-          .forEach((i) => {
-            i.src = i.dataset.src!;
-            i.removeAttribute('data-src');
-          });
+      // Le logo, l'affiche et le début de la vidéo partent en temps mort après le chargement (ou
+      // dès que la main approche du bouton), pour être là à l'ouverture : chargés au clic, le logo
+      // surgissait après les liens et la vidéo démarrait en retard.
+      const connexion = () => (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+      function préparerMenu() {
+        const m = menu();
+        const vidéo = document.getElementById('menuVideo') as HTMLVideoElement | null;
+        m?.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((i) => {
+          i.src = i.dataset.src!;
+          i.removeAttribute('data-src');
+        });
+        if (!vidéo) return;
+        if (vidéo.dataset.poster) {
+          vidéo.poster = vidéo.dataset.poster;
+          delete vidéo.dataset.poster;
+        }
+        // La vidéo pèse cinq mégaoctets : avec l'économiseur de données ou le mouvement réduit,
+        // l'image fixe suffit et rien n'est téléchargé d'avance.
+        if (vidéo.preload !== 'auto' && !mouvementRéduit.matches && connexion()?.saveData !== true) vidéo.preload = 'auto';
       }
       const auRepos = (f: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(f) : setTimeout(f, 1000));
-      if (document.readyState === 'complete') auRepos(chargerLogo);
-      else addEventListener('load', () => auRepos(chargerLogo), { once: true });
+      if (document.readyState === 'complete') auRepos(préparerMenu);
+      else addEventListener('load', () => auRepos(préparerMenu), { once: true });
       for (const type of ['pointerenter', 'focusin', 'touchstart']) {
-        document.addEventListener(type, (e) => (e.target as Element).closest?.('#burger') && chargerLogo(), { capture: true, passive: true });
+        document.addEventListener(type, (e) => (e.target as Element).closest?.('#burger') && préparerMenu(), { capture: true, passive: true });
       }
 
       function ouvrirMenu(ouvert: boolean) {
@@ -271,15 +281,9 @@ const entrée =
         // Le menu couvre l'écran : ce qu'il cache n'est ni lu ni atteignable (le logo et la page).
         document.querySelectorAll<HTMLElement>('body > header, main').forEach((n) => (n.inert = ouvert));
         if (ouvert) {
-          // Filet : le logo part déjà au repos, l'image de la vidéo seulement à la première ouverture.
-          chargerLogo();
-          if (vidéo.dataset.poster) {
-            vidéo.poster = vidéo.dataset.poster;
-            delete vidéo.dataset.poster;
-          }
-          // La vidéo pèse cinq mégaoctets : avec l'économiseur de données, l'image fixe suffit.
-          const économe = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
-          if (!mouvementRéduit.matches && !économe) vidéo.play().catch(() => {});
+          // Filet : tout part déjà au repos, ceci ne sert qu'à un clic avant la fin du chargement.
+          préparerMenu();
+          if (!mouvementRéduit.matches && connexion()?.saveData !== true) vidéo.play().catch(() => {});
           m.querySelector('a')?.focus({ preventScroll: true });
         } else {
           setTimeout(() => {
