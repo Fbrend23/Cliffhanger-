@@ -1,6 +1,7 @@
 ---
-// Le carrousel d'un spectacle : les photos à la même hauteur, qui défilent
-// avec aimantation (scroll-snap), et deux flèches dès qu'il y en a plus d'une.
+// Les photos d'un spectacle à la même hauteur. À deux ou moins elles tiennent
+// côte à côte, centrées, sans carrousel ; au-delà elles défilent avec
+// aimantation (scroll-snap) et deux flèches.
 import Photo from './Photo.astro';
 import Section from './Section.astro';
 import type { Réactive } from '../lib/images.js';
@@ -15,7 +16,21 @@ const flèche = 'size-11 text-[2.5rem] leading-none opacity-75 hover:opacity-100
 ---
 
 {
-  diapos.length > 0 && (
+  diapos.length > 0 && diapos.length <= 2 && (
+    <Section nu>
+      <div class="flex flex-col items-center justify-center gap-4 px-gouttiere md:flex-row">
+        {diapos.map((d) => (
+          <figure class="min-w-0">
+            <Photo img={d.img} alt={d.alt} basse class="h-auto w-full object-cover md:h-[min(66vh,38rem)] md:w-auto md:max-w-full" />
+          </figure>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+{
+  diapos.length > 2 && (
     <Section nu class="js-slider">
       {/* Focalisable : sans lui, une piste qui défile n'est pas atteignable au clavier (les photos ne sont pas des liens). */}
       <div tabindex="0" role="region" aria-label={T.photosDuSpectacle} class="js-track flex snap-x snap-mandatory gap-4 overflow-x-auto px-gouttiere [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -25,12 +40,10 @@ const flèche = 'size-11 text-[2.5rem] leading-none opacity-75 hover:opacity-100
           </figure>
         ))}
       </div>
-      {diapos.length > 1 && (
-        <div class="flex justify-end gap-6 px-gouttiere pt-4">
-          <button class={flèche} type="button" data-dir="-1" aria-label={T.photoPrécédente}>‹</button>
-          <button class={flèche} type="button" data-dir="1" aria-label={T.photoSuivante}>›</button>
-        </div>
-      )}
+      <div class="flex justify-end gap-6 px-gouttiere pt-4">
+        <button class={flèche} type="button" data-dir="-1" aria-label={T.photoPrécédente}>‹</button>
+        <button class={flèche} type="button" data-dir="1" aria-label={T.photoSuivante}>›</button>
+      </div>
     </Section>
   )
 }
