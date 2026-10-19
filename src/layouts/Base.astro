@@ -1,5 +1,5 @@
 ---
-// Le gabarit unique : en-tête, burger, menu (sa vidéo), le contenu de la page,
+// Le gabarit unique : en-tête, bouton « Menu », menu (sa vidéo), le contenu de la page,
 // et tout ce que la tête doit dire (titre, description, adresse canonique,
 // partages, données structurées). Les réglages viennent du CMS, une fois par
 // build.
@@ -11,8 +11,9 @@
 // repli est `swap` : un remplacement net, plutôt qu'un fondu qui passerait
 // par le noir. `prefers-reduced-motion` : Astro coupe l'animation.
 //
-// Le burger et le menu sont `transition:persist` : la vidéo, une fois
-// chargée, ne se recharge pas à chaque page.
+// Le bouton « Menu » et le menu sont `transition:persist` : la vidéo, une fois
+// chargée, ne se recharge pas à chaque page. L'en-tête (logo) est fixe, voilé
+// d'un dégradé noir dès que la page défile.
 import { getEntry } from 'astro:content';
 import { ClientRouter } from 'astro:transitions';
 import { getImage } from 'astro:assets';
@@ -116,7 +117,7 @@ const entrée =
 ---
 
 <!doctype html>
-<html lang="fr" transition:animate={animation} transition:name="root">
+<html lang="fr" class="scroll-pt-24" transition:animate={animation} transition:name="root">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -156,7 +157,9 @@ const entrée =
   </head>
   <body class="menu-ouvert:overflow-hidden">
     <a class="fixed -top-16 left-4 z-60 bg-front px-4 py-3 font-normal text-back transition-[top] duration-200 focus:top-[calc(1rem+var(--safe-top))]" href="#contenu">{T.allerAuContenu}</a>
-    <header class="pointer-events-none absolute inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere">
+    <header class="js-entete group pointer-events-none fixed inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-8 pl-gouttiere sans-js:absolute">
+      {/* Le voile : un dégradé noir qui n'apparaît qu'une fois la page défilée, pour que le logo et « Menu » restent lisibles sur une photo. */}
+      <div class="absolute inset-0 -z-1 bg-linear-to-b from-back/80 to-transparent opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
       <a
         href="/"
         class="pointer-events-auto inline-block max-w-56 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
@@ -334,14 +337,20 @@ const entrée =
       });
 
       // --- Défilement : Découvrir s'efface, la grande photo se floute ----------
+      // Le voile de l'en-tête est un besoin de lisibilité, pas un mouvement : il suit le défilement
+      // même avec prefers-reduced-motion (la règle de site.css coupe alors son fondu).
+      const voilerEntête = () => document.querySelector('.js-entete')?.classList.toggle('est-parti', scrollY > 40);
+      document.addEventListener('astro:page-load', voilerEntête);
       let enAttente = false;
       addEventListener(
         'scroll',
         () => {
-          if (enAttente || mouvementRéduit.matches) return;
+          if (enAttente) return;
           enAttente = true;
           requestAnimationFrame(() => {
             enAttente = false;
+            voilerEntête();
+            if (mouvementRéduit.matches) return;
             document.querySelectorAll('.js-hint').forEach((h) => h.classList.toggle('est-parti', scrollY > 40));
             const héros = document.querySelector<HTMLElement>('.js-hero');
             if (!héros) return;
