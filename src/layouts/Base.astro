@@ -59,8 +59,8 @@ let ogSource = image ?? site.og_image;
 if (!ogSource && site.fonds.accueil) ogSource = (await getEntry('photos', site.fonds.accueil))?.data.image ?? null;
 const ogUrl = ogSource ? new URL(await og(ogSource), Astro.site).toString() : null;
 
-// Le logo arc-en-ciel du menu : chargé seulement à la première ouverture
-// (data-src), comme dans le prototype.
+// Le logo arc-en-ciel du menu : chargé en temps mort après la page (data-src),
+// pour ne pas concurrencer la photo du haut.
 const logoMenu = await getImage({ src: logo, width: 384, format: 'webp' });
 
 // La vidéo et l'affiche du menu viennent des réglages ; vides, les fichiers
@@ -210,7 +210,7 @@ const entrée =
         <source src={vidéoMenu} type="video/mp4" />
       </video>
       <ul class="relative grid gap-2 text-center text-2xl font-normal sans-js:flex sans-js:flex-wrap sans-js:justify-start sans-js:gap-x-1 sans-js:gap-y-0 sans-js:text-left sans-js:text-base">
-        {/* Le logo ne se charge qu'à la première ouverture : sans JS, il n'a pas lieu d'être. */}
+        {/* Le logo se charge en temps mort, par le script : sans JS, il n'a pas lieu d'être. */}
         <li class={`${entrée} sans-js:hidden`} style="--i:0" aria-hidden="true">
           <img class="mx-auto mb-[clamp(1.5rem,5vh,3rem)] h-auto w-[clamp(7rem,22vh,12rem)]" data-src={logoMenu.src} alt="" width="384" height="384" />
         </li>
@@ -244,6 +244,23 @@ const entrée =
       const menu = () => document.getElementById('menu');
 
       // --- Le menu -----------------------------------------------------------
+      // Le logo part en temps mort après le chargement (ou dès que la main approche du bouton),
+      // pour être là quand la cascade le montre : chargé au clic, il surgissait après les liens.
+      function chargerLogo() {
+        menu()
+          ?.querySelectorAll<HTMLImageElement>('img[data-src]')
+          .forEach((i) => {
+            i.src = i.dataset.src!;
+            i.removeAttribute('data-src');
+          });
+      }
+      const auRepos = (f: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(f) : setTimeout(f, 1000));
+      if (document.readyState === 'complete') auRepos(chargerLogo);
+      else addEventListener('load', () => auRepos(chargerLogo), { once: true });
+      for (const type of ['pointerenter', 'focusin', 'touchstart']) {
+        document.addEventListener(type, (e) => (e.target as Element).closest?.('#burger') && chargerLogo(), { capture: true, passive: true });
+      }
+
       function ouvrirMenu(ouvert: boolean) {
         const b = burger();
         const m = menu();
@@ -254,11 +271,8 @@ const entrée =
         // Le menu couvre l'écran : ce qu'il cache n'est ni lu ni atteignable (le logo et la page).
         document.querySelectorAll<HTMLElement>('body > header, main').forEach((n) => (n.inert = ouvert));
         if (ouvert) {
-          // Le logo et l'image de la vidéo ne partent qu'à la première ouverture.
-          m.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((i) => {
-            i.src = i.dataset.src!;
-            i.removeAttribute('data-src');
-          });
+          // Filet : le logo part déjà au repos, l'image de la vidéo seulement à la première ouverture.
+          chargerLogo();
           if (vidéo.dataset.poster) {
             vidéo.poster = vidéo.dataset.poster;
             delete vidéo.dataset.poster;
