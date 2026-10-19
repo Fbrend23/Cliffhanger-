@@ -247,8 +247,11 @@ const entrée =
       // Le logo, l'affiche et le début de la vidéo partent en temps mort après le chargement (ou
       // dès que la main approche du bouton), pour être là à l'ouverture : chargés au clic, le logo
       // surgissait après les liens et la vidéo démarrait en retard.
-      const connexion = () => (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-      function préparerMenu() {
+      const connexion = () => (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+      // `approche` : la main est sur le bouton, la vidéo part quelle que soit la connexion. Au repos,
+      // elle ne part que sur une connexion rapide connue (4g) : les autres ne paient pas cinq mégaoctets
+      // pour un menu qu'elles n'ouvriront peut-être pas.
+      function préparerMenu(approche = true) {
         const m = menu();
         const vidéo = document.getElementById('menuVideo') as HTMLVideoElement | null;
         m?.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((i) => {
@@ -260,13 +263,14 @@ const entrée =
           vidéo.poster = vidéo.dataset.poster;
           delete vidéo.dataset.poster;
         }
-        // La vidéo pèse cinq mégaoctets : avec l'économiseur de données ou le mouvement réduit,
-        // l'image fixe suffit et rien n'est téléchargé d'avance.
-        if (vidéo.preload !== 'auto' && !mouvementRéduit.matches && connexion()?.saveData !== true) vidéo.preload = 'auto';
+        // Avec l'économiseur de données ou le mouvement réduit, l'image fixe suffit : rien d'avance.
+        const permis = !mouvementRéduit.matches && connexion()?.saveData !== true && (approche || connexion()?.effectiveType === '4g');
+        if (permis && vidéo.preload !== 'auto') vidéo.preload = 'auto';
       }
       const auRepos = (f: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(f) : setTimeout(f, 1000));
-      if (document.readyState === 'complete') auRepos(préparerMenu);
-      else addEventListener('load', () => auRepos(préparerMenu), { once: true });
+      const auReposMenu = () => auRepos(() => préparerMenu(false));
+      if (document.readyState === 'complete') auReposMenu();
+      else addEventListener('load', auReposMenu, { once: true });
       for (const type of ['pointerenter', 'focusin', 'touchstart']) {
         document.addEventListener(type, (e) => (e.target as Element).closest?.('#burger') && préparerMenu(), { capture: true, passive: true });
       }
