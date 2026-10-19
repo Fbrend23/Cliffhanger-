@@ -1,5 +1,5 @@
 ---
-// Le gabarit unique : en-tête, burger, menu (sa vidéo), le contenu de la page,
+// Le gabarit unique : en-tête, bouton « Menu », menu (sa vidéo), le contenu de la page,
 // et tout ce que la tête doit dire (titre, description, adresse canonique,
 // partages, données structurées). Les réglages viennent du CMS, une fois par
 // build.
@@ -11,8 +11,9 @@
 // repli est `swap` : un remplacement net, plutôt qu'un fondu qui passerait
 // par le noir. `prefers-reduced-motion` : Astro coupe l'animation.
 //
-// Le burger et le menu sont `transition:persist` : la vidéo, une fois
-// chargée, ne se recharge pas à chaque page.
+// Le bouton « Menu » et le menu sont `transition:persist` : la vidéo, une fois
+// chargée, ne se recharge pas à chaque page. L'en-tête (logo) est fixe, voilé
+// d'un dégradé noir dès que la page défile.
 import { getEntry } from 'astro:content';
 import { ClientRouter } from 'astro:transitions';
 import { getImage } from 'astro:assets';
@@ -58,8 +59,8 @@ let ogSource = image ?? site.og_image;
 if (!ogSource && site.fonds.accueil) ogSource = (await getEntry('photos', site.fonds.accueil))?.data.image ?? null;
 const ogUrl = ogSource ? new URL(await og(ogSource), Astro.site).toString() : null;
 
-// Le logo arc-en-ciel du menu : chargé seulement à la première ouverture
-// (data-src), comme dans le prototype.
+// Le logo arc-en-ciel du menu, comme la vidéo : chargé en temps mort après la page (data-src),
+// pour ne pas concurrencer la photo du haut.
 const logoMenu = await getImage({ src: logo, width: 384, format: 'webp' });
 
 // La vidéo et l'affiche du menu viennent des réglages ; vides, les fichiers
@@ -116,7 +117,7 @@ const entrée =
 ---
 
 <!doctype html>
-<html lang="fr" transition:animate={animation} transition:name="root">
+<html lang="fr" class="scroll-pt-24" transition:animate={animation} transition:name="root">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -156,7 +157,9 @@ const entrée =
   </head>
   <body class="menu-ouvert:overflow-hidden">
     <a class="fixed -top-16 left-4 z-60 bg-front px-4 py-3 font-normal text-back transition-[top] duration-200 focus:top-[calc(1rem+var(--safe-top))]" href="#contenu">{T.allerAuContenu}</a>
-    <header class="pointer-events-none absolute inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere">
+    <header class="js-entete group pointer-events-none fixed inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-8 pl-gouttiere sans-js:absolute">
+      {/* Le voile : un dégradé noir qui n'apparaît qu'une fois la page défilée, pour que le logo et « Menu » restent lisibles sur une photo. */}
+      <div class="absolute inset-0 -z-1 bg-linear-to-b from-back/80 to-transparent opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
       <a
         href="/"
         class="pointer-events-auto inline-block max-w-56 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
@@ -165,13 +168,13 @@ const entrée =
       />
     </header>
     <button
-      class="fixed top-[calc(.375rem+var(--safe-top))] right-1.5 z-40 grid size-11 place-items-center opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 sans-js:hidden"
+      class="fixed top-[calc(.375rem+var(--safe-top))] right-1.5 z-40 flex h-11 items-center gap-3 px-3 opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 lg:right-[calc(var(--spacing-gouttiere)-.75rem)] sans-js:hidden"
       id="burger"
-      aria-label={T.menuBouton}
       aria-expanded="false"
       aria-controls="menu"
       transition:persist="burger"
     >
+      <span class="text-sm tracking-large uppercase">{T.menuBouton}</span>
       {/* Les traits pivotent autour de leur bout gauche : le haut et le bas se croisent en X, celui du milieu s'efface. */}
       <svg class="block size-6" viewBox="0 0 32 32" aria-hidden="true">
         <rect class={`${trait} origin-[2px_6px] menu-ouvert:translate-x-[4px] menu-ouvert:rotate-45`} y="4" width="32" height="4"></rect>
@@ -207,7 +210,7 @@ const entrée =
         <source src={vidéoMenu} type="video/mp4" />
       </video>
       <ul class="relative grid gap-2 text-center text-2xl font-normal sans-js:flex sans-js:flex-wrap sans-js:justify-start sans-js:gap-x-1 sans-js:gap-y-0 sans-js:text-left sans-js:text-base">
-        {/* Le logo ne se charge qu'à la première ouverture : sans JS, il n'a pas lieu d'être. */}
+        {/* Le logo se charge en temps mort, par le script : sans JS, il n'a pas lieu d'être. */}
         <li class={`${entrée} sans-js:hidden`} style="--i:0" aria-hidden="true">
           <img class="mx-auto mb-[clamp(1.5rem,5vh,3rem)] h-auto w-[clamp(7rem,22vh,12rem)]" data-src={logoMenu.src} alt="" width="384" height="384" />
         </li>
@@ -241,6 +244,37 @@ const entrée =
       const menu = () => document.getElementById('menu');
 
       // --- Le menu -----------------------------------------------------------
+      // Le logo, l'affiche et le début de la vidéo partent en temps mort après le chargement (ou
+      // dès que la main approche du bouton), pour être là à l'ouverture : chargés au clic, le logo
+      // surgissait après les liens et la vidéo démarrait en retard.
+      const connexion = () => (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+      // `approche` : la main est sur le bouton, la vidéo part quelle que soit la connexion. Au repos,
+      // elle ne part que sur une connexion rapide connue (4g) : les autres ne paient pas cinq mégaoctets
+      // pour un menu qu'elles n'ouvriront peut-être pas.
+      function préparerMenu(approche = true) {
+        const m = menu();
+        const vidéo = document.getElementById('menuVideo') as HTMLVideoElement | null;
+        m?.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((i) => {
+          i.src = i.dataset.src!;
+          i.removeAttribute('data-src');
+        });
+        if (!vidéo) return;
+        if (vidéo.dataset.poster) {
+          vidéo.poster = vidéo.dataset.poster;
+          delete vidéo.dataset.poster;
+        }
+        // Avec l'économiseur de données ou le mouvement réduit, l'image fixe suffit : rien d'avance.
+        const permis = !mouvementRéduit.matches && connexion()?.saveData !== true && (approche || connexion()?.effectiveType === '4g');
+        if (permis && vidéo.preload !== 'auto') vidéo.preload = 'auto';
+      }
+      const auRepos = (f: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(f) : setTimeout(f, 1000));
+      const auReposMenu = () => auRepos(() => préparerMenu(false));
+      if (document.readyState === 'complete') auReposMenu();
+      else addEventListener('load', auReposMenu, { once: true });
+      for (const type of ['pointerenter', 'focusin', 'touchstart']) {
+        document.addEventListener(type, (e) => (e.target as Element).closest?.('#burger') && préparerMenu(), { capture: true, passive: true });
+      }
+
       function ouvrirMenu(ouvert: boolean) {
         const b = burger();
         const m = menu();
@@ -251,18 +285,9 @@ const entrée =
         // Le menu couvre l'écran : ce qu'il cache n'est ni lu ni atteignable (le logo et la page).
         document.querySelectorAll<HTMLElement>('body > header, main').forEach((n) => (n.inert = ouvert));
         if (ouvert) {
-          // Le logo et l'image de la vidéo ne partent qu'à la première ouverture.
-          m.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((i) => {
-            i.src = i.dataset.src!;
-            i.removeAttribute('data-src');
-          });
-          if (vidéo.dataset.poster) {
-            vidéo.poster = vidéo.dataset.poster;
-            delete vidéo.dataset.poster;
-          }
-          // La vidéo pèse cinq mégaoctets : avec l'économiseur de données, l'image fixe suffit.
-          const économe = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
-          if (!mouvementRéduit.matches && !économe) vidéo.play().catch(() => {});
+          // Filet : tout part déjà au repos, ceci ne sert qu'à un clic avant la fin du chargement.
+          préparerMenu();
+          if (!mouvementRéduit.matches && connexion()?.saveData !== true) vidéo.play().catch(() => {});
           m.querySelector('a')?.focus({ preventScroll: true });
         } else {
           setTimeout(() => {
@@ -334,14 +359,20 @@ const entrée =
       });
 
       // --- Défilement : Découvrir s'efface, la grande photo se floute ----------
+      // Le voile de l'en-tête est un besoin de lisibilité, pas un mouvement : il suit le défilement
+      // même avec prefers-reduced-motion (la règle de site.css coupe alors son fondu).
+      const voilerEntête = () => document.querySelector('.js-entete')?.classList.toggle('est-parti', scrollY > 40);
+      document.addEventListener('astro:page-load', voilerEntête);
       let enAttente = false;
       addEventListener(
         'scroll',
         () => {
-          if (enAttente || mouvementRéduit.matches) return;
+          if (enAttente) return;
           enAttente = true;
           requestAnimationFrame(() => {
             enAttente = false;
+            voilerEntête();
+            if (mouvementRéduit.matches) return;
             document.querySelectorAll('.js-hint').forEach((h) => h.classList.toggle('est-parti', scrollY > 40));
             const héros = document.querySelector<HTMLElement>('.js-hero');
             if (!héros) return;
