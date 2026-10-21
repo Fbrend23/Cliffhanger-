@@ -220,7 +220,6 @@ const entrée =
               <a
                 class="inline-block px-3 py-1 opacity-75 transition-opacity duration-250 hover:opacity-100 focus-visible:opacity-100 aria-[current=page]:opacity-100 sans-js:pl-0"
                 href={l.href}
-                data-astro-prefetch="load"
                 aria-current={l.href === rubrique ? 'page' : undefined}
                 set:html={tx(l.label)}
               />
@@ -343,6 +342,119 @@ const entrée =
             if (a.getAttribute('href') === rubrique) a.setAttribute('aria-current', 'page');
             else a.removeAttribute('aria-current');
           });
+      });
+
+      // --- Pages préchargées -----------------------------------------------------
+      // Le routeur retélécharge la page à chaque clic : il ne réutilise pas le préchargement d'Astro,
+      // et l'hébergeur coupe la connexion après quelques secondes d'inactivité (une poignée de main
+      // TLS de plus, ~500 ms). Les pages sont donc gardées en mémoire, prises à l'approche de la main
+      // ou au repos, et le chargeur du routeur les lit ici avant de se rabattre sur le sien.
+      type Entrée = { quand: number; html: Promise<string | null> };
+      const pages = new Map<string, Entrée>();
+      // Courte : la reconstruction de la nuit efface les anciens fichiers à empreinte.
+      const duréePage = 2 * 60_000;
+      const frais = (e?: Entrée): e is Entrée => !!e && Date.now() - e.quand < duréePage;
+
+      // Un lien vers une autre page du site, en adresse finale (barre oblique : sans elle, Apache redirige).
+      function lienInterne(cible: Element | null) {
+        const l = cible?.closest?.('a[href]') as HTMLAnchorElement | null | undefined;
+        if (!l || l.origin !== location.origin || l.target || l.hasAttribute('download') || l.hasAttribute('data-astro-reload')) return null;
+        if (!l.pathname.endsWith('/') || (l.pathname === location.pathname && l.search === location.search)) return null;
+        return l;
+      }
+
+      function précharger(l: HTMLAnchorElement) {
+        const url = l.origin + l.pathname + l.search;
+        const déjà = pages.get(url);
+        if (frais(déjà)) return déjà;
+        const entrée: Entrée = {
+          quand: Date.now(),
+          html: fetch(url)
+            // Une redirection (r.url ≠ url) mettrait la mauvaise adresse dans l'historique.
+            .then((r) => (r.ok && r.url === url && r.headers.get('content-type')?.includes('text/html') ? r.text() : null))
+            .catch(() => null),
+        };
+        pages.set(url, entrée);
+        entrée.html.then((h) => h === null && pages.get(url) === entrée && pages.delete(url));
+        return entrée;
+      }
+
+      // La main approche d'un lien : sa page part tout de suite (et rouvre la connexion avant le clic).
+      for (const type of ['pointerenter', 'focusin', 'touchstart']) {
+        document.addEventListener(
+          type,
+          (e) => {
+            const l = lienInterne(e.target as Element);
+            if (l) précharger(l);
+          },
+          { capture: true, passive: true }
+        );
+      }
+
+      // Au repos : les liens du menu, et ceux de la page une fois à l'écran (sur téléphone, pas de survol).
+      // Le reste ne part que sur une connexion rapide connue, comme la vidéo du menu.
+      const visibles =
+        'IntersectionObserver' in window
+          ? new IntersectionObserver((entrées) =>
+              entrées.forEach((en) => {
+                if (!en.isIntersecting) return;
+                visibles?.unobserve(en.target);
+                const l = lienInterne(en.target);
+                if (l) précharger(l);
+              })
+            )
+          : null;
+      document.addEventListener('astro:page-load', () => {
+        if (connexion()?.saveData === true) return;
+        auRepos(() => {
+          document.querySelectorAll('#menu a[href]').forEach((a) => visibles?.observe(a));
+          if (connexion()?.effectiveType === '4g') document.querySelectorAll('main a[href]').forEach((a) => visibles?.observe(a));
+        });
+      });
+
+      // Le chargeur du routeur (celui d'Astro, router.js : defaultLoader) lit la page gardée au lieu de
+      // la retélécharger, puis fait la même suite. Au moindre doute (rien en mémoire, formulaire, page
+      // d'avant un déploiement), c'est le sien qui travaille, comme avant.
+      document.addEventListener('astro:before-preparation', (e) => {
+        const url = e.to.origin + e.to.pathname + e.to.search;
+        const entrée = pages.get(url);
+        if (e.formData || !frais(entrée)) return;
+        const origine = e.loader;
+        e.loader = async () => {
+          const html = await entrée.html;
+          if (e.signal.aborted) return;
+          const doc = html === null ? null : new DOMParser().parseFromString(html, 'text/html');
+          doc?.querySelectorAll('noscript').forEach((n) => n.remove());
+          if (!doc?.querySelector('[name="astro-view-transitions-enabled"]')) {
+            pages.delete(url);
+            return origine();
+          }
+          // Les feuilles de style de la nouvelle page, attendues avant le remplacement. Une qui n'existe
+          // plus : la page gardée date d'avant un déploiement, on la refait.
+          const manquantes = [...doc.querySelectorAll<HTMLLinkElement>('head link[rel=stylesheet]')].filter(
+            (s) => !document.querySelector(`[data-astro-transition-persist="${s.getAttribute('data-astro-transition-persist')}"], link[rel=stylesheet][href="${s.getAttribute('href')}"]`)
+          );
+          const résultats = await Promise.all(
+            manquantes.map(
+              (s) =>
+                new Promise<boolean>((fini) => {
+                  const p = document.createElement('link');
+                  p.rel = 'preload';
+                  p.as = 'style';
+                  p.href = s.getAttribute('href')!;
+                  p.addEventListener('load', () => fini(true));
+                  p.addEventListener('error', () => fini(false));
+                  document.head.append(p);
+                })
+            )
+          );
+          if (e.signal.aborted) return;
+          if (résultats.includes(false)) {
+            pages.delete(url);
+            return origine();
+          }
+          e.newDocument = doc;
+        };
       });
 
       // --- Apparition en cascade ------------------------------------------------
