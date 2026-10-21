@@ -13,7 +13,7 @@
 //
 // Le bouton « Menu » et le menu sont `transition:persist` : la vidéo, une fois
 // chargée, ne se recharge pas à chaque page. L'en-tête (logo) est fixe, voilé
-// d'un dégradé noir dès que la page défile.
+// d'une bande noire translucide dès que la page défile.
 import { getEntry } from 'astro:content';
 import { ClientRouter } from 'astro:transitions';
 import { getImage } from 'astro:assets';
@@ -157,9 +157,9 @@ const entrée =
   </head>
   <body class="menu-ouvert:overflow-hidden">
     <a class="fixed -top-16 left-4 z-60 bg-front px-4 py-3 font-normal text-back transition-[top] duration-200 focus:top-[calc(1rem+var(--safe-top))]" href="#contenu">{T.allerAuContenu}</a>
-    <header class="js-entete group pointer-events-none fixed inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-8 pl-gouttiere sans-js:absolute">
-      {/* Le voile : un dégradé noir qui n'apparaît qu'une fois la page défilée, pour que le logo et « Menu » restent lisibles sur une photo. */}
-      <div class="absolute inset-0 -z-1 bg-linear-to-b from-back/80 to-transparent opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
+    <header class="js-entete group pointer-events-none fixed inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere sans-js:absolute">
+      {/* Le voile : une bande noire translucide qui n'apparaît qu'une fois la page défilée, pour que le logo et « Menu » restent lisibles sur une photo. */}
+      <div class="absolute inset-0 -z-1 bg-back/60 backdrop-blur-sm opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
       <a
         href="/"
         class="pointer-events-auto inline-block max-w-56 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
