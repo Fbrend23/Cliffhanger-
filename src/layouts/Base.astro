@@ -19,6 +19,7 @@ import { ClientRouter } from 'astro:transitions';
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 import logo from '../assets/logo-arc-en-ciel.webp';
+import logoBlanc from '../assets/logo-cie-blanc-256.webp';
 import { og } from '../lib/images.js';
 import type { Réactive } from '../lib/images.js';
 import { T } from '../lib/textes.js';
@@ -62,6 +63,9 @@ const ogUrl = ogSource ? new URL(await og(ogSource), Astro.site).toString() : nu
 // Le logo arc-en-ciel du menu, comme la vidéo : chargé en temps mort après la page (data-src),
 // pour ne pas concurrencer la photo du haut.
 const logoMenu = await getImage({ src: logo, width: 384, format: 'webp' });
+
+// Le logo blanc de l'en-tête, à côté du nom : affiché sur 2,5 rem de haut, rendu au double pour les écrans denses.
+const logoEntête = await getImage({ src: logoBlanc, height: 80, format: 'webp' });
 
 // La vidéo et l'affiche du menu viennent des réglages ; vides, les fichiers
 // de public/ (ceux d'origine) continuent de servir.
@@ -164,10 +168,13 @@ const entrée =
       <div class="absolute inset-0 -z-1 bg-back/60 backdrop-blur-sm opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
       <a
         href="/"
-        class="pointer-events-auto inline-block max-w-56 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
+        class="pointer-events-auto inline-flex max-w-64 items-center gap-2.5 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
         translate="no"
-        set:html={tx(site.site_title)}
-      />
+      >
+        {/* Le logo, décoratif : le nom de la compagnie, juste à côté, dit déjà où mène le lien. */}
+        <img class="h-10 w-auto shrink-0" src={logoEntête.src} width={logoEntête.attributes.width} height={logoEntête.attributes.height} alt="" />
+        <span set:html={tx(site.site_title)} />
+      </a>
     </header>
     <button
       class="fixed top-[calc(.375rem+var(--safe-top))] right-1.5 z-40 flex h-11 items-center gap-3 px-3 opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 lg:right-[calc(var(--spacing-gouttiere)-.75rem)] sans-js:hidden"
