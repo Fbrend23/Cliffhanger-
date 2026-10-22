@@ -29,9 +29,9 @@ export default defineConfig({
 
   integrations: [sitemap()],
 
-  // Seuls les liens du menu (data-astro-prefetch="load") sont préchargés : quand on choisit une
-  // rubrique, la page est déjà là et le menu n'attend pas.
-  prefetch: { prefetchAll: false },
+  // Pas de préchargement d'Astro : le routeur ne réutilise pas ce qu'il télécharge. Les pages sont
+  // préchargées et gardées par le script de Base.astro, que son chargeur lit au changement de page.
+  prefetch: false,
 
   // Tailwind 4 passe par Vite, sans intégration Astro ni fichier de configuration : les jetons,
   // les points de rupture et les variantes du site sont déclarés dans src/styles/site.css.
