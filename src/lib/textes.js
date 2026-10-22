@@ -78,12 +78,12 @@ export const T = {
   descriptionMentionsLégales: "Mentions légales du site de la Compagnie Cliffhanger : éditeur, responsable de la publication, hébergeur et droits d'auteur.",
   descriptionConfidentialité: "Politique de confidentialité du site de la Compagnie Cliffhanger : données des demandes de réservation, destinataires, durée de conservation, cookies et droits.",
   /**
-   * @param {{ denomination: string, adresse: string[], bce: string, responsable: string, email: string }} l
+   * @param {{ denomination: string, adresse: string[], bce: string, rpm?: string|null, responsable: string, email: string }} l
    */
   sectionsMentionsLégales: (l) => [
     {
       titre: 'Éditeur',
-      html: `<p>${l.denomination}<br>${(l.adresse ?? []).join('<br>')}<br>Numéro d'entreprise : ${l.bce}<br>E-mail : <a href="mailto:${l.email}">${l.email}</a></p>`,
+      html: `<p>${l.denomination}<br>${(l.adresse ?? []).join('<br>')}<br>Numéro d'entreprise : ${l.bce}${l.rpm ? `<br>${l.rpm}` : ''}<br>E-mail : <a href="mailto:${l.email}">${l.email}</a></p>`,
     },
     { titre: 'Responsable de la publication', html: `<p>${l.responsable}</p>` },
     {

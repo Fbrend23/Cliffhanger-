@@ -10,13 +10,14 @@ import { échapper } from './typo.js';
  * @property {string} denomination
  * @property {string[]} adresse  Les lignes de l'adresse du siège.
  * @property {string} bce
+ * @property {string|null} rpm  Facultatif : sans lui, les pages existent et la ligne manque.
  * @property {string} responsable
  * @property {string} email
  * @property {string|null} conservation
  */
 
 /**
- * @param {{ legal_denomination: string|null, legal_adresse: string|null, legal_bce: string|null,
+ * @param {{ legal_denomination: string|null, legal_adresse: string|null, legal_bce: string|null, legal_rpm?: string|null,
  *   legal_responsable: string|null, legal_conservation: string|null, email: string|null }} reglages
  * @returns {Légal|null} Null tant qu'une information manque (dont l'e-mail, seul contact pour exercer ses droits).
  */
@@ -27,7 +28,7 @@ export function légal(reglages) {
     .filter(Boolean);
   const { legal_denomination: denomination, legal_bce: bce, legal_responsable: responsable, email } = reglages;
   if (!denomination || !bce || !responsable || !email || adresse.length === 0) return null;
-  return { denomination, adresse, bce, responsable, email, conservation: reglages.legal_conservation };
+  return { denomination, adresse, bce, rpm: reglages.legal_rpm ?? null, responsable, email, conservation: reglages.legal_conservation };
 }
 
 /**
@@ -39,6 +40,7 @@ export const légalÉchappé = (l) => ({
   denomination: échapper(l.denomination),
   adresse: l.adresse.map(échapper),
   bce: échapper(l.bce),
+  rpm: l.rpm === null ? null : échapper(l.rpm),
   responsable: échapper(l.responsable),
   email: échapper(l.email),
   conservation: l.conservation === null ? null : échapper(l.conservation),

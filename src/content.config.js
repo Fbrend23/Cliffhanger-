@@ -138,6 +138,7 @@ const reglages = defineCollection({
       legal_denomination: z.string().nullable(),
       legal_adresse: z.string().nullable(),
       legal_bce: z.string().nullable(),
+      legal_rpm: z.string().nullable(),
       legal_responsable: z.string().nullable(),
       legal_conservation: z.string().nullable(),
       head_verification: z.string().nullable(),
