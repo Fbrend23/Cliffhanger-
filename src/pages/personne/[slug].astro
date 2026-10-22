@@ -31,7 +31,14 @@ const projets = sesProjets.map((x) => [
   { html: tx(x.roles.join(', ')) },
 ]);
 // Le début de sa biographie, sinon ses spectacles : chaque fiche a la sienne.
-const description = extrait(p.bio) ?? T.descriptionPersonne(p.name, joindreFr(sesProjets.map((x) => x.spectacle.title)));
+// Deux biographies peuvent se ressembler (« Il est membre fondateur… ») : le nom
+// ouvre la description, sauf si la biographie le dit déjà.
+const debutBio = extrait(p.bio);
+const description = !debutBio
+  ? T.descriptionPersonne(p.name, joindreFr(sesProjets.map((x) => x.spectacle.title)))
+  : debutBio.includes(p.name)
+    ? debutBio
+    : T.descriptionBio(p.name, extrait(p.bio, 155 - p.name.length - 2)!);
 
 // Pour les moteurs : la personne, et le chemin du lien retour.
 const adresse = (chemin: string) => new URL(chemin, Astro.site).toString();

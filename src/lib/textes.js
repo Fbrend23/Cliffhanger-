@@ -51,6 +51,13 @@ export const T = {
    * @param {string|null} titres
    */
   descriptionPersonne: (nom, titres) => (titres ? `${nom}, avec la Compagnie Cliffhanger : ${titres}.` : `${nom}, avec la Compagnie Cliffhanger, compagnie de théâtre bruxelloise.`),
+  /**
+   * Le début d'une biographie, précédé du nom : deux biographies identiques
+   * (« Il est membre fondateur… ») ne doivent pas donner deux fois la même description.
+   * @param {string} nom
+   * @param {string} debut
+   */
+  descriptionBio: (nom, debut) => `${nom}. ${debut}`,
   allerAuContenu: 'Aller au contenu',
   // Le mot écrit à côté des traits, et le nom du bouton : il ne change pas à
   // l'ouverture, l'état est dit par aria-expanded (un nom qui change l'annoncerait
