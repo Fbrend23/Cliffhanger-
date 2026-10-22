@@ -4,8 +4,9 @@
 // /montreal/, le seul endroit où Montréal apparaît. Les liens vers les pages
 // légales n'y sont que si les réglages du CMS les rendent possibles.
 import { contenu } from '../lib/contenu.js';
+import { légalÉchappé } from '../lib/legal.js';
 import { T } from '../lib/textes.js';
-import { tx } from '../lib/typo.js';
+import { tx, typographier } from '../lib/typo.js';
 
 interface Props {
   epingle?: boolean;
@@ -16,6 +17,10 @@ const c = await contenu();
 const liens = c.légal
   ? ` · <a href="/mentions-legales/">${tx(T.mentionsLégales).replace(' ', ' ')}</a> · <a href="/confidentialite/">${tx(T.confidentialité)}</a>`
   : '';
+// La ligne d'identification : l'ASBL doit s'identifier sur chaque page. Elle ne vient qu'avec les
+// informations légales complètes, comme les liens. `typographier()` et non `tx()` : les valeurs sont
+// déjà échappées, `tx()` les échapperait une seconde fois.
+const identification = c.légal ? `<br>${typographier(T.identification(légalÉchappé(c.légal)))}` : '';
 ---
 
-<p class:list={['px-gouttiere py-8 text-xs opacity-60 [&_a]:lien-souligne', epingle ? 'absolute inset-x-0 bottom-0 text-left' : 'text-center']} set:html={tx(T.footer(new Date().getFullYear())) + liens} />
+<p class:list={['px-gouttiere py-8 text-xs opacity-60 [&_a]:lien-souligne', epingle ? 'absolute inset-x-0 bottom-0 text-left' : 'text-center']} set:html={tx(T.footer(new Date().getFullYear())) + liens + identification} />
