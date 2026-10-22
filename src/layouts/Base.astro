@@ -157,6 +157,8 @@ const entrée =
   </head>
   <body class="menu-ouvert:overflow-hidden">
     <a class="fixed -top-16 left-4 z-60 bg-front px-4 py-3 font-normal text-back transition-[top] duration-200 focus:top-[calc(1rem+var(--safe-top))]" href="#contenu">{T.allerAuContenu}</a>
+    {/* La barre de chargement : un trait blanc en haut de l'écran, allumé par le script (data-actif) quand une page tarde. Elle survit au changement de page, comme le menu : le routeur recopie les attributs de <html>, pas ceux d'un élément gardé. Sans mouvement (prefers-reduced-motion), le trait reste plein le temps de l'attente. */}
+    <div class="js-chargement pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 origin-left bg-front opacity-0 transition-opacity duration-200 data-actif:animate-chargement data-actif:opacity-100" aria-hidden="true" transition:persist="chargement"></div>
     <header class="js-entete group pointer-events-none fixed inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere sans-js:absolute">
       {/* Le voile : une bande noire translucide qui n'apparaît qu'une fois la page défilée, pour que le logo et « Menu » restent lisibles sur une photo. */}
       <div class="absolute inset-0 -z-1 bg-back/60 backdrop-blur-sm opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
@@ -218,7 +220,7 @@ const entrée =
           T.menu.map((l, i) => (
             <li class={entrée} style={`--i:${i + 1}`}>
               <a
-                class="inline-block px-3 py-1 opacity-75 transition-opacity duration-250 hover:opacity-100 focus-visible:opacity-100 aria-[current=page]:opacity-100 sans-js:pl-0"
+                class="inline-block px-3 py-1 opacity-75 transition-opacity duration-250 hover:opacity-100 focus-visible:opacity-100 aria-[current=page]:opacity-100 data-en-cours:opacity-100 sans-js:pl-0"
                 href={l.href}
                 aria-current={l.href === rubrique ? 'page' : undefined}
                 set:html={tx(l.label)}
@@ -478,6 +480,32 @@ const entrée =
           e.newDocument = doc;
         };
       });
+
+      // --- Chargement en cours -----------------------------------------------------
+      // Le lien cliqué reste allumé tout de suite (le menu reste ouvert jusqu'à l'arrivée de la page, l'œil
+      // est dessus) ; passé 150 ms, la barre du haut s'allume : une page préchargée arrive avant et ne
+      // montre rien. Ni voile noir ni état sur <html> (le routeur en recopie les attributs).
+      let attente = 0;
+      let cliqué: Element | null = null;
+      function finirAttente() {
+        clearTimeout(attente);
+        document.querySelector('.js-chargement')?.removeAttribute('data-actif');
+        cliqué?.removeAttribute('data-en-cours');
+        cliqué = null;
+        document.querySelector('main')?.removeAttribute('aria-busy');
+      }
+      document.addEventListener('astro:before-preparation', (e) => {
+        finirAttente();
+        if (e.sourceElement instanceof HTMLAnchorElement) {
+          cliqué = e.sourceElement;
+          cliqué.setAttribute('data-en-cours', '');
+        }
+        document.querySelector('main')?.setAttribute('aria-busy', 'true');
+        attente = window.setTimeout(() => document.querySelector('.js-chargement')?.setAttribute('data-actif', ''), 150);
+        // Un second clic annule le premier : sa fin éteint ce qui restait allumé.
+        e.signal.addEventListener('abort', finirAttente, { once: true });
+      });
+      document.addEventListener('astro:after-swap', finirAttente);
 
       // --- Apparition en cascade ------------------------------------------------
       // Chaque bloc glisse en place, l'un après l'autre, à chaque page. Les
