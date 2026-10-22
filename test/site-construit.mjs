@@ -5,14 +5,25 @@
 // À part de `npm test` (qui tourne avant le build, sans dist/) :
 //   npm run build && npm run test:dist
 // Le CI le lance après « Construire le site ».
+//
+// Avec RAPPORT=<fichier>, chaque échec y ajoute une phrase pour la compagnie :
+// le workflow la recopie dans la page Publication du Studio, où quelqu'un qui
+// n'ouvre jamais GitHub saura pourquoi le site n'a pas changé.
 
 import assert from 'node:assert/strict';
+import { appendFileSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import process from 'node:process';
 import { before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
+
+/** Dit à la compagnie ce qui a empêché la mise en ligne (une ligne par problème). */
+function rapporter(phrases) {
+  if (process.env.RAPPORT && phrases.length) appendFileSync(process.env.RAPPORT, phrases.join('\n') + '\n');
+}
 
 /** @type {{ chemin: string, html: string }[]} */
 let pages = [];
@@ -50,6 +61,7 @@ test('aucun tiret long, demi-cadratin ni tiret entouré d’espaces dans le text
     const t = texteVisible(p.html);
     for (const m of t.matchAll(/[—–]|\s-\s/g)) fautes.push(`${p.chemin} : « ${t.slice(Math.max(0, m.index - 25), m.index + 25).replace(/\s+/g, ' ')} »`);
   }
+  rapporter(fautes.map((f) => `Un tiret long ou entouré d'espaces est écrit dans le texte (${f}). Remplacez-le par une virgule ou deux points dans le Studio.`));
   assert.deepEqual(fautes, []);
 });
 
@@ -66,6 +78,7 @@ test('chaque page indexable a un titre et une description à elle', () => {
       else vus[clé].set(valeur, p.chemin);
     }
   }
+  rapporter(doublons.map((d) => `Deux pages ont le même texte pour les moteurs de recherche (${d}). Changez le texte de l'une des deux dans le Studio.`));
   assert.deepEqual(doublons, []);
 });
 
@@ -102,5 +115,6 @@ test('aucune adresse de développement dans les pages', () => {
 
 test('aucune page n’est sans <h1> (hors 404 sans index)', () => {
   const fautes = pages.filter((p) => indexable(p) && !/<h1[\s>]/.test(p.html)).map((p) => p.chemin);
+  rapporter(fautes.map((f) => `La page ${f} n'a pas de titre principal : vérifiez son titre dans le Studio.`));
   assert.deepEqual(fautes, []);
 });
