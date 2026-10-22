@@ -4,7 +4,7 @@
 import Base from '../layouts/Base.astro';
 import Fond from '../components/Fond.astro';
 import ListeSpectacles from '../components/ListeSpectacles.astro';
-import Pied from '../components/Pied.astro';
+import Footer from '../components/Footer.astro';
 import { contenu } from '../lib/contenu.js';
 import { herosPhoto, og } from '../lib/images.js';
 import { organisation, siteWeb } from '../lib/seo.js';
@@ -40,6 +40,6 @@ const jsonLd = [
     <h1 class="sr-only" set:html={tx(T.accueilH1)} />
     <Fond fond={fond} survol={c.belges} />
     <ListeSpectacles spectacles={c.belges} />
-    <Pied epingle />
+    <Footer epingle />
   </section>
 </Base>

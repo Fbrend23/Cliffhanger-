@@ -68,7 +68,7 @@ export const T = {
   /**
    * @param {number|string} année
    */
-  pied: (année) => `© ${année} Compagnie Cliffhanger · Bruxelles · Montréal`,
+  footer: (année) => `© ${année} Compagnie Cliffhanger · Bruxelles · Montréal`,
 
   // Pages légales. Les valeurs de `l` (informations légales des réglages) arrivent déjà échappées ;
   // chaque section est un intitulé et son HTML, rendus par Intitule et TexteRiche.

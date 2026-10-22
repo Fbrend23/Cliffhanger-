@@ -1,11 +1,11 @@
 ---
 // Les deux pages légales, /mentions-legales/ et /confidentialite/. Elles ne
 // sont générées que si les réglages du CMS donnent toutes les informations
-// légales (`légal()`) : sinon aucune page, et le pied n'en parle pas.
+// légales (`légal()`) : sinon aucune page, et le footer n'en parle pas.
 import Base from '../../layouts/Base.astro';
 import Intitule from '../../components/Intitule.astro';
 import PageListe from '../../components/PageListe.astro';
-import Pied from '../../components/Pied.astro';
+import Footer from '../../components/Footer.astro';
 import Section from '../../components/Section.astro';
 import TexteRiche from '../../components/TexteRiche.astro';
 import TitrePage from '../../components/TitrePage.astro';
@@ -45,6 +45,6 @@ const { titre, description, sections } = Astro.props;
         </Section>
       ))
     }
-    <Pied />
+    <Footer />
   </PageListe>
 </Base>

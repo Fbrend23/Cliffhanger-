@@ -3,7 +3,7 @@
 // pas de page à lui : il vit sur /montreal/.
 import Base from '../../layouts/Base.astro';
 import LienRetour from '../../components/LienRetour.astro';
-import Pied from '../../components/Pied.astro';
+import Footer from '../../components/Footer.astro';
 import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
 import { contenu } from '../../lib/contenu.js';
@@ -46,6 +46,6 @@ const jsonLd = [
     <TeteDePage img={img} alt={s.title} style={cadrage(s.focal)} titre={s.title} sous={s.year} credit={s.credit} sansTraduction />
     <SectionsSpectacle spectacle={s} />
     <div class="mx-auto w-full max-w-4xl px-gouttiere"><LienRetour href="/spectacles/" texte={T.tousLesSpectacles} /></div>
-    <Pied />
+    <Footer />
   </article>
 </Base>

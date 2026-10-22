@@ -1,10 +1,10 @@
 ---
 // Montréal : le collectif-sœur, à part. C'est la seule page du site (avec le
-// pied) où Montréal apparaît. La grande photo est celle du spectacle de la
+// footer) où Montréal apparaît. La grande photo est celle du spectacle de la
 // troupe de Montréal, dont les sections suivent le texte du collectif.
 import Base from '../../layouts/Base.astro';
 import Accroche from '../../components/Accroche.astro';
-import Pied from '../../components/Pied.astro';
+import Footer from '../../components/Footer.astro';
 import Section from '../../components/Section.astro';
 import SectionsSpectacle from '../../components/SectionsSpectacle.astro';
 import TeteDePage from '../../components/TeteDePage.astro';
@@ -49,6 +49,6 @@ const img = s ? await herosSpectacle(s) : null;
         </>
       )
     }
-    <Pied />
+    <Footer />
   </article>
 </Base>
