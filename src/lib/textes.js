@@ -75,7 +75,7 @@ export const T = {
    * @param {{ denomination: string, adresse: string[], bce: string, rpm?: string|null, email: string }} l  Déjà échappées.
    */
   identification: (l) =>
-    [l.denomination, l.adresse.join(', '), `N° d'entreprise ${l.bce}`, l.rpm, `<a href="mailto:${l.email}">${l.email}</a>`].filter(Boolean).join(' · '),
+    [l.denomination, (l.adresse ?? []).join(', '), `N° d'entreprise ${l.bce}`, l.rpm, `<a href="mailto:${l.email}">${l.email}</a>`].filter(Boolean).join(' · '),
 
   // Pages légales. Les valeurs de `l` (informations légales des réglages) arrivent déjà échappées ;
   // chaque section est un intitulé et son HTML, rendus par Intitule et TexteRiche.
