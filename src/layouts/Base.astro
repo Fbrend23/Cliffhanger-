@@ -242,6 +242,16 @@ const entrée =
       <slot />
     </main>
 
+    {/* La cascade part ici, avant la première peinture : posée par le module (téléchargé après la photo et les polices), elle effaçait des blocs déjà affichés pour les refaire monter. Sans mouvement réduit seulement ; sans JS, rien n'est caché. */}
+    <script is:inline>
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.querySelectorAll('main [data-cascade]:not(.animate-rise)').forEach(function (el, i) {
+          el.classList.add('animate-rise');
+          el.style.animationDelay = Math.min(0.1 + i * 0.07, 0.9) + 's';
+        });
+      }
+    </script>
+
     <script>
       // Les comportements communs à toutes les pages. Ce module ne s'exécute
       // qu'une fois (le routeur ne recharge pas la page) : ce qui dépend de la
@@ -520,7 +530,8 @@ const entrée =
       // pastilles, vignettes de la galerie.
       document.addEventListener('astro:page-load', () => {
         if (mouvementRéduit.matches) return;
-        document.querySelectorAll<HTMLElement>('main [data-cascade]').forEach((el, i) => {
+        // Au chargement à froid, le script en ligne sous <main> les a déjà lancés.
+        document.querySelectorAll<HTMLElement>('main [data-cascade]:not(.animate-rise)').forEach((el, i) => {
           el.classList.add('animate-rise');
           // Le décalage en style en ligne : il l'emporte sur le raccourci animation de la classe.
           el.style.animationDelay = `${Math.min(0.1 + i * 0.07, 0.9)}s`;
