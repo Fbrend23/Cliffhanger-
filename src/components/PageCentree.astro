@@ -1,10 +1,10 @@
 ---
 // Le cadre des pages courtes, centrées sur leur photo voilée (contact, 404) :
 // le titre, une phrase, puis ce que la page ajoute (adresse, pastilles), le
-// pied épinglé en bas de l'écran.
+// footer épinglé en bas de l'écran.
 import type { ComponentProps } from 'astro/types';
 import Fond from './Fond.astro';
-import Pied from './Pied.astro';
+import Footer from './Footer.astro';
 import TitrePage from './TitrePage.astro';
 import { tx } from '../lib/typo.js';
 
@@ -24,5 +24,5 @@ const { fond, titre, chapeau } = Astro.props;
     <p class="text-xl opacity-75 [--o:.75]" data-cascade set:html={tx(chapeau)} />
     <slot />
   </div>
-  <Pied epingle />
+  <Footer epingle />
 </section>

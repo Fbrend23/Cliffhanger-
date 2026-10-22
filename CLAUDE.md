@@ -19,7 +19,7 @@ commentaires (qui disent pourquoi), identifiants, commits.
 - **Aucun tiret long (—), demi-cadratin (–) ni tiret entouré d'espaces** dans les textes visibles. Virgule, deux points ou « · ». `typographier()` (`src/lib/typo.js`) les remplace au rendu et le loader signale ceux du Studio ; les tests le vérifient pour `textes.js`.
 - Aucun champ vide rendu, aucun texte provisoire.
 - Tous les textes d'interface dans `src/lib/textes.js`, jamais en dur dans un gabarit.
-- Le site est centré sur **Bruxelles**. Montréal n'apparaît que sur `/montreal/` (et le pied, et l'entrée du menu).
+- Le site est centré sur **Bruxelles**. Montréal n'apparaît que sur `/montreal/` (et le footer, et l'entrée du menu).
 - Marie-Hélène Ruiz est l'autrice de L'Inédit de Molière, **pas** un membre de l'équipe (groupe « invite »).
 - La devise et la démarche artistique sont celles d'**Alexandre Van Campenhout** (sa biographie), pas de la compagnie.
 - Transitions entre pages : fondu d'une photo à l'autre, **jamais** en passant par le noir.

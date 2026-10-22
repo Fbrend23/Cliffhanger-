@@ -68,28 +68,36 @@ export const T = {
   /**
    * @param {number|string} année
    */
-  pied: (année) => `© ${année} Compagnie Cliffhanger · Bruxelles · Montréal`,
+  footer: (année) => `© ${année} Compagnie Cliffhanger · Bruxelles · Montréal`,
+
+  /**
+   * La ligne d'identification de l'ASBL, sous le footer ; un champ vide n'y figure pas.
+   * @param {{ denomination: string, adresse: string[], bce: string, rpm?: string|null, email: string }} l  Déjà échappées.
+   */
+  identification: (l) =>
+    [l.denomination, (l.adresse ?? []).join(', '), `N° d'entreprise ${l.bce}`, l.rpm, `<a href="mailto:${l.email}">${l.email}</a>`].filter(Boolean).join(' · '),
 
   // Pages légales. Les valeurs de `l` (informations légales des réglages) arrivent déjà échappées ;
   // chaque section est un intitulé et son HTML, rendus par Intitule et TexteRiche.
   mentionsLégales: 'Mentions légales',
   // Court : « Confidentialité » déborde du titre sur un téléphone de 390 px.
   confidentialité: 'Vie privée',
-  descriptionMentionsLégales: "Mentions légales du site de la Compagnie Cliffhanger : éditeur, responsable de la publication, hébergeur et droits d'auteur.",
+  descriptionMentionsLégales: "Mentions légales du site de la Compagnie Cliffhanger : éditeur, responsable de la publication, hébergeur, conception du site et droits d'auteur.",
   descriptionConfidentialité: "Politique de confidentialité du site de la Compagnie Cliffhanger : données des demandes de réservation, destinataires, durée de conservation, cookies et droits.",
   /**
-   * @param {{ denomination: string, adresse: string[], bce: string, responsable: string, email: string }} l
+   * @param {{ denomination: string, adresse: string[], bce: string, rpm?: string|null, responsable: string, email: string }} l
    */
   sectionsMentionsLégales: (l) => [
     {
       titre: 'Éditeur',
-      html: `<p>${l.denomination}<br>${(l.adresse ?? []).join('<br>')}<br>Numéro d'entreprise : ${l.bce}<br>E-mail : <a href="mailto:${l.email}">${l.email}</a></p>`,
+      html: `<p>${l.denomination}<br>${(l.adresse ?? []).join('<br>')}<br>Numéro d'entreprise : ${l.bce}${l.rpm ? `<br>${l.rpm}` : ''}<br>E-mail : <a href="mailto:${l.email}">${l.email}</a></p>`,
     },
     { titre: 'Responsable de la publication', html: `<p>${l.responsable}</p>` },
     {
       titre: 'Hébergement',
       html: `<p>Infomaniak Network SA, Rue Eugène-Marziano 25, 1227 Genève, Suisse. <a href="https://www.infomaniak.com" target="_blank" rel="noopener">infomaniak.com</a></p>`,
     },
+    { titre: 'Conception du site', html: `<p>Brendan Fleurdelys.</p>` },
     {
       titre: "Droits d'auteur",
       html: `<p>Les photographies, affiches, textes et vidéos de ce site appartiennent à la compagnie et à leurs auteurs. Toute reproduction, même partielle, sans autorisation écrite préalable est interdite, y compris pour l'entraînement de systèmes d'intelligence artificielle.</p>`,

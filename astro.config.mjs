@@ -25,7 +25,9 @@ export default defineConfig({
   // dossier avec son index.html, et une adresse sans barre finale lui ferait
   // ajouter un saut de redirection.
   trailingSlash: 'always',
-  build: { format: 'directory' },
+  // Le CSS (8 Ko) dans la page : une feuille externe bloque le premier affichage, et à 250 ms
+  // d'aller-retour (visiteur lointain) elle attend derrière la photo et les polices.
+  build: { format: 'directory', inlineStylesheets: 'always' },
 
   integrations: [sitemap()],
 

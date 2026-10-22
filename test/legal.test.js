@@ -36,6 +36,21 @@ test('les pages légales rendent chaque section, sans tiret long', () => {
   assert.match(html, /aucun cookie/);
 });
 
+test('le RPM est facultatif et n’apparaît que rempli', () => {
+  const sans = T.sectionsMentionsLégales(légal(complet)).map((s) => s.html).join('');
+  assert.doesNotMatch(sans, /RPM/);
+  const avec = légal({ ...complet, legal_rpm: 'RPM Bruxelles, section francophone' });
+  assert.match(T.sectionsMentionsLégales(avec).map((s) => s.html).join(''), /RPM Bruxelles, section francophone/);
+});
+
+test('la ligne d’identification omet le RPM vide et n’a aucun tiret long', () => {
+  const sans = T.identification(légalÉchappé(légal(complet)));
+  assert.equal(sans, 'Compagnie Cliffhanger ASBL · Rue de Test 1, 1000 Bruxelles · N° d\'entreprise 0123.456.789 · <a href="mailto:contact@exemple.be">contact@exemple.be</a>');
+  const avec = T.identification(légalÉchappé(légal({ ...complet, legal_rpm: 'RPM Bruxelles' })));
+  assert.match(avec, /0123\.456\.789 · RPM Bruxelles · <a/);
+  assert.doesNotMatch(avec, /[—–]| - /);
+});
+
 test('les valeurs échappées ne laissent passer aucune balise', () => {
   const l = légalÉchappé({ ...légal(complet), denomination: 'A & <b>B</b>', conservation: '<i>1 an</i>' });
   assert.equal(l.denomination, 'A &amp; &lt;b&gt;B&lt;/b&gt;');

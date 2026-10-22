@@ -575,7 +575,7 @@ export function reglagesLoader() {
       const cache = await ouvrirCache(config.root);
       const s = await request(
         `/items/${REGLAGES}?fields=site_title,site_description,email,instagram,facebook,compagnie_sub,compagnie_punch,compagnie_text,` +
-          `fond_accueil,fond_spectacles,fond_agenda,fond_compagnie,fond_contact,legal_denomination,legal_adresse,legal_bce,legal_responsable,legal_conservation,head_verification,${champsFichier('og_image')},${champsFichier('menu_video')},${champsFichier('menu_poster')}`
+          `fond_accueil,fond_spectacles,fond_agenda,fond_compagnie,fond_contact,legal_denomination,legal_adresse,legal_bce,legal_rpm,legal_responsable,legal_conservation,head_verification,${champsFichier('og_image')},${champsFichier('menu_video')},${champsFichier('menu_poster')}`
       );
 
       if (!texte(s?.site_title)) {
@@ -584,7 +584,7 @@ export function reglagesLoader() {
             'renseigner au moins le titre du site, et enregistrer.'
         );
       }
-      signalerTirets(logger, 'réglages', [s.site_title, s.site_description, s.compagnie_sub, s.compagnie_punch, s.compagnie_text, s.legal_denomination, s.legal_adresse, s.legal_responsable, s.legal_conservation]);
+      signalerTirets(logger, 'réglages', [s.site_title, s.site_description, s.compagnie_sub, s.compagnie_punch, s.compagnie_text, s.legal_denomination, s.legal_adresse, s.legal_rpm, s.legal_responsable, s.legal_conservation]);
 
       const og_image = s.og_image?.id ? await assurerFichier(s.og_image, cache, logger) : null;
       const menu_poster = s.menu_poster?.id ? await assurerFichier(s.menu_poster, cache, logger) : null;
@@ -616,6 +616,7 @@ export function reglagesLoader() {
           legal_denomination: texte(s.legal_denomination),
           legal_adresse: texte(s.legal_adresse),
           legal_bce: texte(s.legal_bce),
+          legal_rpm: texte(s.legal_rpm),
           legal_responsable: texte(s.legal_responsable),
           legal_conservation: texte(s.legal_conservation),
           head_verification: texte(s.head_verification),
