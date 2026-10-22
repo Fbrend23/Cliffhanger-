@@ -349,7 +349,7 @@ const entrée =
       // et l'hébergeur coupe la connexion après quelques secondes d'inactivité (une poignée de main
       // TLS de plus, ~500 ms). Les pages sont donc gardées en mémoire, prises à l'approche de la main
       // ou au repos, et le chargeur du routeur les lit ici avant de se rabattre sur le sien.
-      type Entrée = { quand: number; html: Promise<string | null> };
+      type Entrée = { quand: number; html: Promise<string | null>; photo?: boolean };
       const pages = new Map<string, Entrée>();
       // Courte : la reconstruction de la nuit efface les anciens fichiers à empreinte.
       const duréePage = 2 * 60_000;
@@ -379,13 +379,35 @@ const entrée =
         return entrée;
       }
 
-      // La main approche d'un lien : sa page part tout de suite (et rouvre la connexion avant le clic).
+      // La photo du haut de la page reçue, la même que celle que son <picture> choisira (le
+      // préchargement de sa tête la désigne) : sans cela elle ne part qu'après le changement de page,
+      // et c'est elle qu'on attend (~500 ms), page déjà là.
+      function chaufferPhoto(entrée: Entrée, html: string) {
+        if (entrée.photo) return;
+        entrée.photo = true;
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const lien = [...doc.querySelectorAll('link[rel=preload][as=image]')].find((p) => {
+          const media = p.getAttribute('media');
+          return !media || matchMedia(media).matches;
+        });
+        if (!lien) return;
+        const img = new Image();
+        img.fetchPriority = 'low';
+        img.sizes = lien.getAttribute('imagesizes') ?? '';
+        img.srcset = lien.getAttribute('imagesrcset') ?? '';
+      }
+
+      // La main approche d'un lien : sa page part tout de suite (et rouvre la connexion avant le clic),
+      // puis sa photo du haut. Le repos, lui, ne prend que les pages : pas de photos pour des liens
+      // que personne n'a approchés.
       for (const type of ['pointerenter', 'focusin', 'touchstart']) {
         document.addEventListener(
           type,
           (e) => {
             const l = lienInterne(e.target as Element);
-            if (l) précharger(l);
+            if (!l) return;
+            const entrée = précharger(l);
+            if (connexion()?.saveData !== true) entrée.html.then((h) => h && chaufferPhoto(entrée, h));
           },
           { capture: true, passive: true }
         );
