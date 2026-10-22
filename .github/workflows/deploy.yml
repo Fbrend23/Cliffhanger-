@@ -75,6 +75,7 @@ jobs:
       #     dit ce qui manque, plutôt que de laisser une erreur d'Astro le
       #     faire à sa place.
       - name: Refuser un build sans ses sources
+        id: sources
         run: |
           manquantes=""
           for v in DIRECTUS_URL DIRECTUS_TOKEN PRODYSOS_URL PRODYSOS_KEY PRODYSOS_COMPANY SITE_URL DEPLOY_MARKER; do
@@ -99,6 +100,23 @@ jobs:
           PRODYSOS_COMPANY: ${{ vars.PRODYSOS_COMPANY }}
           SITE_URL: ${{ vars.SITE_URL }}
           DEPLOY_MARKER: ${{ vars.DEPLOY_MARKER }}
+
+      # 0 bis · Dire au CMS qu'une mise en ligne tourne. Le bouton refuse un
+      #     second clic tant que c'est « en cours » (voir platform-cms,
+      #     create-publish-flow) : sans cela, un build qui échoue en une minute
+      #     sans rien dire fait recliquer vingt fois. Un refus du CMS ne casse
+      #     rien : le build reste plus utile que cette indication.
+      - name: Annoncer la mise en ligne dans le CMS
+        if: ${{ !inputs.dry_run }}
+        env:
+          DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
+          DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+        run: |
+          corps=$(jq -nc --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{deploy_status:"running",last_attempt:$t,last_error:null}')
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer $DIRECTUS_TOKEN" -H 'Content-Type: application/json' \
+            -d "$corps" "$DIRECTUS_URL/items/cliff_publication")
+          [ "$code" = "200" ] || echo "::warning::Le CMS n'a pas accepté l'état « en cours » (HTTP $code)."
 
       # Les originaux rapatriés du CMS et les tailles que sharp en a tirées.
       # Un rebuild sans photo nouvelle ne retélécharge ni ne recalcule rien :
@@ -126,6 +144,7 @@ jobs:
       #     listage, aucune écriture : le placer ici sépare « ta cible est
       #     fausse » de « ton contenu manque ».
       - name: Vérifier la cible de déploiement
+        id: cible
         env:
           DEPLOY_MARKER: ${{ vars.DEPLOY_MARKER }}
         run: |
@@ -156,14 +175,17 @@ jobs:
       # Les tests tournent dans le fuseau du job (Bruxelles) puis en UTC :
       # le formatage des dates doit donner le même résultat dans les deux.
       - name: Tests unitaires
+        id: tests
         run: npm test
 
       - name: Tests unitaires (runner en UTC)
+        id: tests-utc
         run: npm test
         env:
           TZ: UTC
 
       - name: Construire le site
+        id: build
         env:
           SITE_URL: ${{ vars.SITE_URL }}
           DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
@@ -175,7 +197,12 @@ jobs:
 
       # Comme les tests : un site qui enfreint une règle (tiret long, deux pages
       # à la même description) ne part pas en ligne.
+      # RAPPORT : le test y écrit, en français, ce qui a arrêté la mise en ligne ;
+      #           la dernière étape le recopie dans le CMS pour la compagnie.
       - name: Contrôler le site construit
+        id: controle
+        env:
+          RAPPORT: ${{ runner.temp }}/rapport.txt
         run: npm run test:dist
 
       # 3 · Publication par manifeste (scripts/deployer.mjs), plutôt qu'un
@@ -198,6 +225,7 @@ jobs:
       #     .user.ini, ni les pages de maintenance de l'hébergeur, qui ne
       #     risquent donc plus d'être touchés par erreur.
       - name: Déployer
+        id: deployer
         env:
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
         run: |
@@ -277,27 +305,74 @@ jobs:
 
           lftp_go "$script"
 
-      # 4 · Dater la publication dans le CMS, une fois le site vraiment en
-      #     ligne. Un échec ici ne casse pas le run : le site EST publié, et
-      #     laisser la date en retard est moins faux que de déclarer le
-      #     contraire. La policy du build autorise cette seule écriture.
-      - name: Dater la publication dans le CMS
-        if: ${{ success() && !inputs.dry_run }}
+      # 4 · Dire le résultat dans le CMS, réussi ou non : la compagnie clique
+      #     « Mettre en ligne » et n'ouvre jamais GitHub. Sans cela, un échec
+      #     ressemble à un site qui ne se met pas à jour, et elle reclique.
+      #     `always()` : c'est justement quand une étape a échoué qu'il faut
+      #     parler. Un refus du CMS ne casse pas le run : le site est en ligne,
+      #     ou ne l'est pas, sans lui. La policy du build autorise ces seuls
+      #     champs de la publication.
+      #
+      #     Le message vise la première étape en échec ; seul le contrôle du
+      #     site construit sait dire quoi corriger dans le Studio. Les messages
+      #     disent toujours si le site en ligne a changé.
+      - name: Dire le résultat dans le CMS
+        if: ${{ always() && !inputs.dry_run }}
         env:
           DIRECTUS_URL: ${{ vars.DIRECTUS_URL }}
           DIRECTUS_TOKEN: ${{ secrets.DIRECTUS_TOKEN }}
+          RAPPORT: ${{ runner.temp }}/rapport.txt
+          JOB: ${{ job.status }}
+          SOURCES: ${{ steps.sources.outcome }}
+          CIBLE: ${{ steps.cible.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+          TESTS_UTC: ${{ steps.tests-utc.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          CONTROLE: ${{ steps.controle.outcome }}
+          DEPLOYER: ${{ steps.deployer.outcome }}
         run: |
           maintenant=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          code=$(curl -s -o reponse.json -w '%{http_code}' -X PATCH \
-            -H "Authorization: Bearer $DIRECTUS_TOKEN" \
-            -H 'Content-Type: application/json' \
-            -d "{\"last_published\":\"$maintenant\"}" \
-            "$DIRECTUS_URL/items/cliff_publication")
+          aide="Si cela se reproduit, prévenez la personne qui gère le site."
+          inchange="Le site en ligne n'a pas changé."
+
+          if [ "$JOB" = "success" ]; then
+            corps=$(jq -nc --arg t "$maintenant" '{deploy_status:"success",last_published:$t,last_attempt:$t,last_error:null}')
+            # Si le CMS refuse les champs d'état (policy pas encore à jour), la
+            # date seule passe encore : c'est ce que le site faisait avant.
+            secours=$(jq -nc --arg t "$maintenant" '{last_published:$t}')
+          else
+            if [ "$BUILD" = "failure" ]; then
+              erreur="Le site n'a pas pu être construit : le CMS ou Prodysos n'a pas répondu, ou une donnée est invalide. Réessayez dans quelques minutes. $aide $inchange"
+            elif [ "$CONTROLE" = "failure" ]; then
+              detail=$(cat "$RAPPORT" 2>/dev/null || true)
+              erreur="Le site n'est pas parti en ligne : ${detail:-un contrôle du contenu a échoué.} $inchange"
+            elif [ "$TESTS" = "failure" ] || [ "$TESTS_UTC" = "failure" ]; then
+              erreur="Un contrôle technique a échoué avant la mise en ligne. $aide $inchange"
+            elif [ "$DEPLOYER" = "failure" ] || [ "$DEPLOYER" = "cancelled" ]; then
+              erreur="L'envoi vers l'hébergeur a été interrompu : le site en ligne peut être incomplet. Relancez la mise en ligne. $aide"
+            else
+              erreur="La mise en ligne a rencontré un problème technique (connexion à l'hébergeur, configuration ou arrêt du traitement). Réessayez dans quelques minutes. $aide $inchange"
+            fi
+            corps=$(jq -nc --arg t "$maintenant" --arg e "$erreur" '{deploy_status:"failure",last_attempt:$t,last_error:$e}')
+            secours=""
+          fi
+
+          envoyer() {
+            curl -s -o reponse.json -w '%{http_code}' -X PATCH \
+              -H "Authorization: Bearer $DIRECTUS_TOKEN" \
+              -H 'Content-Type: application/json' \
+              -d "$1" "$DIRECTUS_URL/items/cliff_publication"
+          }
+
+          code=$(envoyer "$corps")
+          if [ "$code" != "200" ] && [ -n "$secours" ]; then
+            code=$(envoyer "$secours")
+          fi
 
           if [ "$code" = "200" ]; then
-            echo "CMS daté : $maintenant"
+            echo "CMS à jour : $maintenant ($JOB)"
           else
-            echo "::warning::Le CMS n'a pas accepté la date (HTTP $code). Le site est en ligne."
+            echo "::warning::Le CMS n'a pas accepté l'état de la mise en ligne (HTTP $code)."
             sed -E 's/[A-Za-z0-9_-]{20,}/***/g' reponse.json | head -c 300
           fi
           rm -f reponse.json
