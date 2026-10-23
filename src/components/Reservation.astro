@@ -117,6 +117,17 @@ const bloc = ['mt-20 md:mt-24 lg:mt-32', !email && 'sans-js:hidden'];
 <script>
   import { réserver } from '../lib/prodysos.js';
 
+  // Le formulaire laisse place au remerciement, qui prend le focus : un
+  // lecteur d'écran l'annonce, et personne n'envoie deux fois.
+  const remercier = (form: HTMLFormElement) => {
+    const merci = document.createElement('p');
+    merci.className = 'mt-4 border-t-2 border-front pt-6 text-xl outline-none';
+    merci.tabIndex = -1;
+    merci.textContent = form.dataset.merci!;
+    form.replaceWith(merci);
+    merci.focus();
+  };
+
   // Délégués sur le document : le routeur change de page sans recharger, et
   // un écouteur posé sur le formulaire se perdrait d'une visite à l'autre.
   document.addEventListener('submit', async (e) => {
@@ -124,7 +135,9 @@ const bloc = ['mt-20 md:mt-24 lg:mt-32', !email && 'sans-js:hidden'];
     if (!form) return;
     e.preventDefault();
     const d = new FormData(form);
-    if (d.get('botcheck')) return;
+    // Le piège rempli : un robot. Il reçoit le même remerciement qu'un visiteur et rien ne part vers
+    // Prodysos, pour qu'il ne sache pas qu'il a été reconnu et n'en cherche pas un autre moyen.
+    if (d.get('botcheck')) return remercier(form);
 
     const statut = form.querySelector<HTMLElement>('.js-statut')!;
     const bouton = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
@@ -155,14 +168,7 @@ const bloc = ['mt-20 md:mt-24 lg:mt-32', !email && 'sans-js:hidden'];
       return;
     }
 
-    // Le formulaire laisse place au remerciement, qui prend le focus : un
-    // lecteur d'écran l'annonce, et personne n'envoie deux fois.
-    const merci = document.createElement('p');
-    merci.className = 'mt-4 border-t-2 border-front pt-6 text-xl outline-none';
-    merci.tabIndex = -1;
-    merci.textContent = form.dataset.merci!;
-    form.replaceWith(merci);
-    merci.focus();
+    remercier(form);
   });
 
   // « Réserver » sur une date du tableau : c'est elle que le formulaire propose.
