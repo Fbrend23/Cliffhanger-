@@ -33,6 +33,14 @@ export const RÉGLAGES_EN_DUR = {
   compagnie_text:
     "<p>Créée en 2018 dans les locaux de l'ULB par des passionnés de littérature, de théâtre et d'improvisation, la Compagnie Cliffhanger s'est d'abord fait remarquer avec une adaptation audacieuse des <em>Femmes savantes</em> de Molière, réinventée à la manière d'une sitcom des années 1980.</p>" +
     "<p>Après la crise du COVID, la troupe a retrouvé le chemin des planches avec <em>Par Endroits</em>, une création originale, puis avec <em>L'Inédit de Molière</em>. Parallèlement, la compagnie s'est développée outre-Atlantique grâce à l'un de ses membres fondateurs, donnant naissance à un <a href=\"/montreal/\">collectif-sœur à Montréal</a>, dont les liens perdurent aujourd'hui.</p>",
+  // Les informations légales de la BCE (issue #2) : de quoi voir les pages légales et la ligne
+  // d'identification du footer. Le RPM et le responsable attendent la confirmation de la compagnie.
+  legal_denomination: 'Compagnie Cliffhanger ASBL',
+  legal_adresse: "Avenue de l'Université 45\n1050 Ixelles\nBelgique",
+  legal_bce: '1025.955.241',
+  legal_rpm: 'RPM Bruxelles, section francophone',
+  legal_responsable: 'Compagnie Cliffhanger ASBL',
+  legal_conservation: '12 mois',
 };
 
 // Le cadrage du portrait de La compagnie, écrit en dur dans app.js
