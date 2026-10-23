@@ -238,7 +238,7 @@ const entrée =
       </ul>
     </nav>
 
-    <main id="contenu" tabindex="-1">
+    <main id="contenu" tabindex="-1" data-nom={typographier(title ?? T.accueil)}>
       <slot />
     </main>
 
@@ -259,6 +259,8 @@ const entrée =
       // qu'une fois (le routeur ne recharge pas la page) : ce qui dépend de la
       // page en cours se relance sur `astro:page-load`, le reste passe par des
       // écouteurs délégués sur le document, qui survivent aux changements.
+      import { retenirOrigine } from '../lib/origine.js';
+
       const mouvementRéduit = matchMedia('(prefers-reduced-motion: reduce)');
       const burger = () => document.getElementById('burger');
       const menu = () => document.getElementById('menu');
@@ -498,6 +500,17 @@ const entrée =
           }
           e.newDocument = doc;
         };
+      });
+
+      // --- D'où l'on vient ---------------------------------------------------------
+      // Un vrai clic (pas précédent/suivant) retient la page quittée pour la destination : le lien
+      // retour d'une fiche (LienRetour) y revient. `history.state.index` est celui du routeur.
+      document.addEventListener('astro:before-preparation', (e) => {
+        if (e.navigationType !== 'push') return;
+        const index = history.state?.index;
+        const nom = document.getElementById('contenu')?.dataset.nom;
+        if (typeof index !== 'number' || !nom) return;
+        retenirOrigine(e.to.pathname, { chemin: location.pathname + location.search, nom, index });
       });
 
       // --- Chargement en cours -----------------------------------------------------
