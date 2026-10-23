@@ -1,0 +1,11 @@
+dist/
+.astro/
+.cache/
+public/
+private/
+migration/
+.remember/
+package-lock.json
+test/faux-directus/prototype/
+test/CHECKLIST-*.md
+test/AUDIT-*.md
