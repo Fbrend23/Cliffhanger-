@@ -118,3 +118,10 @@ test('aucune page n’est sans <h1> (hors 404 sans index)', () => {
   rapporter(fautes.map((f) => `La page ${f} n'a pas de titre principal : vérifiez son titre dans le Studio.`));
   assert.deepEqual(fautes, []);
 });
+
+test('security.txt est publié, avec un contact et une échéance à venir', async () => {
+  const texte = await readFile(path.join(dist, '.well-known', 'security.txt'), 'utf8');
+  assert.match(texte, /^Contact: mailto:\S+@\S+$/m);
+  const expire = /^Expires: (\S+)$/m.exec(texte)?.[1];
+  assert.ok(expire && new Date(expire) > new Date(), `Expires absent ou passé : ${expire}`);
+});
