@@ -1,6 +1,8 @@
 ---
-// Le lien discret qui ramène à la liste : d'une fiche spectacle vers les
-// spectacles, d'une fiche personne vers la compagnie.
+// Le lien discret qui ramène d'où l'on vient : à la page précédente quand on la
+// connaît (le spectacle dont on a suivi le générique, l'agenda), sinon à la liste
+// de la fiche : d'une fiche spectacle vers les spectacles, d'une fiche personne
+// vers la compagnie. Sans JavaScript, ou fiche ouverte directement, c'est ce repli.
 import { tx } from '../lib/typo.js';
 
 interface Props {
@@ -11,4 +13,35 @@ interface Props {
 const { href, texte } = Astro.props;
 ---
 
-<a class="mt-8 inline-block opacity-75 hover:opacity-100 focus-visible:opacity-100" href={href} set:html={tx(texte)} />
+<a class="mt-8 inline-block opacity-75 hover:opacity-100 focus-visible:opacity-100" href={href} data-retour set:html={tx(texte)} />
+
+<script>
+  import { origineDe } from '../lib/origine.js';
+  import { T } from '../lib/textes.js';
+
+  document.addEventListener('astro:page-load', () => {
+    const lien = document.querySelector<HTMLAnchorElement>('a[data-retour]');
+    const origine = origineDe(location.pathname);
+    if (!lien || !origine) return;
+    lien.href = origine.chemin;
+    lien.textContent = T.retourVers(origine.nom);
+    // L'origine est l'entrée juste avant dans l'historique : on y revient en reculant, ce qui
+    // rend la liste à la hauteur où on l'a quittée.
+    if (history.state?.index === origine.index + 1) lien.dataset.reculer = '';
+    else delete lien.dataset.reculer;
+  });
+
+  // En capture : le routeur d'Astro écoute aussi les clics sur le document et naviguerait (un
+  // aller de plus dans l'historique) avant nous, sauf si le clic est déjà annulé.
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const lien = (e.target as Element).closest<HTMLAnchorElement>('a[data-retour][data-reculer]');
+      if (!lien) return;
+      e.preventDefault();
+      history.back();
+    },
+    true
+  );
+</script>
