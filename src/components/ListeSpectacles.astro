@@ -11,13 +11,14 @@ interface Props {
 const { spectacles, annee = false } = Astro.props;
 ---
 
-{/* Survoler un titre floute un peu les autres. */}
+{/* Survoler un titre floute un peu les autres. Interligne serré dans un titre, plus large entre
+    deux titres : sur deux lignes, un titre se lit comme un seul bloc. */}
 <ul class="group">
   {
     spectacles.map((s) => (
-      <li class={annee ? 'my-2' : 'my-[.15rem]'} data-cascade>
+      <li class={annee ? 'my-2' : 'my-[.7rem]'} data-cascade>
         <a
-          class="titre inline-block text-titre opacity-75 [transition:opacity_.25s_linear,filter_.25s_linear] group-has-[a:focus-visible]:not-focus-visible:blur-[.125rem] group-has-[a:hover]:not-hover:blur-[.125rem] hover:opacity-100 focus-visible:opacity-100 data-en-cours:opacity-100"
+          class="titre inline-block text-titre leading-none opacity-75 [transition:opacity_.25s_linear,filter_.25s_linear] group-has-[a:focus-visible]:not-focus-visible:blur-[.125rem] group-has-[a:hover]:not-hover:blur-[.125rem] hover:opacity-100 focus-visible:opacity-100 data-en-cours:opacity-100"
           href={`/spectacle/${s.slug}/`}
           data-bg={s.slug}
           translate="no"

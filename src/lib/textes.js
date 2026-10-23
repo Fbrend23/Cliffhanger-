@@ -194,6 +194,11 @@ export const T = {
   laCompagnie: 'La compagnie',
   léquipe: "L'équipe",
   retourCompagnie: '← La compagnie',
+  /**
+   * Le lien retour d'une fiche quand on sait d'où l'on vient (la page précédente).
+   * @param {string} nom
+   */
+  retourVers:(nom) => `← ${nom}`,
   projets: 'Projets',
   biographie: 'Biographie',
 
