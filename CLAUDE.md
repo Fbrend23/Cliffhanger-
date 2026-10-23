@@ -51,6 +51,8 @@ npm run check                      # astro check charge les collections
 npm run build && npm run preview
 ```
 
+`npm run lint` : les seuils de complexité sont en avertissement pour le code existant, le code neuf les respecte ; Prettier (`npm run format`) seulement sur les fichiers qu'on touche. Le hook `.githooks/pre-commit` (gitleaks) refuse un secret ; ne jamais le contourner.
+
 Le faux Directus (`node test/faux-directus/avec.mjs <commande>`) seulement si le vrai CMS est injoignable, et en le disant : il partage `.cache/directus-assets/` avec le vrai, et la purge du loader des photos efface alors tous les originaux du vrai CMS (le `npm run dev` suivant retélécharge tout, quelques minutes). Ne jamais envoyer le formulaire de réservation d'un build fait sur le vrai CMS : la demande part pour de vrai dans Prodysos.
 
 Vérifier au moins 390 px (téléphone), 820 px (tablette) et 1440 px. Chrome headless par CDP (`--remote-debugging-port`) fonctionne sur ce poste ; sous Git Bash, préfixer `MSYS_NO_PATHCONV=1` quand un argument commence par `/`.

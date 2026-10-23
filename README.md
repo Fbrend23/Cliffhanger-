@@ -21,6 +21,9 @@ npm run build      # télécharge les originaux manquants, fabrique les tailles 
 npm run preview    # sert dist/
 npm run check      # astro check (charge les collections : il faut le CMS)
 npm test           # node --test : fonctions pures, loaders, sans CMS
+npm run lint       # ESLint : erreurs de logique, seuils de complexité (en avertissement pour l'existant)
+npm run format     # Prettier, à lancer sur les fichiers qu'on touche (le dépôt n'est pas reformaté d'un coup)
+npm run test:dist  # contrôle du dist/ construit : tirets, titres, canonical, liens, security.txt
 ```
 
 ## `.env`
@@ -159,6 +162,44 @@ Le balisage qui revient d'une page à l'autre est un composant, pas une classe :
   publiable de Supabase), `FTP_HOST`, `FTP_USER`,
   `FTP_PASSWORD`.
 - Premier déploiement : `workflow_dispatch` avec `dry_run`, lire la liste, puis pour de vrai.
+
+## Choix techniques
+
+- **Statique d'abord** : le contenu change peu et se lit sans compte, une page statique est la plus
+  rapide, la moins chère à héberger et la moins exposée (aucun serveur d'application à attaquer).
+  Le CMS n'est lu qu'au build, jamais depuis le navigateur ; la nuit, une reconstruction tient l'agenda à jour.
+- **Astro 7** : pages statiques sans JavaScript par défaut, images optimisées par sharp, ClientRouter pour le fondu entre pages.
+- **Directus** (mutualisé, `platform-cms`) : la compagnie saisit son contenu dans un Studio, sans toucher au code.
+- **Tailwind CSS 4** : le style vit dans les gabarits, sans feuille à part à maintenir.
+- **Infomaniak en FTP** : l'hébergement de la compagnie, Apache avec `.htaccess` ; le déploiement envoie
+  seulement ce qui a changé (`scripts/deployer.mjs`).
+
+## Contrôles
+
+À chaque poussée sur `dev`, `check.yml` : actionlint, gitleaks sur tout l'historique, `npm audit` (dépendances
+livrées, gravité haute), astro check, ESLint, tests, build, contrôle du `dist/`. `npm install` active le hook
+`.githooks/pre-commit` (gitleaks installé, sinon son image Docker) qui refuse un commit contenant un secret.
+Dependabot propose chaque semaine les mises à jour, sur `dev`. Les actions GitHub sont épinglées par empreinte.
+`/.well-known/security.txt` est fabriqué au build (son `Expires` repart d'un an à chaque reconstruction).
+
+## Revenir en arrière
+
+Le site en ligne est le dernier `main` déployé. Pour défaire une mise en ligne : `git revert <commit>` sur `main`,
+push, et `deploy.yml` republie l'état précédent (le manifeste n'envoie que la différence). Pour vérifier avant,
+lancer `deploy.yml` à la main sur le commit voulu avec `dry_run` : il liste ce qui serait envoyé et supprimé.
+Un contenu publié par erreur dans le Studio se dépublie là-bas, puis « Mettre en ligne ».
+
+## Secrets
+
+| Secret ou variable | Où | Renouvellement |
+| --- | --- | --- |
+| `DIRECTUS_TOKEN` | secret GitHub, posé par `npm run app-user` (platform-cms) | une fois par an, ou si le jeton a pu fuir |
+| `PRODYSOS_KEY` | secret GitHub (clé publiable de Supabase) | si Prodysos la change |
+| `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD` | secrets GitHub | une fois par an, depuis le manager Infomaniak |
+| `SITE_URL`, `DIRECTUS_URL`, `PRODYSOS_URL`, `PRODYSOS_COMPANY`, `DEPLOY_MARKER` | variables GitHub | rien à renouveler |
+| `GITHUB_DEPLOY_TOKEN` | côté Prodysos (`site_deploy_targets`) | régénéré le 23.10.2026, une fois par an au plus (expiration du jeton GitHub) |
+
+Contact pour une faille : `contact@brendanfleurdelys.ch` (aussi dans `security.txt`).
 
 ## Reste à faire
 

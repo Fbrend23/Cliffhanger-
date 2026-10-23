@@ -1,0 +1,19 @@
+# Les mises à jour arrivent sur dev, jamais sur main : check.yml les construit
+# avant qu'on les passe en ligne par fast-forward. Une fois par semaine, et
+# les mises à jour mineures et correctifs en un seul lot pour ne pas noyer la
+# liste de requêtes ; une version majeure reste une requête à part, à lire.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      mineures:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly

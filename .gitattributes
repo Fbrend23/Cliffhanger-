@@ -1,0 +1,2 @@
+# Le hook est lu par sh : un retour chariot Windows le casserait.
+.githooks/* text eol=lf

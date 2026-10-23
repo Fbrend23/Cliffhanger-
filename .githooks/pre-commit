@@ -1,0 +1,21 @@
+#!/bin/sh
+# Refuse un commit qui contient un secret (jeton, clé, mot de passe). Seuls les
+# fichiers de l'index sont lus. La CI refait le contrôle sur tout l'historique :
+# ce hook évite seulement d'avoir à le purger après coup, ce qui est long.
+#
+# Gitleaks installé, sinon son image Docker. Aucun des deux : le commit passe
+# avec un avertissement, la CI le rattrapera.
+IMAGE=zricethezav/gitleaks:v8.30.1
+
+if command -v gitleaks >/dev/null 2>&1; then
+  exec gitleaks git --pre-commit --staged --redact -v
+fi
+
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  # MSYS_NO_PATHCONV : sous Git Bash, « /repo » ne doit pas devenir un chemin Windows.
+  MSYS_NO_PATHCONV=1 exec docker run --rm -v "$(pwd):/repo" -w /repo --entrypoint sh "$IMAGE" \
+    -c 'git config --global --add safe.directory /repo && gitleaks git --pre-commit --staged --redact -v'
+fi
+
+echo "pre-commit : ni gitleaks ni Docker disponible, secrets non contrôlés (la CI le fera)." >&2
+exit 0

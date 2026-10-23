@@ -56,7 +56,7 @@ async function rpc(env, fonction, corps, délais = DÉLAIS) {
       });
     } catch (e) {
       // Une erreur réseau est aussi passagère qu'un 5xx : mêmes essais.
-      if (essai >= délais.length) throw new Error(`Prodysos injoignable (${fonction}) : ${e instanceof Error ? e.message : String(e)}`);
+      if (essai >= délais.length) throw new Error(`Prodysos injoignable (${fonction}) : ${e instanceof Error ? e.message : String(e)}`, { cause: e });
       await attendre(délais[essai], fonction, e instanceof Error ? e.message : String(e));
       continue;
     }

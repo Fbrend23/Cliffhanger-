@@ -2,6 +2,11 @@
 Options -Indexes
 DirectoryIndex index.html
 
+# Aucun fichier caché n'est servi : le manifeste de déploiement (.deploy-manifest.json,
+# la liste de tous les fichiers du site) et le marqueur de cible n'ont rien à faire en
+# ligne. Seul /.well-known/ (security.txt) fait exception.
+RedirectMatch 404 "/\.(?!well-known/)"
+
 RewriteEngine On
 
 # Une seule adresse : https://compagniecliffhanger.be, sans www. HSTS (posé
@@ -28,7 +33,7 @@ RewriteRule ^ https://compagniecliffhanger.be%{REQUEST_URI} [R=301,L]
   <FilesMatch "\.woff2$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
-  <FilesMatch "^(menu(-poster)?\.(mp4|webp)|favicon\.png|apple-touch-icon\.png)$">
+  <FilesMatch "^(menu(-poster)?\.(mp4|webp)|favicon\.(png|ico)|apple-touch-icon\.png|icone-[0-9]+\.png|site\.webmanifest)$">
     Header set Cache-Control "public, max-age=604800"
   </FilesMatch>
   <FilesMatch "\.html$">
@@ -43,8 +48,13 @@ RewriteRule ^ https://compagniecliffhanger.be%{REQUEST_URI} [R=301,L]
   Header always set TDM-Reservation "1"
   Header always set X-Robots-Tag "noai, noimageai"
 
-  # Le peu qu'un site statique peut dire au navigateur. Pas de CSP : scripts
-  # et styles sont en ligne dans les pages, il faudrait un hachage par script.
+  # Le peu qu'un site statique peut dire au navigateur. Pas de script-src : scripts
+  # et styles sont en ligne dans les pages, il faudrait un hachage par script, qui
+  # change à chaque build. La CSP se limite donc à ce qui ne dépend pas d'eux :
+  # personne n'intègre le site dans un cadre, ne change sa base d'adresses ni
+  # n'y glisse un objet. X-Frame-Options double frame-ancestors pour les vieux navigateurs.
+  Header always set Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+  Header always set X-Frame-Options "DENY"
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"

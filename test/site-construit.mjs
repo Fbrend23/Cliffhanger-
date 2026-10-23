@@ -118,3 +118,24 @@ test('aucune page n’est sans <h1> (hors 404 sans index)', () => {
   rapporter(fautes.map((f) => `La page ${f} n'a pas de titre principal : vérifiez son titre dans le Studio.`));
   assert.deepEqual(fautes, []);
 });
+
+test('security.txt est publié, avec un contact et une échéance à venir', async () => {
+  const texte = await readFile(path.join(dist, '.well-known', 'security.txt'), 'utf8');
+  assert.match(texte, /^Contact: mailto:\S+@\S+$/m);
+  const expire = /^Expires: (\S+)$/m.exec(texte)?.[1];
+  assert.ok(expire && new Date(expire) > new Date(), `Expires absent ou passé : ${expire}`);
+});
+
+test('chaque lien interne mène à une page ou un fichier du site', async () => {
+  const { existsSync } = await import('node:fs');
+  const fautes = new Set();
+  for (const p of pages) {
+    for (const [, href] of p.html.matchAll(/\shref="(\/[^"/][^"]*|\/)"/g)) {
+      const chemin = decodeURIComponent(href.split(/[?#]/)[0]);
+      const cible = path.join(dist, chemin.endsWith('/') ? path.join(chemin, 'index.html') : chemin);
+      if (!existsSync(cible)) fautes.add(`${p.chemin} → ${href}`);
+    }
+  }
+  rapporter([...fautes].map((f) => `Un lien du site ne mène nulle part (${f}) : vérifiez les liens saisis dans le Studio.`));
+  assert.deepEqual([...fautes], []);
+});
