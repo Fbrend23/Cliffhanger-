@@ -251,7 +251,7 @@ const entrée =
     <script is:inline>
       if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
         /** @type {NodeListOf<HTMLElement>} */
-        var blocs = document.querySelectorAll('main [data-cascade]:not(.animate-rise)');
+        const blocs = document.querySelectorAll('main [data-cascade]:not(.animate-rise)');
         blocs.forEach(function (el, i) {
           el.classList.add('animate-rise');
           el.style.animationDelay = Math.min(0.1 + i * 0.07, 0.9) + 's';

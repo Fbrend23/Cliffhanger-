@@ -16,7 +16,7 @@ const flèche = 'size-11 text-[2.5rem] leading-none opacity-75 hover:opacity-100
 ---
 
 {
-  diapos.length > 0 && diapos.length <= 2 && (
+  diapos.length > 0 && diapos.length < 3 && (
     <Section nu>
       <div class="flex flex-col items-center justify-center gap-4 px-gouttiere md:flex-row">
         {diapos.map((d) => (

@@ -80,7 +80,7 @@ async function appeler(url, tentative = 0, pannes = 0) {
       await attendre(DÉLAIS.panne[pannes]);
       return appeler(url, tentative, pannes + 1);
     }
-    throw new Error(`CMS injoignable (${adresse}) : ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(`CMS injoignable (${adresse}) : ${e instanceof Error ? e.message : String(e)}`, { cause: e });
   }
 
   if (res.status === 429 && tentative < 5) {
@@ -298,7 +298,7 @@ export async function assurerFichierExterne(url, id, cache, logger) {
     try {
       res = await fetch(url);
     } catch (e) {
-      throw new Error(`Image injoignable (${url}) : ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error(`Image injoignable (${url}) : ${e instanceof Error ? e.message : String(e)}`, { cause: e });
     }
     if (!res.ok) throw new Error(`Image ${url} : HTTP ${res.status}`);
     return res;
