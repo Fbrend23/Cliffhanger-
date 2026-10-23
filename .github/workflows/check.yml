@@ -42,6 +42,12 @@ jobs:
 
       - run: npm ci --prefer-offline --no-audit --no-fund
 
+      # Les dépendances livrées : une faille de gravité haute arrête la
+      # vérification. Les outils de développement n'entrent pas dans le site
+      # construit, d'où --omit=dev.
+      - name: Auditer les dépendances
+        run: npm audit --omit=dev --audit-level=high
+
       - uses: actions/cache/restore@v4
         with:
           path: |
