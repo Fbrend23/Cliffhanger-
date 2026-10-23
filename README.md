@@ -197,7 +197,7 @@ Un contenu publié par erreur dans le Studio se dépublie là-bas, puis « Mettr
 | `PRODYSOS_KEY` | secret GitHub (clé publiable de Supabase) | si Prodysos la change |
 | `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD` | secrets GitHub | une fois par an, depuis le manager Infomaniak |
 | `SITE_URL`, `DIRECTUS_URL`, `PRODYSOS_URL`, `PRODYSOS_COMPANY`, `DEPLOY_MARKER` | variables GitHub | rien à renouveler |
-| `GITHUB_DEPLOY_TOKEN` | côté Prodysos (`site_deploy_targets`) | rend 401 aujourd'hui : à régénérer |
+| `GITHUB_DEPLOY_TOKEN` | côté Prodysos (`site_deploy_targets`) | régénéré le 23.10.2026, une fois par an au plus (expiration du jeton GitHub) |
 
 Contact pour une faille : `contact@brendanfleurdelys.ch` (aussi dans `security.txt`).
 
