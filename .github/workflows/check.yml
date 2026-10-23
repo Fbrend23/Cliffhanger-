@@ -80,6 +80,11 @@ jobs:
       - name: Vérifier les types
         run: npm run check
 
+      # Les erreurs de logique et les seuils de complexité (eslint.config.js).
+      # Les avertissements restent visibles sans arrêter la vérification.
+      - name: Contrôler le code
+        run: npm run lint
+
       # Les fonctions pures (dates, générique, typographie, données
       # structurées) et les loaders contre le faux Directus : sans le CMS.
       - name: Tests unitaires
