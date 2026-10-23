@@ -125,3 +125,17 @@ test('security.txt est publié, avec un contact et une échéance à venir', asy
   const expire = /^Expires: (\S+)$/m.exec(texte)?.[1];
   assert.ok(expire && new Date(expire) > new Date(), `Expires absent ou passé : ${expire}`);
 });
+
+test('chaque lien interne mène à une page ou un fichier du site', async () => {
+  const { existsSync } = await import('node:fs');
+  const fautes = new Set();
+  for (const p of pages) {
+    for (const [, href] of p.html.matchAll(/\shref="(\/[^"/][^"]*|\/)"/g)) {
+      const chemin = decodeURIComponent(href.split(/[?#]/)[0]);
+      const cible = path.join(dist, chemin.endsWith('/') ? path.join(chemin, 'index.html') : chemin);
+      if (!existsSync(cible)) fautes.add(`${p.chemin} → ${href}`);
+    }
+  }
+  rapporter([...fautes].map((f) => `Un lien du site ne mène nulle part (${f}) : vérifiez les liens saisis dans le Studio.`));
+  assert.deepEqual([...fautes], []);
+});
