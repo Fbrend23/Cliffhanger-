@@ -2,6 +2,11 @@
 Options -Indexes
 DirectoryIndex index.html
 
+# Aucun fichier caché n'est servi : le manifeste de déploiement (.deploy-manifest.json,
+# la liste de tous les fichiers du site) et le marqueur de cible n'ont rien à faire en
+# ligne. Seul /.well-known/ (security.txt) fait exception.
+RedirectMatch 404 "/\.(?!well-known/)"
+
 RewriteEngine On
 
 # Une seule adresse : https://compagniecliffhanger.be, sans www. HSTS (posé
