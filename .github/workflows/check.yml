@@ -40,6 +40,14 @@ jobs:
           node-version: 24
           cache: npm
 
+      # Les deux workflows déploient en production : une erreur de syntaxe ou
+      # d'expression ne doit pas attendre le prochain déploiement pour se voir.
+      # Script de téléchargement épinglé par empreinte, version de l'outil fixée.
+      - name: Contrôler les workflows
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
       - run: npm ci --prefer-offline --no-audit --no-fund
 
       # Les dépendances livrées : une faille de gravité haute arrête la
