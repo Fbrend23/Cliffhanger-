@@ -155,11 +155,13 @@ const entrée =
     <script is:inline>
       // Avec JS : le burger remplace la ligne de liens (variante sans-js). Le routeur
       // recopie les attributs de <html> de la page suivante, qui n'a pas la
-      // classe : on la remet après chaque changement.
+      // classe : on la lui donne avant le changement. Après, elle arriverait trop tard :
+      // le routeur restaure le défilement avec le menu encore en ligne de liens (108 px
+      // dans le flux), qui sort du flux ensuite, et le navigateur recule la page d'autant.
       document.documentElement.classList.add('js');
       if (!window.__cliffJs) {
         window.__cliffJs = true;
-        document.addEventListener('astro:after-swap', () => document.documentElement.classList.add('js'));
+        document.addEventListener('astro:before-swap', (e) => e.newDocument.documentElement.classList.add('js'));
       }
     </script>
     {/* GoatCounter : sans cookie. Le script compte la page d'arrivée ; le ClientRouter ne recharge pas la page, donc chaque page suivante est comptée à la main (astro:page-load, sauf le premier). Il ignore localhost tout seul. */}
