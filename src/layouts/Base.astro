@@ -261,7 +261,7 @@ const entrée =
 
     {/* La cascade part ici, avant la première peinture : posée par le module (téléchargé après la photo et les polices), elle effaçait des blocs déjà affichés pour les refaire monter. Sans mouvement réduit seulement ; sans JS, rien n'est caché. */}
     <script is:inline>
-      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !window.sansCascade) {
         /** @type {NodeListOf<HTMLElement>} */
         const blocs = document.querySelectorAll('main [data-cascade]:not(.animate-rise)');
         blocs.forEach(function (el, i) {
@@ -560,8 +560,16 @@ const entrée =
       // Chaque bloc glisse en place, l'un après l'autre, à chaque page. Les
       // blocs portent data-cascade : titres, lignes des listes, sections,
       // pastilles, vignettes de la galerie.
+      // Sauf en reculant ou avançant dans l'historique : la page revient telle qu'on l'a quittée, au
+      // même défilement. Les blocs, déjà là, ne repartiraient que pour glisser de 1,25 rem en retard
+      // (jusqu'à 0,9 s) sous les yeux, un saut. Le script en ligne de <main> lit le même drapeau.
+      document.addEventListener('astro:before-preparation', (e) => {
+        window.sansCascade = e.navigationType === 'traverse';
+      });
       document.addEventListener('astro:page-load', () => {
-        if (mouvementRéduit.matches) return;
+        const sans = window.sansCascade;
+        window.sansCascade = false;
+        if (sans || mouvementRéduit.matches) return;
         // Au chargement à froid, le script en ligne sous <main> les a déjà lancés.
         document.querySelectorAll<HTMLElement>('main [data-cascade]:not(.animate-rise)').forEach((el, i) => {
           el.classList.add('animate-rise');
