@@ -16,13 +16,16 @@ const CONTACT = {
 const PEOPLE = {
   "alexandre-van-campenhout": {
     name: "Alexandre Van Campenhout",
+    // Réseaux de la fiche (instagram, facebook, linkedin, site) : le faux CMS les sert tels quels.
+    reseaux: { instagram: "https://www.instagram.com/exemple/", site: "https://exemple.test/" },
     bio: [
       "Alexandre Van Campenhout est un auteur, metteur en scène et interprète autodidacte d'origine bruxelloise. Il se consacre à la création de théâtre contemporain qui a pour message « Avancer plus loin, ensemble, au rythme de nos différences ».",
       "Ses pièces interrogent avant tout la recherche identitaire et les relations humaines, et explorent différentes problématiques modernes en alternant légèreté et émotions brutes. Son but est d'utiliser le théâtre comme outil pour sensibiliser les gens à ces problématiques, tout en les transportant dans un univers onirique.",
     ],
   },
   "alize-cookie": { name: "Alizé Cookie" },
-  "audrey-colomb": { name: "Audrey Colomb" },
+  // Sans https:// : le loader l'écarte avec un warning.
+  "audrey-colomb": { name: "Audrey Colomb", reseaux: { linkedin: "linkedin.com/in/exemple" } },
   "hans-melot": { name: "Hans Mélot" },
   "hugo-ortiz": { name: "Hugo Ortiz" },
   "ildiko-acs": { name: "Ildikó Ács" },

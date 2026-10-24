@@ -140,7 +140,7 @@ export const T = {
     },
     {
       titre: 'Cookies',
-      html: `<p>Ce site n'utilise aucun cookie, aucun traceur et aucun outil de mesure d'audience, et ne charge aucun contenu de tiers : polices, images et vidéos viennent du site lui-même. Aucun consentement n'est donc demandé. Les liens vers Instagram et Facebook mènent hors du site, où s'appliquent les règles de ces services.</p>`,
+      html: `<p>Ce site n'utilise aucun cookie, aucun traceur et aucun outil de mesure d'audience, et ne charge aucun contenu de tiers : polices, images et vidéos viennent du site lui-même. Aucun consentement n'est donc demandé. Les liens vers les réseaux sociaux et les sites personnels mènent hors du site, où s'appliquent les règles de ces services.</p>`,
     },
     {
       titre: 'Vos droits',
@@ -226,6 +226,8 @@ export const T = {
   nouvelOnglet: ' (nouvel onglet)',
   instagram: 'Instagram',
   facebook: 'Facebook',
+  linkedin: 'LinkedIn',
+  sitePerso: 'Site',
 
   introuvable: 'Page introuvable',
   introuvableTexte: "Cette page n'existe pas, ou plus.",

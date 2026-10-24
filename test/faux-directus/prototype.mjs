@@ -92,6 +92,7 @@ export function modèleDuPrototype({ CONTACT, PEOPLE, SHOWS, MONTREAL, GALLERY, 
     name: p.name,
     groupe: p.guest ? 'invite' : p.montreal ? 'montreal' : 'equipe',
     bio: enParagraphes(p.bio),
+    ...p.reseaux,
   }));
 
   // --- Photos : la galerie d'abord (son ordre est celui du Studio), puis les

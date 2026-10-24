@@ -1,0 +1,26 @@
+---
+// Les pastilles vers les réseaux et sites, sur Contact et sous le nom d'une
+// fiche. Un lien vide n'est pas rendu, et sans aucun lien le bloc non plus.
+import Pastille from './Pastille.astro';
+import { T } from '../lib/textes.js';
+
+interface Props {
+  liens: { href: string | null; label: string }[];
+  class?: string;
+}
+
+const { liens, class: classe } = Astro.props;
+const presents = liens.filter((l) => l.href);
+---
+
+{presents.length > 0 && (
+  <div class:list={['mt-4 flex flex-wrap gap-3', classe]} data-cascade>
+    {/* La flèche dit que le lien sort du site ; le texte caché le dit aux lecteurs d'écran. */}
+    {presents.map((l) => (
+      <Pastille class="after:ml-[.35em] after:text-[.8em] after:content-['↗']" href={l.href!} target="_blank" rel="noopener">
+        {l.label}
+        <span class="sr-only">{T.nouvelOnglet}</span>
+      </Pastille>
+    ))}
+  </div>
+)}
