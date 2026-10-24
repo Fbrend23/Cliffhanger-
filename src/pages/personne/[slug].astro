@@ -7,6 +7,7 @@ import Intitule from '../../components/Intitule.astro';
 import LienRetour from '../../components/LienRetour.astro';
 import PageListe from '../../components/PageListe.astro';
 import Footer from '../../components/Footer.astro';
+import Reseaux from '../../components/Reseaux.astro';
 import Section from '../../components/Section.astro';
 import TableauDates from '../../components/TableauDates.astro';
 import TexteRiche from '../../components/TexteRiche.astro';
@@ -40,11 +41,25 @@ const description = !debutBio
     ? debutBio
     : T.descriptionBio(p.name, extrait(p.bio, 155 - p.name.length - 2)!);
 
+const réseaux = [
+  { href: p.instagram, label: T.instagram },
+  { href: p.facebook, label: T.facebook },
+  { href: p.linkedin, label: T.linkedin },
+  { href: p.site, label: T.sitePerso },
+];
+
 // Pour les moteurs : la personne, et le chemin du lien retour.
 const adresse = (chemin: string) => new URL(chemin, Astro.site).toString();
 const url = adresse(Astro.url.pathname);
 const jsonLd = [
-  personne({ nom: p.name, url, description: extrait(p.bio), membre: p.groupe === 'equipe', compagnie: adresse('/') }),
+  personne({
+    nom: p.name,
+    url,
+    description: extrait(p.bio),
+    membre: p.groupe === 'equipe',
+    compagnie: adresse('/'),
+    réseaux: réseaux.map((r) => r.href),
+  }),
   filAriane([
     { nom: T.accueil, url: adresse('/') },
     { nom: T.laCompagnie, url: adresse('/compagnie/') },
@@ -58,22 +73,19 @@ const jsonLd = [
     <div class="mx-auto w-full max-w-4xl px-gouttiere">
       <LienRetour href="/compagnie/" texte={T.retourCompagnie} />
       <TitrePage texte={p.name} />
-      {
-        projets.length > 0 && (
-          <Section nu>
-            <Intitule texte={T.projets} />
-            <TableauDates lignes={projets} />
-          </Section>
-        )
-      }
-      {
-        p.bio && (
-          <Section nu>
-            <Intitule texte={T.biographie} />
-            <TexteRiche html={p.bio} justifie />
-          </Section>
-        )
-      }
+      <Reseaux liens={réseaux} />
+      {projets.length > 0 && (
+        <Section nu>
+          <Intitule texte={T.projets} />
+          <TableauDates lignes={projets} />
+        </Section>
+      )}
+      {p.bio && (
+        <Section nu>
+          <Intitule texte={T.biographie} />
+          <TexteRiche html={p.bio} justifie />
+        </Section>
+      )}
     </div>
     <Footer />
   </PageListe>
