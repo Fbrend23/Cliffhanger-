@@ -585,6 +585,13 @@ const entrée =
       // même avec prefers-reduced-motion (la règle de site.css coupe alors son fondu).
       const voilerEntête = () => document.querySelector('.js-entete')?.classList.toggle('est-parti', scrollY > 40);
       document.addEventListener('astro:page-load', voilerEntête);
+      // En reculant, le routeur remet le défilement après l'échange : l'en-tête neuf, sans voile, le
+      // prendrait à `page-load` et le ferait apparaître en fondu sous les yeux. Le défilement retenu par
+      // le routeur le dit déjà, avant la première image de la page : le voile est là d'emblée.
+      document.addEventListener('astro:after-swap', () => {
+        const retenu = history.state?.scrollY;
+        if (typeof retenu === 'number') document.querySelector('.js-entete')?.classList.toggle('est-parti', retenu > 40);
+      });
       let enAttente = false;
       addEventListener(
         'scroll',
