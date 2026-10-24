@@ -129,6 +129,11 @@
 /* Changement de page : la nouvelle apparaît en fondu PAR-DESSUS l'ancienne, photo sur photo, jamais par
    le noir. L'animation est posée sur <html> par Base.astro (transition:animate) : l'image de l'ancienne
    page ne bouge pas, la nouvelle monte de 0 à 1 en 0,7 s. */
+/* En reculant ou avançant dans l'historique, pas de fondu : l'image de l'ancienne page n'a pas le voile de
+   l'en-tête (défilement à 0), la nouvelle l'a déjà, et le fondu le faisait apparaître sous les yeux.
+   Base.astro pose `sans-fondu` sur <html> de la page qui arrive ; le routeur la retire à la navigation suivante. */
+html.sans-fondu::view-transition-old(root),
+html.sans-fondu::view-transition-new(root){animation:none!important}
 @keyframes cliffReste{from{opacity:1}to{opacity:1}}
 @keyframes cliffFondu{from{opacity:0}to{opacity:1}}
 /* chaque bloc glisse en place, l'un après l'autre (animate-rise, posé par Base.astro) */

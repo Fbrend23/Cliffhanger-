@@ -568,6 +568,10 @@ const entrée =
       document.addEventListener('astro:before-preparation', (e) => {
         window.sansCascade = e.navigationType === 'traverse';
       });
+      // Pas de fondu non plus (site.css, `sans-fondu`) : posé sur le <html> qui arrive, le routeur le recopie.
+      document.addEventListener('astro:before-swap', (e) => {
+        if (window.sansCascade) e.newDocument.documentElement.classList.add('sans-fondu');
+      });
       document.addEventListener('astro:page-load', () => {
         const sans = window.sansCascade;
         window.sansCascade = false;
