@@ -590,7 +590,18 @@ const entrée =
       // le routeur le dit déjà, avant la première image de la page : le voile est là d'emblée.
       document.addEventListener('astro:after-swap', () => {
         const retenu = history.state?.scrollY;
-        if (typeof retenu === 'number') document.querySelector('.js-entete')?.classList.toggle('est-parti', retenu > 40);
+        const entête = document.querySelector('.js-entete');
+        if (typeof retenu !== 'number' || !entête) return;
+        // La classe seule ne suffit pas : le navigateur ne recalcule le style qu'au premier rendu de la
+        // page, après l'attente du fondu, et le voile montait alors en transition. Sans transition le
+        // temps de forcer ce calcul, l'opacité arrive déjà à sa valeur.
+        const voile = entête.querySelector<HTMLElement>(':scope > div');
+        if (voile) voile.style.transition = 'none';
+        entête.classList.toggle('est-parti', retenu > 40);
+        if (voile) {
+          getComputedStyle(voile).opacity;
+          voile.style.transition = '';
+        }
       });
       let enAttente = false;
       addEventListener(
