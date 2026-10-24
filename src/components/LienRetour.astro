@@ -40,6 +40,9 @@ const { href, texte } = Astro.props;
       const lien = (e.target as Element).closest<HTMLAnchorElement>('a[data-retour][data-reculer]');
       if (!lien) return;
       e.preventDefault();
+      // On revient à la liste où l'on a cliqué : elle était forcément défilée, l'en-tête y a son voile.
+      // Le poser avant de partir, sinon on devine le texte de la page avant que le flou n'arrive.
+      document.querySelector('.js-entete')?.classList.add('est-parti');
       history.back();
     },
     true
