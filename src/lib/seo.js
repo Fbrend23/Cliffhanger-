@@ -66,9 +66,10 @@ export function prixEnEuros(prix) {
 /**
  * Une personne, sur sa fiche. Seule l'équipe est membre de la compagnie ;
  * un invité ou quelqu'un de Montréal y a sa fiche sans en être.
- * @param {{ nom: string, url: string, description?: string|null, membre: boolean, compagnie: string }} o  compagnie : l'accueil
+ * @param {{ nom: string, url: string, description?: string|null, membre: boolean, compagnie: string, réseaux?: (string|null)[] }} o  compagnie : l'accueil
  */
-export function personne({ nom, url, description = null, membre, compagnie }) {
+export function personne({ nom, url, description = null, membre, compagnie, réseaux = [] }) {
+  const liens = réseaux.filter(Boolean);
   return {
     '@type': 'Person',
     '@id': idPersonne(url),
@@ -76,6 +77,7 @@ export function personne({ nom, url, description = null, membre, compagnie }) {
     url,
     ...(description ? { description } : {}),
     ...(membre ? { memberOf: { '@id': idCompagnie(compagnie) } } : {}),
+    ...(liens.length > 0 ? { sameAs: liens } : {}),
   };
 }
 

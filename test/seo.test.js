@@ -122,6 +122,13 @@ test('personne : membre de la compagnie pour l’équipe seulement', () => {
   const invitée = personne({ nom: 'B', url, membre: false, compagnie: 'https://exemple.test/' });
   assert.equal(invitée.memberOf, undefined);
   assert.equal(invitée.description, undefined);
+  assert.equal(invitée.sameAs, undefined);
+});
+
+test('personne : sameAs liste les réseaux renseignés, sans les vides', () => {
+  const url = 'https://exemple.test/personne/a/';
+  const p = personne({ nom: 'A', url, membre: true, compagnie: 'https://exemple.test/', réseaux: ['https://instagram.com/a', null, 'https://a.example'] });
+  assert.deepEqual(p.sameAs, ['https://instagram.com/a', 'https://a.example']);
 });
 
 test('fil d’Ariane : les étapes numérotées depuis 1', () => {
