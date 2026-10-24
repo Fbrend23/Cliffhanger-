@@ -129,6 +129,24 @@
 /* Changement de page : la nouvelle apparaît en fondu PAR-DESSUS l'ancienne, photo sur photo, jamais par
    le noir. L'animation est posée sur <html> par Base.astro (transition:animate) : l'image de l'ancienne
    page ne bouge pas, la nouvelle monte de 0 à 1 en 0,7 s. */
+/* Une page sans photo en haut (`fondu={false}` de Base.astro, une fiche personne) remplace l'ancienne d'un
+   coup, sur fond noir : un fondu laisserait voir l'ancienne page à travers. En reculant ou avançant dans
+   l'historique, il n'y a pas de transition de vue du tout (Base.astro). */
+html.sans-fondu::view-transition-old(root),
+html.sans-fondu::view-transition-new(root){animation:none!important}
+/* Quittant une page défilée (`voile-plein`, Base.astro), l'en-tête a son propre groupe de transition : il ne
+   prend pas part au fondu, la nouvelle version est là tout de suite, son voile plein : le texte de
+   l'ancienne page ne se devine plus derrière. Seulement dans ce cas : une image de l'en-tête n'a pas le
+   flou de son voile (backdrop-filter), qui n'arriverait qu'à la fin de la transition. */
+html.voile-plein .js-entete{view-transition-name:entete}
+/* Le groupe de l'en-tête passe au-dessus de la page : le bouton Menu et la barre de chargement, plus
+   hauts que lui, ont le leur, dans cet ordre, sinon son voile plein les cache le temps de la transition. */
+html.voile-plein #burger{view-transition-name:burger}
+html.voile-plein .js-chargement{view-transition-name:chargement}
+html.voile-plein .js-entete > div{opacity:1;background:var(--color-back);backdrop-filter:none}
+::view-transition-new(entete),
+::view-transition-new(burger),
+::view-transition-new(chargement){animation:none}
 @keyframes cliffReste{from{opacity:1}to{opacity:1}}
 @keyframes cliffFondu{from{opacity:0}to{opacity:1}}
 /* chaque bloc glisse en place, l'un après l'autre (animate-rise, posé par Base.astro) */

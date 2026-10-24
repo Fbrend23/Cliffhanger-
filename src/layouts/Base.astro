@@ -37,9 +37,12 @@ interface Props {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
   // Faux pour une page qui n'a pas sa place dans un moteur (la 404).
   indexer?: boolean;
+  // Faux pour une page sans photo en haut (une fiche personne) : elle remplace l'ancienne d'un coup, sur
+  // fond noir, puis ses blocs descendent en cascade. Un fondu laisserait voir l'ancienne page à travers.
+  fondu?: boolean;
 }
 
-const { title, description = null, image = null, precharger = null, jsonLd = null, indexer = true } = Astro.props;
+const { title, description = null, image = null, precharger = null, jsonLd = null, indexer = true, fondu: avecFondu = true } = Astro.props;
 
 const site = (await getEntry('reglages', 'site'))!.data;
 
@@ -121,7 +124,7 @@ const entrée =
 ---
 
 <!doctype html>
-<html lang="fr" class="scroll-pt-24" transition:animate={animation} transition:name="root">
+<html lang="fr" class:list={['scroll-pt-24', { 'sans-fondu': !avecFondu }]} transition:animate={animation} transition:name="root">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -568,6 +571,29 @@ const entrée =
       document.addEventListener('astro:before-preparation', (e) => {
         window.sansCascade = e.navigationType === 'traverse';
       });
+      // Ni fondu ni transition de vue non plus : le routeur échange la page d'un coup. Pendant une transition
+      // de vue, le navigateur présente la nouvelle page par une image, et le flou du voile de l'en-tête
+      // (backdrop-filter) n'y arrivait qu'à la fin : du noir, puis le flou. Sans elle, la page est vivante.
+      const transitionNative = document.startViewTransition?.bind(document);
+      if (transitionNative) {
+        document.startViewTransition = (arg) => {
+          if (!window.sansCascade) return transitionNative(arg);
+          const miseÀJour = typeof arg === 'function' ? arg : arg?.update;
+          const fait = (async () => miseÀJour?.())();
+          return { updateCallbackDone: fait, ready: fait, finished: fait, skipTransition() {} } as ViewTransition;
+        };
+      }
+      document.addEventListener('astro:before-swap', (e) => {
+        if (window.sansCascade) return;
+        // Quittant une page défilée, l'image de l'ancienne page garde son texte flouté sous l'en-tête ;
+        // celui de la nouvelle, en haut, n'a pas de voile et le laisse voir pendant le fondu. Le voile
+        // devient plein (site.css) le temps de la transition, puis s'efface de lui-même.
+        if (!document.querySelector('.js-entete')?.classList.contains('est-parti')) return;
+        const racine = e.newDocument.documentElement;
+        racine.classList.add('voile-plein');
+        // Le fondu dure 0,7 s. (`viewTransition.finished` ne se résout pas ici, d'où la minuterie.)
+        setTimeout(() => document.documentElement.classList.remove('voile-plein'), 800);
+      });
       document.addEventListener('astro:page-load', () => {
         const sans = window.sansCascade;
         window.sansCascade = false;
@@ -585,6 +611,24 @@ const entrée =
       // même avec prefers-reduced-motion (la règle de site.css coupe alors son fondu).
       const voilerEntête = () => document.querySelector('.js-entete')?.classList.toggle('est-parti', scrollY > 40);
       document.addEventListener('astro:page-load', voilerEntête);
+      // En reculant, le routeur remet le défilement après l'échange : l'en-tête neuf, sans voile, le
+      // prendrait à `page-load` et le ferait apparaître en fondu sous les yeux. Le défilement retenu par
+      // le routeur le dit déjà, avant la première image de la page : le voile est là d'emblée.
+      document.addEventListener('astro:after-swap', () => {
+        const retenu = history.state?.scrollY;
+        const entête = document.querySelector('.js-entete');
+        if (typeof retenu !== 'number' || !entête) return;
+        // La classe seule ne suffit pas : le navigateur ne recalcule le style qu'au premier rendu de la
+        // page, après l'attente du fondu, et le voile montait alors en transition. Sans transition le
+        // temps de forcer ce calcul, l'opacité arrive déjà à sa valeur.
+        const voile = entête.querySelector<HTMLElement>(':scope > div');
+        if (voile) voile.style.transition = 'none';
+        entête.classList.toggle('est-parti', retenu > 40);
+        if (voile) {
+          void getComputedStyle(voile).opacity;
+          voile.style.transition = '';
+        }
+      });
       let enAttente = false;
       addEventListener(
         'scroll',
