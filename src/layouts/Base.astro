@@ -162,6 +162,18 @@ const entrée =
         document.addEventListener('astro:after-swap', () => document.documentElement.classList.add('js'));
       }
     </script>
+    {/* GoatCounter : sans cookie. Le script compte la page d'arrivée ; le ClientRouter ne recharge pas la page, donc chaque page suivante est comptée à la main (astro:page-load, sauf le premier). Il ignore localhost tout seul. */}
+    <script is:inline data-goatcounter="https://compagniecliffhanger.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+    <script is:inline>
+      if (!window.__cliffCompteur) {
+        window.__cliffCompteur = true;
+        let premier = true;
+        document.addEventListener('astro:page-load', () => {
+          if (premier) return void (premier = false);
+          window.goatcounter?.count?.({ path: location.pathname + location.search + location.hash });
+        });
+      }
+    </script>
     <ClientRouter fallback="swap" />
   </head>
   <body class="menu-ouvert:overflow-hidden">
