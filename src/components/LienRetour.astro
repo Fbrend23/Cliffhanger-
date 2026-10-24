@@ -13,7 +13,7 @@ interface Props {
 const { href, texte } = Astro.props;
 ---
 
-<a class="mt-8 inline-block opacity-75 hover:opacity-100 focus-visible:opacity-100" href={href} data-retour set:html={tx(texte)} />
+<a class="mb-4 inline-block opacity-75 hover:opacity-100 focus-visible:opacity-100" href={href} data-retour set:html={tx(texte)} />
 
 <script>
   import { origineDe } from '../lib/origine.js';
