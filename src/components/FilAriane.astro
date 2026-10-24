@@ -1,0 +1,25 @@
+---
+// Le fil d'Ariane visible d'une page : discret, au-dessus du titre. Le même
+// parcours que les données structurées (`filAriane()`, `src/lib/seo.js`).
+import { tx } from '../lib/typo.js';
+
+interface Props {
+  /** De l'accueil à la page ; la dernière étape (la page courante) n'a pas de lien. */
+  chemin: { nom: string; href?: string }[];
+}
+
+const { chemin } = Astro.props;
+---
+
+<nav aria-label={chemin.at(-1)?.nom} class="mb-4 text-sm opacity-75">
+  <ol class="flex flex-wrap gap-x-2">
+    {
+      chemin.map((é, i) => (
+        <li class="flex gap-x-2">
+          {i > 0 && <span aria-hidden="true">›</span>}
+          {é.href ? <a class="lien-souligne" href={é.href} set:html={tx(é.nom)} /> : <span aria-current="page" set:html={tx(é.nom)} />}
+        </li>
+      ))
+    }
+  </ol>
+</nav>

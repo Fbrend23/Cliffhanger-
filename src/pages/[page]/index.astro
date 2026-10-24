@@ -5,6 +5,7 @@
 import Base from '../../layouts/Base.astro';
 import Intitule from '../../components/Intitule.astro';
 import PageListe from '../../components/PageListe.astro';
+import FilAriane from '../../components/FilAriane.astro';
 import Footer from '../../components/Footer.astro';
 import Section from '../../components/Section.astro';
 import TexteRiche from '../../components/TexteRiche.astro';
@@ -41,6 +42,7 @@ const jsonLd = filAriane([
 <Base title={titre} description={description} jsonLd={jsonLd}>
   <PageListe>
     <div class="mx-auto w-full max-w-4xl px-gouttiere">
+      <FilAriane chemin={[{ nom: T.accueil, href: '/' }, { nom: titre }]} />
       <TitrePage texte={titre} />
     </div>
     {
