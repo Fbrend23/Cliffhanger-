@@ -37,9 +37,12 @@ interface Props {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
   // Faux pour une page qui n'a pas sa place dans un moteur (la 404).
   indexer?: boolean;
+  // Faux pour une page sans photo en haut (une fiche personne) : elle remplace l'ancienne d'un coup, sur
+  // fond noir, puis ses blocs descendent en cascade. Un fondu laisserait voir l'ancienne page à travers.
+  fondu?: boolean;
 }
 
-const { title, description = null, image = null, precharger = null, jsonLd = null, indexer = true } = Astro.props;
+const { title, description = null, image = null, precharger = null, jsonLd = null, indexer = true, fondu: avecFondu = true } = Astro.props;
 
 const site = (await getEntry('reglages', 'site'))!.data;
 
@@ -121,7 +124,7 @@ const entrée =
 ---
 
 <!doctype html>
-<html lang="fr" class="scroll-pt-24" transition:animate={animation} transition:name="root">
+<html lang="fr" class:list={['scroll-pt-24', { 'sans-fondu': !avecFondu }]} transition:animate={animation} transition:name="root">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
