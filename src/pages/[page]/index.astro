@@ -4,6 +4,7 @@
 // légales (`légal()`) : sinon aucune page, et le footer n'en parle pas.
 import Base from '../../layouts/Base.astro';
 import Intitule from '../../components/Intitule.astro';
+import LienRetour from '../../components/LienRetour.astro';
 import PageListe from '../../components/PageListe.astro';
 import FilAriane from '../../components/FilAriane.astro';
 import Footer from '../../components/Footer.astro';
@@ -42,6 +43,7 @@ const jsonLd = filAriane([
 <Base title={titre} description={description} jsonLd={jsonLd}>
   <PageListe>
     <div class="mx-auto w-full max-w-4xl px-gouttiere">
+      <LienRetour href="/" texte={T.retourAccueil} />
       <FilAriane chemin={[{ nom: T.accueil, href: '/' }, { nom: titre }]} />
       <TitrePage texte={titre} />
     </div>
