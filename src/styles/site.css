@@ -129,9 +129,9 @@
 /* Changement de page : la nouvelle apparaît en fondu PAR-DESSUS l'ancienne, photo sur photo, jamais par
    le noir. L'animation est posée sur <html> par Base.astro (transition:animate) : l'image de l'ancienne
    page ne bouge pas, la nouvelle monte de 0 à 1 en 0,7 s. */
-/* En reculant ou avançant dans l'historique, pas de fondu : l'image de l'ancienne page n'a pas le voile de
-   l'en-tête (défilement à 0), la nouvelle l'a déjà, et le fondu le faisait apparaître sous les yeux.
-   Base.astro pose `sans-fondu` sur <html> de la page qui arrive ; le routeur la retire à la navigation suivante. */
+/* Une page sans photo en haut (`fondu={false}` de Base.astro, une fiche personne) remplace l'ancienne d'un
+   coup, sur fond noir : un fondu laisserait voir l'ancienne page à travers. En reculant ou avançant dans
+   l'historique, il n'y a pas de transition de vue du tout (Base.astro). */
 html.sans-fondu::view-transition-old(root),
 html.sans-fondu::view-transition-new(root){animation:none!important}
 /* Quittant une page défilée (`voile-plein`, Base.astro), l'en-tête a son propre groupe de transition : il ne

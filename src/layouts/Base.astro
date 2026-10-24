@@ -571,9 +571,20 @@ const entrée =
       document.addEventListener('astro:before-preparation', (e) => {
         window.sansCascade = e.navigationType === 'traverse';
       });
-      // Pas de fondu non plus (site.css, `sans-fondu`) : posé sur le <html> qui arrive, le routeur le recopie.
+      // Ni fondu ni transition de vue non plus : le routeur échange la page d'un coup. Pendant une transition
+      // de vue, le navigateur présente la nouvelle page par une image, et le flou du voile de l'en-tête
+      // (backdrop-filter) n'y arrivait qu'à la fin : du noir, puis le flou. Sans elle, la page est vivante.
+      const transitionNative = document.startViewTransition?.bind(document);
+      if (transitionNative) {
+        document.startViewTransition = (arg) => {
+          if (!window.sansCascade) return transitionNative(arg);
+          const miseÀJour = typeof arg === 'function' ? arg : arg?.update;
+          const fait = (async () => miseÀJour?.())();
+          return { updateCallbackDone: fait, ready: fait, finished: fait, skipTransition() {} } as ViewTransition;
+        };
+      }
       document.addEventListener('astro:before-swap', (e) => {
-        if (window.sansCascade) return void e.newDocument.documentElement.classList.add('sans-fondu');
+        if (window.sansCascade) return;
         // Quittant une page défilée, l'image de l'ancienne page garde son texte flouté sous l'en-tête ;
         // celui de la nouvelle, en haut, n'a pas de voile et le laisse voir pendant le fondu. Le voile
         // devient plein (site.css) le temps de la transition, puis s'efface de lui-même.
