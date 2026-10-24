@@ -185,7 +185,7 @@ const entrée =
     <a class="fixed -top-16 left-4 z-60 bg-front px-4 py-3 font-normal text-back transition-[top] duration-200 focus:top-[calc(1rem+var(--safe-top))]" href="#contenu">{T.allerAuContenu}</a>
     {/* La barre de chargement : un trait blanc en haut de l'écran, allumé par le script (data-actif) quand une page tarde. Elle survit au changement de page, comme le menu : le routeur recopie les attributs de <html>, pas ceux d'un élément gardé. Sans mouvement (prefers-reduced-motion), le trait reste plein le temps de l'attente. */}
     <div class="js-chargement pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 origin-left bg-front opacity-0 transition-opacity duration-200 data-actif:animate-chargement data-actif:opacity-100" aria-hidden="true" transition:persist="chargement"></div>
-    <header class="js-entete group [view-transition-name:entete] pointer-events-none fixed inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere sans-js:absolute">
+    <header class="js-entete group pointer-events-none fixed inset-x-0 top-0 z-20 pt-[calc(1rem+var(--safe-top))] pr-4 pb-4 pl-gouttiere sans-js:absolute">
       {/* Le voile : une bande noire translucide qui n'apparaît qu'une fois la page défilée, pour que le logo et « Menu » restent lisibles sur une photo. */}
       <div class="absolute inset-0 -z-1 bg-back/60 backdrop-blur-sm opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
       <a
