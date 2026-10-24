@@ -625,7 +625,7 @@ const entrée =
         if (voile) voile.style.transition = 'none';
         entête.classList.toggle('est-parti', retenu > 40);
         if (voile) {
-          getComputedStyle(voile).opacity;
+          void getComputedStyle(voile).opacity;
           voile.style.transition = '';
         }
       });
