@@ -196,6 +196,16 @@ test('personnes : groupes, Marie-Hélène Ruiz invitée, bio en HTML', async () 
   assert.equal(entrées.get('audrey-colomb').data.bio, null);
 });
 
+test('personnes : réseaux gardés s’ils commencent par https://, sinon ignorés', async () => {
+  const { entrées, ctx } = contexte();
+  await L.personnesLoader().load(ctx);
+  const alexandre = entrées.get('alexandre-van-campenhout').data;
+  assert.equal(alexandre.instagram, 'https://www.instagram.com/exemple/');
+  assert.equal(alexandre.site, 'https://exemple.test/');
+  assert.equal(alexandre.facebook, null);
+  assert.equal(entrées.get('audrey-colomb').data.linkedin, null);
+});
+
 test('générique : liens par slug, ordre, note gardée, personnage de chaque personne', async () => {
   const g = contexte();
   await L.generiqueLoader().load(g.ctx);

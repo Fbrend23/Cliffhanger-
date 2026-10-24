@@ -89,6 +89,25 @@ function signalerTirets(logger, où, valeurs) {
 }
 
 /**
+ * Une adresse saisie dans le Studio, gardée seulement si elle commence par
+ * http(s):// : un lien sans schéma ferait une adresse relative cassée, et
+ * `javascript:` n'a rien à faire dans un href.
+ * @param {any} valeur
+ * @param {any} logger
+ * @param {string} où  la personne et le champ, pour le message
+ * @returns {string|null}
+ */
+function adresseWeb(valeur, logger, où) {
+  const url = texte(valeur);
+  if (!url) return null;
+  if (!/^https?:\/\//i.test(url)) {
+    logger.warn(`${où} : « ${url.slice(0, 60)} » ne commence pas par https://, ignoré.`);
+    return null;
+  }
+  return url;
+}
+
+/**
  * Un slug fait l'adresse de la page : on ne refuse pas l'entrée (la page existe
  * peut-être déjà, et changer son adresse est la décision de la compagnie), mais
  * on dit ce qui s'écarte de « lettres minuscules, chiffres, tirets », ou ce qui
@@ -361,7 +380,7 @@ export function personnesLoader() {
   return {
     name: 'directus-personnes',
     async load({ store, parseData, logger }) {
-      const lignes = await requestAll(`/items/${PERSONNES}?${PUBLIÉ}&sort=sort,name&fields=id,sort,slug,name,groupe,bio`);
+      const lignes = await requestAll(`/items/${PERSONNES}?${PUBLIÉ}&sort=sort,name&fields=id,sort,slug,name,groupe,instagram,facebook,linkedin,site,bio`);
       store.clear();
       const slugsVus = new Set();
       for (const p of lignes) {
@@ -374,7 +393,11 @@ export function personnesLoader() {
         signalerSlug(logger, `personne « ${name} »`, slug, slugsVus);
         signalerTirets(logger, `personne « ${name} »`, [p.name, p.bio]);
         const groupe = ['equipe', 'invite', 'montreal'].includes(p.groupe) ? p.groupe : 'equipe';
-        const data = await parseData({ id: slug, data: { slug, name, groupe, bio: texte(p.bio), sort: p.sort ?? 0 } });
+        const réseau = (/** @type {string} */ champ) => adresseWeb(p[champ], logger, `personne « ${name} », ${champ}`);
+        const data = await parseData({
+          id: slug,
+          data: { slug, name, groupe, instagram: réseau('instagram'), facebook: réseau('facebook'), linkedin: réseau('linkedin'), site: réseau('site'), bio: texte(p.bio), sort: p.sort ?? 0 },
+        });
         store.set({ id: slug, data, digest: JSON.stringify(p) });
       }
       logger.info(`${lignes.length} personne(s) chargée(s)`);
