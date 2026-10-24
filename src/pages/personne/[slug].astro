@@ -56,6 +56,7 @@ const jsonLd = [
 <Base title={p.name} description={description} jsonLd={jsonLd}>
   <PageListe>
     <div class="mx-auto w-full max-w-4xl px-gouttiere">
+      <LienRetour href="/compagnie/" texte={T.retourCompagnie} />
       <TitrePage texte={p.name} />
       {
         projets.length > 0 && (
@@ -73,7 +74,6 @@ const jsonLd = [
           </Section>
         )
       }
-      <LienRetour href="/compagnie/" texte={T.retourCompagnie} />
     </div>
     <Footer />
   </PageListe>

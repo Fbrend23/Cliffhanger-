@@ -155,11 +155,13 @@ const entrée =
     <script is:inline>
       // Avec JS : le burger remplace la ligne de liens (variante sans-js). Le routeur
       // recopie les attributs de <html> de la page suivante, qui n'a pas la
-      // classe : on la remet après chaque changement.
+      // classe : on la lui donne avant le changement. Après, elle arriverait trop tard :
+      // le routeur restaure le défilement avec le menu encore en ligne de liens (108 px
+      // dans le flux), qui sort du flux ensuite, et le navigateur recule la page d'autant.
       document.documentElement.classList.add('js');
       if (!window.__cliffJs) {
         window.__cliffJs = true;
-        document.addEventListener('astro:after-swap', () => document.documentElement.classList.add('js'));
+        document.addEventListener('astro:before-swap', (e) => e.newDocument.documentElement.classList.add('js'));
       }
     </script>
     {/* GoatCounter : sans cookie. Le script compte la page d'arrivée ; le ClientRouter ne recharge pas la page, donc chaque page suivante est comptée à la main (astro:page-load, sauf le premier). Il ignore localhost tout seul. */}
@@ -185,7 +187,7 @@ const entrée =
       <div class="absolute inset-0 -z-1 bg-back/60 backdrop-blur-sm opacity-0 transition-opacity duration-250 group-[.est-parti]:opacity-100" aria-hidden="true"></div>
       <a
         href="/"
-        class="pointer-events-auto inline-flex max-w-64 items-center gap-2.5 text-2xl leading-[1.2] tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
+        class="pointer-events-auto inline-flex max-w-64 items-center gap-2.5 text-xl leading-[1.2] sm:text-2xl tracking-large uppercase opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100"
         translate="no"
       >
         {/* Le logo, décoratif : le nom de la compagnie, juste à côté, dit déjà où mène le lien. */}
@@ -194,7 +196,7 @@ const entrée =
       </a>
     </header>
     <button
-      class="fixed top-[calc(.375rem+var(--safe-top))] right-1.5 z-40 flex h-11 items-center gap-3 px-3 opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 lg:right-[calc(var(--spacing-gouttiere)-.75rem)] sans-js:hidden"
+      class="fixed top-[calc(1.125rem+var(--safe-top))] right-1.5 sm:top-[calc(1.425rem+var(--safe-top))] z-40 flex h-11 items-center gap-3 px-3 opacity-75 transition-opacity duration-250 ease-linear hover:opacity-100 focus-visible:opacity-100 lg:right-[calc(var(--spacing-gouttiere)-.75rem)] sans-js:hidden"
       id="burger"
       aria-expanded="false"
       aria-controls="menu"
@@ -261,7 +263,7 @@ const entrée =
 
     {/* La cascade part ici, avant la première peinture : posée par le module (téléchargé après la photo et les polices), elle effaçait des blocs déjà affichés pour les refaire monter. Sans mouvement réduit seulement ; sans JS, rien n'est caché. */}
     <script is:inline>
-      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches && !window.sansCascade) {
         /** @type {NodeListOf<HTMLElement>} */
         const blocs = document.querySelectorAll('main [data-cascade]:not(.animate-rise)');
         blocs.forEach(function (el, i) {
@@ -560,8 +562,16 @@ const entrée =
       // Chaque bloc glisse en place, l'un après l'autre, à chaque page. Les
       // blocs portent data-cascade : titres, lignes des listes, sections,
       // pastilles, vignettes de la galerie.
+      // Sauf en reculant ou avançant dans l'historique : la page revient telle qu'on l'a quittée, au
+      // même défilement. Les blocs, déjà là, ne repartiraient que pour glisser de 1,25 rem en retard
+      // (jusqu'à 0,9 s) sous les yeux, un saut. Le script en ligne de <main> lit le même drapeau.
+      document.addEventListener('astro:before-preparation', (e) => {
+        window.sansCascade = e.navigationType === 'traverse';
+      });
       document.addEventListener('astro:page-load', () => {
-        if (mouvementRéduit.matches) return;
+        const sans = window.sansCascade;
+        window.sansCascade = false;
+        if (sans || mouvementRéduit.matches) return;
         // Au chargement à froid, le script en ligne sous <main> les a déjà lancés.
         document.querySelectorAll<HTMLElement>('main [data-cascade]:not(.animate-rise)').forEach((el, i) => {
           el.classList.add('animate-rise');

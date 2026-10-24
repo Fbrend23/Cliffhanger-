@@ -4,5 +4,6 @@
 interface Window {
   __cliffJs?: boolean;
   __cliffCompteur?: boolean;
+  sansCascade?: boolean;
   goatcounter?: { count?: (vars: { path: string }) => void };
 }
