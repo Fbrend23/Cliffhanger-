@@ -134,6 +134,12 @@
    Base.astro pose `sans-fondu` sur <html> de la page qui arrive ; le routeur la retire à la navigation suivante. */
 html.sans-fondu::view-transition-old(root),
 html.sans-fondu::view-transition-new(root){animation:none!important}
+/* L'en-tête a son propre groupe de transition : il ne prend pas part au fondu de la page (le logo est le
+   même partout), la nouvelle version est là tout de suite. Son voile est plein si l'on quitte une page
+   défilée (`voile-plein`, Base.astro) : le texte de l'ancienne page ne se devine plus derrière. */
+::view-transition-old(entete){display:none}
+::view-transition-new(entete){animation:none}
+html.voile-plein .js-entete > div{opacity:1;background:var(--color-back);backdrop-filter:none}
 @keyframes cliffReste{from{opacity:1}to{opacity:1}}
 @keyframes cliffFondu{from{opacity:0}to{opacity:1}}
 /* chaque bloc glisse en place, l'un après l'autre (animate-rise, posé par Base.astro) */
